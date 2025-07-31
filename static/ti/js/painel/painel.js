@@ -1972,34 +1972,7 @@ document.addEventListener('DOMContentLoaded', function() {
 // Navigation event listeners are now handled in initializeNavigation() function
 // which is called after DOM is loaded
 
-// Função para lidar com mudanças de hash na URL
-window.addEventListener('hashchange', function() {
-    const hash = window.location.hash.substring(1);
-    if (hash) {
-        activateSection(hash);
-        
-        // Atualiza a classe active nos links
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Encontra e ativa o link correspondente
-        const targetLink = document.querySelector(`.sidebar a[href="#${hash}"]`);
-        if (targetLink) {
-            targetLink.classList.add('active');
-            
-            // Se for um item de submenu, ativa também o link pai
-            const submenu = targetLink.closest('.submenu');
-            if (submenu) {
-                const parentLink = submenu.previousElementSibling;
-                if (parentLink) {
-                    parentLink.classList.add('active');
-                    parentLink.parentElement.classList.add('open');
-                }
-            }
-        }
-    }
-});
+// Hash change listener will be initialized in initializeNavigation()
 
 // Adiciona suporte a teclas de acessibilidade para o menu
 document.querySelectorAll('.sidebar nav ul li').forEach(item => {
