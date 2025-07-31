@@ -2286,7 +2286,7 @@ async function carregarAgentes() {
             throw new Error('Erro ao carregar agentes');
         }
         agentesData = await response.json();
-        renderizarAgentes();
+        renderizarAgentes(agentesData);
     } catch (error) {
         console.error('Erro ao carregar agentes:', error);
         if (window.advancedNotificationSystem) {
