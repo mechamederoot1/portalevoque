@@ -1950,7 +1950,7 @@ document.getElementById('formCriarAgente')?.addEventListener('submit', async fun
 // Carregar usuários para seleção no modal de agente
 async function carregarUsuariosParaAgente() {
     try {
-        const response = await fetch('/ti/painel/api/usuarios');
+        const response = await fetch('/ti/painel/api/usuarios-disponiveis');
         if (!response.ok) {
             throw new Error('Erro ao carregar usuários');
         }
