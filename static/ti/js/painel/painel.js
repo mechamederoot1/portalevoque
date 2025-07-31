@@ -800,7 +800,7 @@ document.getElementById('btnGerarSenha')?.addEventListener('click', function(e) 
 function validarDadosUsuario(dados) {
     const erros = [];
     
-    if (!dados.nome) erros.push('Nome é obrigatório');
+    if (!dados.nome) erros.push('Nome é obrigat��rio');
     if (!dados.sobrenome) erros.push('Sobrenome é obrigatório');
     if (!dados.email) erros.push('E-mail é obrigatório');
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
@@ -2310,7 +2310,7 @@ function renderizarAgentes(agentes = null) {
         return;
     }
 
-    agentesData.forEach(agente => {
+    dadosAgentes.forEach(agente => {
         const card = document.createElement('div');
         card.className = 'card';
 
