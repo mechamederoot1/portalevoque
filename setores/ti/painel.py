@@ -1993,6 +1993,119 @@ def criar_agente():
         logger.error(traceback.format_exc())
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/setup-database', methods=['POST'])
+def setup_database_endpoint():
+    """Endpoint temporário para inserir dados de demonstração"""
+    try:
+        from datetime import datetime, timedelta
+        import random
+
+        # Inserir dados diretamente
+        print("🔄 Inserindo dados para demonstração...")
+
+        # 1. Verificar/criar usuário administrador
+        admin = User.query.filter_by(usuario='admin').first()
+        if not admin:
+            admin = User(
+                nome='Administrador',
+                sobrenome='Sistema',
+                usuario='admin',
+                email='admin@evoquefitness.com',
+                nivel_acesso='Administrador',
+                setor='TI'
+            )
+            admin.set_password('admin123')
+            admin.setores = ['TI']
+            db.session.add(admin)
+
+        # 2. Criar usuário de teste
+        usuario_teste = User.query.filter_by(email='teste@evoquefitness.com').first()
+        if not usuario_teste:
+            usuario_teste = User(
+                nome='João',
+                sobrenome='Silva',
+                usuario='joao.silva',
+                email='teste@evoquefitness.com',
+                nivel_acesso='Gestor',
+                setor='Comercial'
+            )
+            usuario_teste.set_password('teste123')
+            usuario_teste.setores = ['Comercial']
+            db.session.add(usuario_teste)
+
+        # 3. Criar agente de suporte
+        agente_teste = User.query.filter_by(email='agente@evoquefitness.com').first()
+        if not agente_teste:
+            agente_teste = User(
+                nome='Maria',
+                sobrenome='Santos',
+                usuario='maria.santos',
+                email='agente@evoquefitness.com',
+                nivel_acesso='Agente de Suporte',
+                setor='TI'
+            )
+            agente_teste.set_password('agente123')
+            agente_teste.setores = ['TI']
+            db.session.add(agente_teste)
+
+        db.session.commit()
+
+        # 4. Criar logs de acesso de exemplo
+        from database import LogAcesso
+        logs_existentes = LogAcesso.query.count()
+
+        if logs_existentes < 10:
+            ips_exemplo = ['192.168.1.100', '192.168.1.101', '192.168.1.102', '10.0.0.50', '172.16.0.10']
+            navegadores = ['Chrome', 'Firefox', 'Safari', 'Edge']
+            sistemas = ['Windows', 'macOS', 'Linux']
+            dispositivos = ['Desktop', 'Mobile', 'Tablet']
+            cidades = ['São Paulo', 'Rio de Janeiro', 'Belo Horizonte', 'Salvador', 'Brasília']
+
+            usuarios = [admin, usuario_teste, agente_teste]
+
+            for i in range(15):
+                data_acesso = get_brazil_time().replace(tzinfo=None) - timedelta(hours=random.randint(1, 168))
+                duracao = random.randint(15, 240)
+                usuario_escolhido = random.choice(usuarios)
+
+                log = LogAcesso(
+                    usuario_id=usuario_escolhido.id,
+                    data_acesso=data_acesso,
+                    data_logout=data_acesso + timedelta(minutes=duracao) if random.choice([True, False, False]) else None,
+                    ip_address=random.choice(ips_exemplo),
+                    user_agent=f"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/91.0.4472.124 Safari/537.36",
+                    duracao_sessao=duracao if random.choice([True, False]) else None,
+                    ativo=random.choice([True, False]),
+                    session_id=f"sess_{random.randint(100000, 999999)}",
+                    navegador=random.choice(navegadores),
+                    sistema_operacional=random.choice(sistemas),
+                    dispositivo=random.choice(dispositivos),
+                    pais='Brasil',
+                    cidade=random.choice(cidades),
+                    provedor_internet=random.choice(['Vivo', 'Claro', 'TIM', 'NET', 'Oi']),
+                    resolucao_tela=random.choice(['1920x1080', '1366x768', '1440x900']),
+                    timezone='America/Sao_Paulo'
+                )
+                db.session.add(log)
+
+        db.session.commit()
+
+        return json_response({
+            'message': 'Dados de demonstração inseridos com sucesso!',
+            'usuarios': User.query.count(),
+            'logs_acesso': LogAcesso.query.count(),
+            'credenciais': {
+                'admin': 'admin / admin123',
+                'teste': 'joao.silva / teste123',
+                'agente': 'maria.santos / agente123'
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao inserir dados: {str(e)}")
+        db.session.rollback()
+        return error_response(f'Erro ao inserir dados: {str(e)}')
+
 @painel_bp.route('/api/agentes/<int:agente_id>', methods=['PUT'])
 @login_required
 @setor_required('Administrador')
