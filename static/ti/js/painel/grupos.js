@@ -575,6 +575,7 @@ function renderizarEmailsHistorico() {
 }
 
 // Exportar funções para uso global
+window.carregarGrupos = carregarGrupos;
 window.inicializarGrupos = inicializarGrupos;
 window.editarGrupo = editarGrupo;
 window.verDetalhesGrupo = verDetalhesGrupo;
