@@ -2381,6 +2381,7 @@ loadSectionContent = function(sectionId) {
             break;
         case 'grupos-usuarios':
             carregarGrupos();
+            inicializarModalGrupos();
             break;
     }
 };
