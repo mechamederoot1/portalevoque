@@ -571,7 +571,13 @@
               <div class="col-md-6">
                 <div class="form-group">
                   <label for="usuarioLogin">Nome de usuário</label>
-                  <input type="text" class="form-control" id="usuarioLogin" placeholder="Será gerado automaticamente" readonly>
+                  <div class="input-group">
+                    <input type="text" class="form-control" id="usuarioLogin" placeholder="Digite o nome de usuário" required>
+                    <button type="button" class="btn btn-outline-secondary" id="btnGerarUsuario" title="Gerar automaticamente">
+                      <i class="fas fa-magic"></i>
+                    </button>
+                  </div>
+                  <small class="form-text text-muted">Digite manualmente ou clique no botão para gerar automaticamente</small>
                 </div>
               </div>
             </div>
