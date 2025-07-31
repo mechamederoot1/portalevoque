@@ -800,7 +800,7 @@ document.getElementById('btnGerarSenha')?.addEventListener('click', function(e) 
 function validarDadosUsuario(dados) {
     const erros = [];
     
-    if (!dados.nome) erros.push('Nome �� obrigat��rio');
+    if (!dados.nome) erros.push('Nome é obrigat��rio');
     if (!dados.sobrenome) erros.push('Sobrenome é obrigatório');
     if (!dados.email) erros.push('E-mail é obrigatório');
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
@@ -2296,11 +2296,13 @@ async function criarAgente() {
 // Carregar agentes
 async function carregarAgentes() {
     try {
+        console.log('Carregando agentes...');
         const response = await fetch('/ti/painel/api/agentes');
         if (!response.ok) {
             throw new Error('Erro ao carregar agentes');
         }
         agentesData = await response.json();
+        console.log('Agentes carregados:', agentesData);
         renderizarAgentes(agentesData);
 
         // Carregar estatísticas dos agentes
