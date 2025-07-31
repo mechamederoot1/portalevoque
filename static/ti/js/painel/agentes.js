@@ -110,11 +110,18 @@ function renderizarAgentes() {
     }
     
     if (!agentesData || agentesData.length === 0) {
+        console.log('Nenhum agente encontrado para renderização');
         container.innerHTML = `
             <div class="text-center py-4">
                 <i class="fas fa-headset fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Nenhum agente encontrado</h5>
-                <p class="text-muted">Crie o primeiro agente de suporte</p>
+                <h5 class="text-muted">Nenhum agente de suporte encontrado</h5>
+                <p class="text-muted">
+                    Para ver agentes aqui, crie usuários com nível de acesso "Agente de suporte" na seção
+                    <strong>Gerencial > Criar usuário</strong>
+                </p>
+                <button class="btn btn-primary" onclick="window.debugVerificarDados()">
+                    <i class="fas fa-bug me-1"></i>Debug: Verificar Dados
+                </button>
             </div>
         `;
         return;
