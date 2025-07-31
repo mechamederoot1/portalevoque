@@ -2686,7 +2686,7 @@ if (typeof loadSectionContent !== 'undefined') {
 // Placeholder functions para funcionalidades futuras
 function editarAgente(agenteId) {
     console.log('Editar agente:', agenteId);
-    // TODO: Implementar modal de ediç��o de agente
+    // TODO: Implementar modal de edição de agente
 }
 
 function editarGrupo(grupoId) {
@@ -2776,8 +2776,12 @@ async function carregarAgentesParaFiltro() {
 // ==================== FILTRO DE PERMISSÕES ====================
 
 function inicializarFiltroPermissoes() {
+    console.log('Tentando inicializar filtro de permissões...');
+
     const filtroInput = document.getElementById('filtroPermissoes');
     const btnFiltrar = document.getElementById('btnFiltrarPermissoes');
+
+    console.log('Elementos encontrados:', { filtroInput: !!filtroInput, btnFiltrar: !!btnFiltrar });
 
     if (!filtroInput || !btnFiltrar) {
         console.log('Elementos de filtro não encontrados. Tentando novamente...');
