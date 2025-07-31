@@ -154,7 +154,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
         
         // Se o status foi atualizado com sucesso e é um dos status que requer notificação
         if (['Aguardando', 'Cancelado', 'Concluido'].includes(novoStatus)) {
-            // Envia a notificaç��o
+            // Envia a notificação
             const notificacaoResponse = await fetch(`/ti/painel/api/chamados/${chamadoId}/notificar`, {
                 method: 'POST',
                 headers: {
@@ -1271,6 +1271,7 @@ document.getElementById('btnSalvarUsuario').addEventListener('click', async () =
     const usuarioId = document.getElementById('editUsuarioId').value;
     const nome = document.getElementById('editNomeUsuario').value.trim();
     const sobrenome = document.getElementById('editSobrenomeUsuario').value.trim();
+    const usuario = document.getElementById('editUsuarioLogin').value.trim();
     const email = document.getElementById('editEmailUsuario').value.trim();
     const nivelAcesso = document.getElementById('editNivelAcesso').value;
     const setorSelect = document.getElementById('editSetorUsuario');
