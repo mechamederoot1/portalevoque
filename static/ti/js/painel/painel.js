@@ -78,12 +78,15 @@ function initializeNavigation() {
 function activateSection(id) {
     console.log('Ativando seção:', id);
 
-    if (!sections || sections.length === 0) {
+    // Get sections dynamically if not initialized
+    const allSections = sections || document.querySelectorAll('section.content-section');
+
+    if (!allSections || allSections.length === 0) {
         console.error('Nenhuma seção encontrada!');
         return;
     }
 
-    sections.forEach(section => {
+    allSections.forEach(section => {
         if (section.id === id) {
             section.classList.add('active');
             section.setAttribute('tabindex', '0');
@@ -2109,7 +2112,7 @@ window.addEventListener('load', function() {
             }
         }
     } else {
-        // Se não houver hash ou a seção não existir, vai para a seção padrão
+        // Se não houver hash ou a seção não existir, vai para a seç��o padrão
         activateSection('visao-geral');
     }
 });
@@ -2891,7 +2894,7 @@ function gerenciarMembrosGrupo(grupoId) {
 
 // Adicionar filtro de agente na seção de gerenciar chamados
 function adicionarFiltroAgente() {
-    // Verificar se o filtro já existe
+    // Verificar se o filtro j�� existe
     if (document.getElementById('filtroAgente')) return;
 
     // Encontrar o container de filtros na seção de gerenciar chamados
@@ -3238,7 +3241,7 @@ function adicionarBotoesSelecaoUnidades() {
     buttonsContainer.appendChild(btnSelecionarTodas);
     buttonsContainer.appendChild(btnDesmarcarTodas);
 
-    // Inserir ap��s o select
+    // Inserir após o select
     unidadesGrupo.parentNode.insertBefore(buttonsContainer, unidadesGrupo.nextSibling);
 }
 
