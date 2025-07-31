@@ -2544,3 +2544,192 @@ function filtrarListaUsuarios(termoBusca) {
         mensagemVazia.remove();
     }
 }
+
+// ==================== FUNCIONALIDADES DE GRUPOS ====================
+
+function inicializarModalGrupos() {
+    const btnCriarGrupo = document.getElementById('btnCriarGrupo');
+    const modalCriarGrupo = document.getElementById('modalCriarGrupo');
+    const btnCancelarGrupo = document.getElementById('btnCancelarGrupo');
+    const btnSalvarGrupo = document.getElementById('btnSalvarGrupo');
+    const modalClose = document.getElementById('modalCriarGrupoClose');
+
+    if (!btnCriarGrupo || !modalCriarGrupo) return;
+
+    // Abrir modal
+    btnCriarGrupo.addEventListener('click', async () => {
+        await carregarUnidadesParaGrupo();
+        modalCriarGrupo.classList.add('active');
+    });
+
+    // Fechar modal
+    [btnCancelarGrupo, modalClose].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                modalCriarGrupo.classList.remove('active');
+                limparFormularioGrupo();
+            });
+        }
+    });
+
+    // Salvar grupo
+    if (btnSalvarGrupo) {
+        btnSalvarGrupo.addEventListener('click', criarGrupo);
+    }
+
+    // Adicionar botões de seleção de unidades
+    adicionarBotoesSelecaoUnidades();
+}
+
+async function carregarUnidadesParaGrupo() {
+    try {
+        const response = await fetch('/ti/painel/api/unidades');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar unidades');
+        }
+
+        const unidades = await response.json();
+        const select = document.getElementById('unidadesGrupo');
+
+        if (!select) return;
+
+        // Limpar e carregar unidades
+        select.innerHTML = '';
+
+        unidades.forEach(unidade => {
+            const option = document.createElement('option');
+            option.value = unidade.id;
+            option.textContent = unidade.nome;
+            select.appendChild(option);
+        });
+
+        console.log(`${unidades.length} unidades carregadas para seleção`);
+
+    } catch (error) {
+        console.error('Erro ao carregar unidades:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar lista de unidades');
+        }
+    }
+}
+
+function adicionarBotoesSelecaoUnidades() {
+    const unidadesGrupo = document.getElementById('unidadesGrupo');
+    if (!unidadesGrupo) return;
+
+    // Verificar se já existem botões
+    const containerExistente = unidadesGrupo.parentNode.querySelector('.buttons-container');
+    if (containerExistente) {
+        containerExistente.remove();
+    }
+
+    // Criar container para botões
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'buttons-container mt-2';
+
+    // Botão selecionar todas
+    const btnSelecionarTodas = document.createElement('button');
+    btnSelecionarTodas.type = 'button';
+    btnSelecionarTodas.className = 'btn btn-sm btn-outline-primary me-2';
+    btnSelecionarTodas.innerHTML = '<i class="fas fa-check-double"></i> Selecionar Todas';
+    btnSelecionarTodas.onclick = () => selecionarTodasUnidades(true);
+
+    // Botão desmarcar todas
+    const btnDesmarcarTodas = document.createElement('button');
+    btnDesmarcarTodas.type = 'button';
+    btnDesmarcarTodas.className = 'btn btn-sm btn-outline-secondary';
+    btnDesmarcarTodas.innerHTML = '<i class="fas fa-times"></i> Desmarcar Todas';
+    btnDesmarcarTodas.onclick = () => selecionarTodasUnidades(false);
+
+    buttonsContainer.appendChild(btnSelecionarTodas);
+    buttonsContainer.appendChild(btnDesmarcarTodas);
+
+    // Inserir após o select
+    unidadesGrupo.parentNode.insertBefore(buttonsContainer, unidadesGrupo.nextSibling);
+}
+
+function selecionarTodasUnidades(selecionar) {
+    const select = document.getElementById('unidadesGrupo');
+    if (!select) return;
+
+    for (let option of select.options) {
+        option.selected = selecionar;
+    }
+
+    // Disparar evento de mudança
+    const event = new Event('change', { bubbles: true });
+    select.dispatchEvent(event);
+}
+
+async function criarGrupo() {
+    try {
+        const nome = document.getElementById('nomeGrupo').value.trim();
+        const descricao = document.getElementById('descricaoGrupo').value.trim();
+        const ativo = document.getElementById('ativoGrupo').checked;
+        const unidadesSelect = document.getElementById('unidadesGrupo');
+
+        if (!nome) {
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigatório');
+            }
+            return;
+        }
+
+        // Coletar unidades selecionadas
+        const unidadesSelecionadas = Array.from(unidadesSelect.selectedOptions).map(option =>
+            parseInt(option.value)
+        );
+
+        const dadosGrupo = {
+            nome,
+            descricao,
+            ativo,
+            unidades: unidadesSelecionadas
+        };
+
+        const response = await fetch('/ti/painel/api/grupos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dadosGrupo)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao criar grupo');
+        }
+
+        const resultado = await response.json();
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Sucesso', resultado.message || 'Grupo criado com sucesso');
+        }
+
+        // Fechar modal e recarregar lista
+        document.getElementById('modalCriarGrupo').classList.remove('active');
+        limparFormularioGrupo();
+        await carregarGrupos();
+
+    } catch (error) {
+        console.error('Erro ao criar grupo:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+function limparFormularioGrupo() {
+    const form = document.getElementById('formCriarGrupo');
+    if (form) {
+        form.reset();
+    }
+
+    // Desmarcar todas as unidades
+    const select = document.getElementById('unidadesGrupo');
+    if (select) {
+        for (let option of select.options) {
+            option.selected = false;
+        }
+    }
+}
