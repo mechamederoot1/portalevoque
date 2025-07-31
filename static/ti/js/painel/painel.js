@@ -187,20 +187,48 @@ function popularFiltrosDinamicos() {
 // Função para atualizar contadores da visão geral
 async function atualizarContadoresVisaoGeral() {
     try {
+        console.log('Atualizando contadores da visão geral...');
         const response = await fetch('/ti/painel/api/chamados/estatisticas');
         if (!response.ok) {
             throw new Error('Erro ao carregar estatísticas');
         }
         const stats = await response.json();
-        
-        document.getElementById('countAbertos').textContent = stats.Aberto || 0;
-        document.getElementById('countAguardando').textContent = stats.Aguardando || 0;
-        document.getElementById('countConcluidos').textContent = stats.Concluido || 0;
-        document.getElementById('countCancelados').textContent = stats.Cancelado || 0;
+
+        const countAbertos = document.getElementById('countAbertos');
+        const countAguardando = document.getElementById('countAguardando');
+        const countConcluidos = document.getElementById('countConcluidos');
+        const countCancelados = document.getElementById('countCancelados');
+
+        if (countAbertos) countAbertos.textContent = stats.Aberto || 0;
+        if (countAguardando) countAguardando.textContent = stats.Aguardando || 0;
+        if (countConcluidos) countConcluidos.textContent = stats.Concluido || 0;
+        if (countCancelados) countCancelados.textContent = stats.Cancelado || 0;
+
+        console.log('Contadores atualizados:', stats);
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
-        if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar estatísticas');
+        // Usar dados locais se disponíveis
+        if (chamadosData && chamadosData.length > 0) {
+            const localStats = {
+                Aberto: chamadosData.filter(c => c.status === 'Aberto').length,
+                Aguardando: chamadosData.filter(c => c.status === 'Aguardando').length,
+                Concluido: chamadosData.filter(c => c.status === 'Concluido').length,
+                Cancelado: chamadosData.filter(c => c.status === 'Cancelado').length
+            };
+
+            const countAbertos = document.getElementById('countAbertos');
+            const countAguardando = document.getElementById('countAguardando');
+            const countConcluidos = document.getElementById('countConcluidos');
+            const countCancelados = document.getElementById('countCancelados');
+
+            if (countAbertos) countAbertos.textContent = localStats.Aberto;
+            if (countAguardando) countAguardando.textContent = localStats.Aguardando;
+            if (countConcluidos) countConcluidos.textContent = localStats.Concluido;
+            if (countCancelados) countCancelados.textContent = localStats.Cancelado;
+
+            console.log('Usando dados locais para estatísticas:', localStats);
+        } else {
+            console.log('Nenhum dado disponível para estatísticas');
         }
     }
 }
@@ -356,7 +384,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
 
             if (!notificacaoResponse.ok) {
                 console.error('Erro ao enviar notificação:', await notificacaoResponse.text());
-                throw new Error('Erro ao enviar notifica��ão por e-mail');
+                throw new Error('Erro ao enviar notificação por e-mail');
             }
         }
 
@@ -509,7 +537,7 @@ function renderPagination(totalItems) {
     }
 
     const prevBtn = document.createElement('button');
-    prevBtn.textContent = '«';
+    prevBtn.textContent = '��';
     prevBtn.disabled = currentPage === 1;
     prevBtn.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -3932,7 +3960,7 @@ async function atribuirAgente(chamadoId) {
                         </div>
                         <div class="form-group">
                             <label for="observacoesAtribuicao">Observações (opcional):</label>
-                            <textarea id="observacoesAtribuicao" class="form-control" rows="3" placeholder="Observações sobre a atribui��ão..."></textarea>
+                            <textarea id="observacoesAtribuicao" class="form-control" rows="3" placeholder="Observações sobre a atribuição..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
