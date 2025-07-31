@@ -2918,3 +2918,305 @@ function atualizarEstatisticasAgentes(agentes) {
     if (chamadosAtribuidos) chamadosAtribuidos.textContent = agentes.reduce((sum, a) => sum + (a.chamados_ativos || 0), 0);
     if (agentesDisponiveis) agentesDisponiveis.textContent = agentes.filter(a => a.pode_receber_chamado).length;
 }
+
+// ==================== CONFIGURAÇÕES AVANÇADAS ====================
+
+async function carregarConfiguracoesAvancadas() {
+    try {
+        const response = await fetch('/ti/painel/api/configuracoes-avancadas');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar configurações avançadas');
+        }
+
+        const config = await response.json();
+        preencherFormularioConfiguracoesAvancadas(config);
+
+    } catch (error) {
+        console.error('Erro ao carregar configurações avançadas:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar configurações avançadas');
+        }
+    }
+}
+
+function preencherFormularioConfiguracoesAvancadas(config) {
+    // Sistema
+    if (config.sistema) {
+        const sistema = config.sistema;
+        setValueById('debugMode', sistema.debug_mode);
+        setValueById('logLevel', sistema.log_level);
+        setValueById('maxFileSize', sistema.max_file_size);
+        setValueById('sessionTimeout', sistema.session_timeout);
+        setValueById('autoLogout', sistema.auto_logout);
+    }
+
+    // Segurança
+    if (config.seguranca) {
+        const seguranca = config.seguranca;
+        setValueById('forceHttps', seguranca.force_https);
+        setValueById('csrfProtection', seguranca.csrf_protection);
+        setValueById('rateLimiting', seguranca.rate_limiting);
+        setValueById('passwordComplexity', seguranca.password_complexity);
+    }
+
+    // Performance
+    if (config.performance) {
+        const performance = config.performance;
+        setValueById('cacheEnabled', performance.cache_enabled);
+        setValueById('compression', performance.compression);
+        setValueById('cdnEnabled', performance.cdn_enabled);
+        setValueById('databasePoolSize', performance.database_pool_size);
+    }
+
+    // Backup
+    if (config.backup) {
+        const backup = config.backup;
+        setValueById('autoBackup', backup.auto_backup);
+        setValueById('backupFrequency', backup.backup_frequency);
+        setValueById('retentionDays', backup.retention_days);
+        setValueById('backupLocation', backup.backup_location);
+    }
+}
+
+function setValueById(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        if (element.type === 'checkbox') {
+            element.checked = value;
+        } else {
+            element.value = value;
+        }
+    }
+}
+
+// ==================== ALERTAS DO SISTEMA ====================
+
+async function carregarAlertasSistema() {
+    try {
+        const response = await fetch('/ti/painel/api/alertas?page=1&per_page=10');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar alertas');
+        }
+
+        const data = await response.json();
+        renderizarAlertasSistema(data.alertas);
+
+    } catch (error) {
+        console.error('Erro ao carregar alertas:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar alertas do sistema');
+        }
+    }
+}
+
+function renderizarAlertasSistema(alertas) {
+    const container = document.getElementById('alertasContainer');
+    if (!container) return;
+
+    if (!alertas || alertas.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
+                <h5 class="text-success">Sistema funcionando normalmente</h5>
+                <p class="text-muted">Nenhum alerta ativo no momento</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = alertas.map(alerta => `
+        <div class="alert alert-${getAlertClass(alerta.tipo)} d-flex align-items-center" role="alert">
+            <i class="fas fa-${getAlertIcon(alerta.tipo)} me-2"></i>
+            <div class="flex-grow-1">
+                <strong>${alerta.titulo}</strong>
+                <p class="mb-0">${alerta.mensagem}</p>
+                <small class="text-muted">${alerta.data}</small>
+            </div>
+            <span class="badge bg-${alerta.prioridade === 'crítica' ? 'danger' : alerta.prioridade === 'alta' ? 'warning' : 'info'}">
+                ${alerta.prioridade}
+            </span>
+        </div>
+    `).join('');
+}
+
+function getAlertClass(tipo) {
+    switch(tipo) {
+        case 'error': return 'danger';
+        case 'warning': return 'warning';
+        case 'info': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function getAlertIcon(tipo) {
+    switch(tipo) {
+        case 'error': return 'exclamation-triangle';
+        case 'warning': return 'exclamation-circle';
+        case 'info': return 'info-circle';
+        default: return 'bell';
+    }
+}
+
+// ==================== BACKUP E MANUTENÇÃO ====================
+
+async function carregarBackupManutencao() {
+    try {
+        const container = document.getElementById('backupContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-database me-2"></i>Backup do Sistema</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Último backup: <strong>31/01/2025 06:00:00</strong></p>
+                                <p>Status: <span class="badge bg-success">Sucesso</span></p>
+                                <button class="btn btn-primary" onclick="criarBackup()">
+                                    <i class="fas fa-download"></i> Criar Backup
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5><i class="fas fa-tools me-2"></i>Manutenção</h5>
+                            </div>
+                            <div class="card-body">
+                                <p>Limpeza automática: <strong>Ativada</strong></p>
+                                <p>Próxima manutenção: <strong>01/02/2025 02:00:00</strong></p>
+                                <button class="btn btn-warning" onclick="executarManutencao()">
+                                    <i class="fas fa-wrench"></i> Executar Manutenção
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar backup/manutenção:', error);
+    }
+}
+
+// ==================== LOGS DE ACESSO ====================
+
+async function carregarLogsAcesso() {
+    try {
+        const container = document.getElementById('logsAcessoContainer');
+        if (container) {
+            // Simular logs de acesso
+            const logs = [
+                { usuario: 'Admin', ip: '192.168.1.100', data: '31/01/2025 10:30:00', acao: 'Login' },
+                { usuario: 'João Silva', ip: '192.168.1.101', data: '31/01/2025 10:25:00', acao: 'Logout' },
+                { usuario: 'Maria Santos', ip: '192.168.1.102', data: '31/01/2025 10:20:00', acao: 'Acesso Negado' }
+            ];
+
+            container.innerHTML = `
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Usuário</th>
+                                <th>IP</th>
+                                <th>Data/Hora</th>
+                                <th>Ação</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${logs.map(log => `
+                                <tr>
+                                    <td>${log.usuario}</td>
+                                    <td>${log.ip}</td>
+                                    <td>${log.data}</td>
+                                    <td>
+                                        <span class="badge bg-${log.acao === 'Login' ? 'success' : log.acao === 'Logout' ? 'info' : 'danger'}">
+                                            ${log.acao}
+                                        </span>
+                                    </td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar logs de acesso:', error);
+    }
+}
+
+// ==================== DASHBOARD AVANÇADO ====================
+
+async function carregarDashboardAvancado() {
+    try {
+        const container = document.getElementById('dashboardAvancadoContainer');
+        if (container) {
+            container.innerHTML = `
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-primary text-white">
+                            <div class="card-body">
+                                <h6>CPU</h6>
+                                <h3>45%</h3>
+                                <small>Normal</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6>Memória</h6>
+                                <h3>62%</h3>
+                                <small>Normal</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-warning text-white">
+                            <div class="card-body">
+                                <h6>Disco</h6>
+                                <h3>78%</h3>
+                                <small>Atenção</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-info text-white">
+                            <div class="card-body">
+                                <h6>Rede</h6>
+                                <h3>23%</h3>
+                                <small>Baixo</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Monitoramento em Tempo Real</h5>
+                    </div>
+                    <div class="card-body">
+                        <canvas id="chartMonitoramento" width="400" height="200"></canvas>
+                    </div>
+                </div>
+            `;
+        }
+    } catch (error) {
+        console.error('Erro ao carregar dashboard avançado:', error);
+    }
+}
+
+// Funções auxiliares
+function criarBackup() {
+    if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Backup', 'Iniciando processo de backup...');
+    }
+}
+
+function executarManutencao() {
+    if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Manutenção', 'Iniciando processo de manutenção...');
+    }
+}
