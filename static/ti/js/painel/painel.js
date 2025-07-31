@@ -46,14 +46,23 @@ navLinks.forEach(link => {
 });
 
 function activateSection(id) {
+    console.log('Ativando seção:', id);
+
+    if (!sections || sections.length === 0) {
+        console.error('Nenhuma seção encontrada!');
+        return;
+    }
+
     sections.forEach(section => {
         if (section.id === id) {
             section.classList.add('active');
             section.setAttribute('tabindex', '0');
-            section.focus();
-            
+            console.log('Seção ativada:', id);
+
             // Carregar conteúdo específico da seção
-            loadSectionContent(id);
+            setTimeout(() => {
+                loadSectionContent(id);
+            }, 50);
         } else {
             section.classList.remove('active');
             section.removeAttribute('tabindex');
@@ -3916,7 +3925,7 @@ async function atribuirAgente(chamadoId) {
         document.body.insertAdjacentHTML('beforeend', modalContent);
 
     } catch (error) {
-        console.error('Erro ao abrir modal de atribuição:', error);
+        console.error('Erro ao abrir modal de atribui��ão:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
         }
