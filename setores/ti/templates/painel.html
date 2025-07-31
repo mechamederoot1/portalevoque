@@ -741,6 +741,9 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-users me-2"></i>Grupos de Usuários</h2>
         <div class="d-flex gap-2">
+          <button class="btn btn-outline-info btn-sm" onclick="window.carregarGrupos ? window.carregarGrupos() : console.error('Função não disponível')" title="Forçar atualização">
+            <i class="fas fa-sync-alt"></i> Atualizar
+          </button>
           <div class="input-group" style="max-width: 300px;">
             <input type="text" class="form-control" id="filtroGrupos" placeholder="Buscar grupo...">
             <button class="btn btn-outline-secondary" id="btnFiltrarGrupos">
@@ -1665,7 +1668,7 @@
                 </button>
                 <hr>
                 <button class="btn btn-outline-secondary btn-sm" onclick="window.advancedNotificationSystem?.testNotifications()">
-                  <i class="fas fa-bell"></i> Testar Notifica��ões
+                  <i class="fas fa-bell"></i> Testar Notificações
                 </button>
               </div>
             </div>
