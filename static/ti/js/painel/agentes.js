@@ -441,6 +441,89 @@ function inicializarAgentes() {
     carregarAgentes();
 }
 
+// Editar usuário agente
+async function editarUsuarioAgente(usuarioId) {
+    if (window.abrirModalEditarUsuario && typeof window.abrirModalEditarUsuario === 'function') {
+        window.abrirModalEditarUsuario(usuarioId);
+    } else {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showInfo('Info', 'Funcionalidade de edição de usuário disponível na seção Permissões');
+        }
+    }
+}
+
+// Ver chamados do usuário
+async function verChamadosUsuario(usuarioId) {
+    try {
+        const usuario = agentesData.find(u => u.id === usuarioId);
+        if (!usuario) {
+            throw new Error('Usuário não encontrado');
+        }
+
+        // Buscar chamados do usuário
+        const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}/chamados`);
+        if (!response.ok) {
+            // Se o endpoint não existir, mostrar mensagem informativa
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showInfo(
+                    'Chamados do Usuário',
+                    `Para ver os chamados de ${usuario.nome}, acesse a seção "Gerenciar Chamados" e filtre pelo agente responsável.`
+                );
+            }
+            return;
+        }
+
+        const chamados = await response.json();
+        // TODO: Implementar modal ou navegação para mostrar chamados
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showInfo('Chamados', `${usuario.nome} tem ${chamados.length} chamados`);
+        }
+
+    } catch (error) {
+        console.error('Erro ao ver chamados do usuário:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showInfo('Info', 'Funcionalidade de visualização de chamados em desenvolvimento');
+        }
+    }
+}
+
+// Gerar nova senha para agente
+async function gerarNovaSenhaAgente(usuarioId) {
+    try {
+        const usuario = agentesData.find(u => u.id === usuarioId);
+        if (!usuario) {
+            throw new Error('Usuário não encontrado');
+        }
+
+        if (!confirm(`Tem certeza que deseja gerar uma nova senha para ${usuario.nome}?`)) {
+            return;
+        }
+
+        const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}/gerar-senha`, {
+            method: 'POST'
+        });
+
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || 'Erro ao gerar nova senha');
+        }
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess(
+                'Nova Senha Gerada',
+                `Nova senha para ${usuario.nome}: ${result.nova_senha}`
+            );
+        }
+
+    } catch (error) {
+        console.error('Erro ao gerar nova senha:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
 // Exportar funções para uso global
 window.carregarAgentes = carregarAgentes;
 window.carregarEstatisticasAgentes = carregarEstatisticasAgentes;
@@ -448,7 +531,10 @@ window.inicializarAgentes = inicializarAgentes;
 window.criarAgente = criarAgente;
 window.editarAgente = editarAgente;
 window.verChamadosAgente = verChamadosAgente;
-window.toggleStatusAgente = toggleStatusAgente;
+window.toggleStatusUsuario = toggleStatusUsuario;
+window.editarUsuarioAgente = editarUsuarioAgente;
+window.verChamadosUsuario = verChamadosUsuario;
+window.gerarNovaSenhaAgente = gerarNovaSenhaAgente;
 window.excluirAgente = excluirAgente;
 window.fecharModalCriarAgente = fecharModalCriarAgente;
 window.salvarNovoAgente = salvarNovoAgente;
