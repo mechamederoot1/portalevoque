@@ -2398,3 +2398,77 @@ function gerenciarMembrosGrupo(grupoId) {
     console.log('Gerenciar membros do grupo:', grupoId);
     // TODO: Implementar modal de gerenciamento de membros
 }
+
+// ==================== FILTRO DE AGENTES EM CHAMADOS ====================
+
+// Adicionar filtro de agente na seção de gerenciar chamados
+function adicionarFiltroAgente() {
+    // Verificar se o filtro já existe
+    if (document.getElementById('filtroAgente')) return;
+
+    // Encontrar o container de filtros na seção de gerenciar chamados
+    const secaoGerenciar = document.getElementById('gerenciar-chamados');
+    if (!secaoGerenciar) return;
+
+    // Procurar pelo container de filtros existente
+    let filtrosContainer = secaoGerenciar.querySelector('.d-flex.mb-3');
+
+    // Se não existir, criar um
+    if (!filtrosContainer) {
+        filtrosContainer = document.createElement('div');
+        filtrosContainer.className = 'd-flex mb-3 align-items-center flex-wrap gap-2';
+
+        // Inserir antes do grid de chamados
+        const chamadosGrid = secaoGerenciar.querySelector('#chamadosGrid');
+        if (chamadosGrid) {
+            chamadosGrid.parentNode.insertBefore(filtrosContainer, chamadosGrid);
+        }
+    }
+
+    // Criar label e select para agente
+    const labelAgente = document.createElement('label');
+    labelAgente.textContent = 'Filtrar por Agente:';
+    labelAgente.className = 'me-2';
+
+    const filtroAgente = document.createElement('select');
+    filtroAgente.id = 'filtroAgente';
+    filtroAgente.className = 'form-control me-3';
+    filtroAgente.style.maxWidth = '200px';
+    filtroAgente.innerHTML = '<option value="">Todos os agentes</option>';
+
+    // Adicionar event listener
+    filtroAgente.addEventListener('change', function() {
+        renderChamadosPage(1);
+    });
+
+    // Adicionar ao container
+    filtrosContainer.appendChild(labelAgente);
+    filtrosContainer.appendChild(filtroAgente);
+
+    // Carregar agentes para o filtro
+    carregarAgentesParaFiltro();
+}
+
+// Carregar agentes para filtro
+async function carregarAgentesParaFiltro() {
+    try {
+        const response = await fetch('/ti/painel/api/agentes');
+        if (!response.ok) return;
+
+        const agentes = await response.json();
+        const select = document.getElementById('filtroAgente');
+        if (!select) return;
+
+        // Limpar e adicionar opções
+        select.innerHTML = '<option value="">Todos os agentes</option>';
+        agentes.filter(a => a.ativo).forEach(agente => {
+            const option = document.createElement('option');
+            option.value = agente.id;
+            option.textContent = `${agente.nome} ${agente.sobrenome}`;
+            select.appendChild(option);
+        });
+
+    } catch (error) {
+        console.error('Erro ao carregar agentes para filtro:', error);
+    }
+}
