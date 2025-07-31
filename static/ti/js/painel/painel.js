@@ -245,6 +245,11 @@ card.innerHTML = `
             <strong>Data:</strong>
             <span>${formatarData(chamado.data_abertura)}</span>
         </div>
+        ${chamado.agente ? `
+        <div class="info-row">
+            <strong>Agente:</strong>
+            <span class="badge bg-info">${chamado.agente.nome}</span>
+        </div>` : ''}
     </div>
     <div class="card-footer">
         <select id="status-${chamado.id}">
