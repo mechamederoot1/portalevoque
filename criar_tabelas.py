@@ -14,7 +14,9 @@ import pytz
 # Adicionar o diretório raiz ao path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from app import create_app
+# Importar diretamente as configurações e criar a aplicação
+from flask import Flask
+from config import Config
 from database import db, init_app, seed_unidades, get_brazil_time
 from database import (
     User, Chamado, Unidade, ProblemaReportado, ItemInternet, 
@@ -263,7 +265,7 @@ def validate_table_structure():
                 if missing_columns:
                     validation_errors.append(f"Tabela {table_name}: colunas faltantes {missing_columns}")
             else:
-                validation_errors.append(f"Tabela {table_name} n��o encontrada")
+                validation_errors.append(f"Tabela {table_name} não encontrada")
         
         if validation_errors:
             print("   ⚠ Avisos de validação:")
