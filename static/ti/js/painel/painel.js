@@ -3843,6 +3843,44 @@ function debounce(func, wait) {
     };
 }
 
+// Função para limpar todos os filtros
+function limparTodosFiltros() {
+    // Filtros de chamados
+    const filtroSolicitante = document.getElementById('filtroSolicitante');
+    const filtroProblema = document.getElementById('filtroProblema');
+    const filtroPrioridade = document.getElementById('filtroPrioridade');
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    const filtroUnidade = document.getElementById('filtroUnidade');
+    const filtroDataInicio = document.getElementById('filtroDataInicio');
+    const filtroDataFim = document.getElementById('filtroDataFim');
+
+    if (filtroSolicitante) filtroSolicitante.value = '';
+    if (filtroProblema) filtroProblema.value = '';
+    if (filtroPrioridade) filtroPrioridade.value = '';
+    if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
+    if (filtroUnidade) filtroUnidade.value = '';
+    if (filtroDataInicio) filtroDataInicio.value = '';
+    if (filtroDataFim) filtroDataFim.value = '';
+
+    // Filtro de permissões
+    const filtroPermissoes = document.getElementById('filtroPermissoes');
+    if (filtroPermissoes) {
+        filtroPermissoes.value = '';
+        filtrarListaUsuarios('');
+    }
+
+    // Recarregar dados de chamados
+    if (typeof renderChamadosPage === 'function' && window.chamadosData) {
+        currentPage = 1;
+        renderChamadosPage(currentPage);
+    }
+
+    // Mostrar notificação
+    if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Filtros Limpos', 'Todos os filtros foram removidos');
+    }
+}
+
 // ==================== DASHBOARD AVANÇADO ====================
 
 async function carregarDashboardAvancado() {
