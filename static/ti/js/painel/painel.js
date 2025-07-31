@@ -2370,21 +2370,43 @@ async function excluirGrupo(grupoId) {
     }
 }
 
-// Atualizar loadSectionContent para incluir agentes e grupos
-const originalLoadSectionContent = loadSectionContent;
-loadSectionContent = function(sectionId) {
-    originalLoadSectionContent(sectionId);
+// Garantir que agentes e grupos sejam carregados corretamente
+function loadSectionContentEnhanced(sectionId) {
+    // Chamar a função original primeiro
+    if (typeof loadSectionContent === 'function') {
+        loadSectionContent(sectionId);
+    }
 
+    // Adicionar funcionalidades específicas
     switch(sectionId) {
         case 'agentes-suporte':
-            carregarAgentes();
+            setTimeout(() => {
+                if (typeof carregarAgentes === 'function') {
+                    carregarAgentes();
+                }
+            }, 100);
             break;
         case 'grupos-usuarios':
-            carregarGrupos();
-            inicializarModalGrupos();
+            setTimeout(() => {
+                if (typeof carregarGrupos === 'function') {
+                    carregarGrupos();
+                }
+                inicializarModalGrupos();
+            }, 100);
             break;
     }
-};
+}
+
+// Sobrescrever apenas se necessário
+if (typeof loadSectionContent !== 'undefined') {
+    const originalFunction = loadSectionContent;
+    loadSectionContent = function(sectionId) {
+        originalFunction(sectionId);
+        loadSectionContentEnhanced(sectionId);
+    };
+} else {
+    loadSectionContent = loadSectionContentEnhanced;
+}
 
 // Placeholder functions para funcionalidades futuras
 function editarAgente(agenteId) {
