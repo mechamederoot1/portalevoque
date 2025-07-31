@@ -40,7 +40,7 @@ function initializeNavigation() {
     sections = document.querySelectorAll('section.content-section');
 
     console.log('Links de navegação encontrados:', navLinks.length);
-    console.log('Seções encontradas:', sections.length);
+    console.log('Se��ões encontradas:', sections.length);
 
     navLinks.forEach(link => {
         link.addEventListener('click', e => {
@@ -96,6 +96,35 @@ function initializeNavigation() {
                     }
                 }
             }
+        }
+    });
+
+    // Add accessibility support for menu items
+    document.querySelectorAll('.sidebar nav ul li').forEach(item => {
+        item.addEventListener('keydown', function(e) {
+            // Enter or space activates the item
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const link = this.querySelector('a');
+                if (link) link.click();
+            }
+        });
+    });
+
+    // Improve submenu accessibility
+    document.querySelectorAll('.has-submenu').forEach(item => {
+        const toggle = item.querySelector('.submenu-toggle');
+        const submenu = item.querySelector('.submenu');
+
+        if (toggle && submenu) {
+            toggle.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+                    toggle.setAttribute('aria-expanded', !isExpanded);
+                    item.classList.toggle('open');
+                }
+            });
         }
     });
 
