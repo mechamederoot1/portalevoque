@@ -15,6 +15,7 @@ from sqlalchemy import func, case, extract
 import json
 import pytz
 import traceback
+from database import LogAcesso, LogAcao, SessaoAtiva, registrar_log_acao
 
 painel_bp = Blueprint('painel', __name__, template_folder='templates')
 
@@ -81,6 +82,274 @@ def error_response(message, status=500, details=None):
     if details:
         error_data['details'] = details
     return json_response(error_data, status)
+
+@painel_bp.route('/api/setup-database', methods=['POST'])
+@login_required
+@setor_required('Administrador')
+def setup_database_endpoint():
+    """Endpoint para inserir dados de demonstração no banco"""
+    try:
+        from werkzeug.security import generate_password_hash
+        from datetime import datetime, timedelta
+        import random
+        import uuid
+
+        # Verificar se já existem dados de demonstração
+        existing_logs = LogAcesso.query.limit(1).first()
+        if existing_logs:
+            return json_response({'message': 'Dados de demonstração já existem', 'logs_count': LogAcesso.query.count()})
+
+        # Criar usuários de teste se não existem
+        admin_user = User.query.filter_by(email='admin@demo.com').first()
+        if not admin_user:
+            admin_user = User(
+                nome='Administrador',
+                sobrenome='Sistema',
+                email='admin@demo.com',
+                nivel_acesso='Administrador',
+                hash_senha=generate_password_hash('demo123'),
+                setor='TI',
+                telefone='(11) 99999-9999',
+                data_nascimento=datetime(1980, 1, 1).date(),
+                data_cadastro=get_brazil_time().replace(tzinfo=None),
+                ativo=True
+            )
+            db.session.add(admin_user)
+
+        test_user = User.query.filter_by(email='usuario@demo.com').first()
+        if not test_user:
+            test_user = User(
+                nome='Usuário',
+                sobrenome='Teste',
+                email='usuario@demo.com',
+                nivel_acesso='Usuario',
+                hash_senha=generate_password_hash('demo123'),
+                setor='Comercial',
+                telefone='(11) 88888-8888',
+                data_nascimento=datetime(1990, 5, 15).date(),
+                data_cadastro=get_brazil_time().replace(tzinfo=None),
+                ativo=True
+            )
+            db.session.add(test_user)
+
+        agent_user = User.query.filter_by(email='agente@demo.com').first()
+        if not agent_user:
+            agent_user = User(
+                nome='Agente',
+                sobrenome='Suporte',
+                email='agente@demo.com',
+                nivel_acesso='Usuario',
+                hash_senha=generate_password_hash('demo123'),
+                setor='TI',
+                telefone='(11) 77777-7777',
+                data_nascimento=datetime(1985, 10, 20).date(),
+                data_cadastro=get_brazil_time().replace(tzinfo=None),
+                ativo=True
+            )
+            db.session.add(agent_user)
+
+        db.session.commit()
+
+        # Dados de exemplo para logs de acesso
+        ips_exemplo = [
+            '192.168.1.100', '192.168.1.101', '192.168.1.102',
+            '10.0.0.15', '10.0.0.23', '172.16.1.50',
+            '203.0.113.45', '198.51.100.88'
+        ]
+
+        navegadores = [
+            'Chrome 119.0.0.0 (Windows)',
+            'Firefox 118.0.1 (Windows)',
+            'Edge 119.0.0.0 (Windows)',
+            'Safari 17.0 (MacOS)',
+            'Chrome 119.0.0.0 (Android)',
+            'Chrome 119.0.0.0 (Linux)'
+        ]
+
+        sistemas = [
+            'Windows 11', 'Windows 10', 'macOS Sonoma',
+            'Ubuntu 22.04', 'Android 13', 'iOS 17'
+        ]
+
+        cidades = [
+            ('São Paulo', 'Brasil', 'VIVO Fibra'),
+            ('Rio de Janeiro', 'Brasil', 'NET Claro'),
+            ('Belo Horizonte', 'Brasil', 'Oi Fibra'),
+            ('Brasília', 'Brasil', 'TIM Live'),
+            ('Curitiba', 'Brasil', 'Copel Telecom'),
+            ('Porto Alegre', 'Brasil', 'VIVO Fibra')
+        ]
+
+        usuarios_demo = [admin_user, test_user, agent_user]
+        agora = get_brazil_time().replace(tzinfo=None)
+
+        # Criar logs de acesso dos últimos 30 dias
+        logs_criados = 0
+        for dia in range(30):
+            data_log = agora - timedelta(days=dia)
+
+            # 2-8 acessos por dia
+            num_acessos = random.randint(2, 8)
+
+            for _ in range(num_acessos):
+                usuario = random.choice(usuarios_demo)
+                ip = random.choice(ips_exemplo)
+                navegador = random.choice(navegadores)
+                sistema = random.choice(sistemas)
+                cidade, pais, provedor = random.choice(cidades)
+
+                # Horário de acesso aleatório no dia
+                hora_acesso = data_log.replace(
+                    hour=random.randint(7, 22),
+                    minute=random.randint(0, 59),
+                    second=random.randint(0, 59)
+                )
+
+                # Duração da sessão (15 min a 4 horas)
+                duracao_minutos = random.randint(15, 240)
+                hora_logout = hora_acesso + timedelta(minutes=duracao_minutos)
+
+                # 85% das sessões são finalizadas
+                sessao_ativa = random.random() < 0.15
+
+                log_acesso = LogAcesso(
+                    usuario_id=usuario.id,
+                    data_acesso=hora_acesso,
+                    data_logout=None if sessao_ativa else hora_logout,
+                    ip_address=ip,
+                    navegador=navegador,
+                    sistema_operacional=sistema,
+                    dispositivo='Desktop' if 'Windows' in sistema or 'macOS' in sistema else 'Mobile',
+                    duracao_sessao=None if sessao_ativa else duracao_minutos,
+                    ativo=sessao_ativa,
+                    session_id=str(uuid.uuid4()),
+                    pais=pais,
+                    cidade=cidade,
+                    provedor_internet=provedor,
+                    mac_address=f"{random.randint(10,99):02x}:{random.randint(10,99):02x}:{random.randint(10,99):02x}:{random.randint(10,99):02x}:{random.randint(10,99):02x}:{random.randint(10,99):02x}",
+                    resolucao_tela=random.choice(['1920x1080', '1366x768', '2560x1440', '1440x900', '1600x900']),
+                    timezone='America/Sao_Paulo',
+                    latitude=-23.5505 + random.uniform(-0.1, 0.1),
+                    longitude=-46.6333 + random.uniform(-0.1, 0.1)
+                )
+
+                db.session.add(log_acesso)
+                logs_criados += 1
+
+        # Criar algumas sessões ativas
+        for i in range(3):
+            usuario = random.choice(usuarios_demo)
+            ip = random.choice(ips_exemplo)
+            cidade, pais, provedor = random.choice(cidades)
+
+            inicio_sessao = agora - timedelta(minutes=random.randint(5, 120))
+            ultima_atividade = agora - timedelta(minutes=random.randint(0, 30))
+
+            sessao_ativa = SessaoAtiva(
+                usuario_id=usuario.id,
+                session_id=str(uuid.uuid4()),
+                data_inicio=inicio_sessao,
+                ultima_atividade=ultima_atividade,
+                ip_address=ip,
+                navegador=random.choice(navegadores),
+                sistema_operacional=random.choice(sistemas),
+                dispositivo='Desktop',
+                ativo=True,
+                pais=pais,
+                cidade=cidade,
+                provedor_internet=provedor
+            )
+
+            db.session.add(sessao_ativa)
+
+        # Criar logs de ações dos últimos 7 dias
+        acoes_exemplo = [
+            ('Login realizado', 'autenticacao', 'Usuário fez login no sistema'),
+            ('Chamado criado', 'chamados', 'Novo chamado de suporte aberto'),
+            ('Chamado atualizado', 'chamados', 'Status do chamado alterado'),
+            ('Usuário criado', 'usuarios', 'Novo usuário cadastrado'),
+            ('Configuração alterada', 'sistema', 'Configuração do sistema modificada'),
+            ('Backup realizado', 'sistema', 'Backup automático executado'),
+            ('Relatório gerado', 'relatorios', 'Relatório de atividades criado'),
+            ('Logout realizado', 'autenticacao', 'Usuário fez logout')
+        ]
+
+        acoes_criadas = 0
+        for dia in range(7):
+            data_acao = agora - timedelta(days=dia)
+
+            # 5-15 ações por dia
+            num_acoes = random.randint(5, 15)
+
+            for _ in range(num_acoes):
+                usuario = random.choice(usuarios_demo)
+                acao, categoria, detalhes = random.choice(acoes_exemplo)
+                ip = random.choice(ips_exemplo)
+
+                # Horário da ação aleatório no dia
+                hora_acao = data_acao.replace(
+                    hour=random.randint(8, 18),
+                    minute=random.randint(0, 59),
+                    second=random.randint(0, 59)
+                )
+
+                # 95% das ações são bem-sucedidas
+                sucesso = random.random() < 0.95
+
+                log_acao = LogAcao(
+                    usuario_id=usuario.id,
+                    acao=acao,
+                    categoria=categoria,
+                    detalhes=detalhes + ('' if sucesso else ' (falhou)'),
+                    data_acao=hora_acao,
+                    ip_address=ip,
+                    sucesso=sucesso,
+                    recurso_afetado=f'ID_{random.randint(1000, 9999)}',
+                    tipo_recurso=categoria
+                )
+
+                db.session.add(log_acao)
+                acoes_criadas += 1
+
+        # Criar um chamado de teste
+        from setores.ti.routes import gerar_codigo_chamado, gerar_protocolo
+
+        chamado_teste = Chamado.query.filter_by(solicitante='Usuário de Demonstração').first()
+        if not chamado_teste:
+            chamado_teste = Chamado(
+                codigo=gerar_codigo_chamado(),
+                protocolo=gerar_protocolo(),
+                solicitante='Usuário de Demonstração',
+                cargo='Analista',
+                email='demo@academiaevoque.com.br',
+                telefone='(11) 99999-0000',
+                unidade='Unidade Principal',
+                problema='Computador/Notebook',
+                descricao='Computador não liga após queda de energia. Já verificamos cabo de força e estabilizador.',
+                status='Em Andamento',
+                prioridade='Alta',
+                data_abertura=agora - timedelta(hours=2),
+                usuario_id=test_user.id,
+                agente_responsavel=agent_user.nome
+            )
+            db.session.add(chamado_teste)
+
+        db.session.commit()
+
+        return json_response({
+            'message': 'Dados de demonstração inseridos com sucesso',
+            'logs_acesso_criados': logs_criados,
+            'logs_acoes_criadas': acoes_criadas,
+            'sessoes_ativas': 3,
+            'usuarios_criados': 3,
+            'chamado_teste': 'criado'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f'Erro ao inserir dados de demonstração: {str(e)}')
+        traceback.print_exc()
+        return error_response(f'Erro ao inserir dados: {str(e)}')
 
 def carregar_configuracoes():
     """Carrega configurações do banco de dados ou retorna padrões"""
@@ -1465,7 +1734,7 @@ Equipe de Suporte TI - Evoque Fitness
 @login_required
 @setor_required('Administrador')
 def notificacoes_recentes():
-    """Retorna chamados criados nos últimos 5 minutos"""
+    """Retorna chamados criados nos ��ltimos 5 minutos"""
     try:
         cinco_minutos_atras = get_brazil_time() - timedelta(minutes=5)
         
