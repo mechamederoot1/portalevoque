@@ -2130,6 +2130,17 @@ def atribuir_chamado(chamado_id):
 
         logger.info(f"Chamado {chamado.codigo} atribuído ao agente {agente.usuario.nome} por {current_user.nome}")
 
+        # Enviar notificação por email ao solicitante
+        try:
+            from .email_service import email_service
+            email_enviado = email_service.notificar_agente_atribuido(chamado, agente)
+            if email_enviado:
+                logger.info(f"Email de notificação enviado para {chamado.email}")
+            else:
+                logger.warning(f"Falha ao enviar email de notificação para {chamado.email}")
+        except Exception as e:
+            logger.warning(f"Erro ao enviar email de notificação: {str(e)}")
+
         return json_response({
             'message': f'Chamado {chamado.codigo} atribuído ao agente {agente.usuario.nome}',
             'agente_nome': f"{agente.usuario.nome} {agente.usuario.sobrenome}",
