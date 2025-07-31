@@ -129,11 +129,13 @@ def execute_custom_migrations():
         try:
             columns = [col['name'] for col in inspector.get_columns('chamado')]
             if 'usuario_id' not in columns:
-                db.engine.execute(text('ALTER TABLE chamado ADD COLUMN usuario_id INTEGER'))
-                try:
-                    db.engine.execute(text('ALTER TABLE chamado ADD FOREIGN KEY (usuario_id) REFERENCES user(id)'))
-                except:
-                    pass  # Foreign key pode já existir
+                with db.engine.connect() as connection:
+                    connection.execute(text('ALTER TABLE chamado ADD COLUMN usuario_id INTEGER'))
+                    try:
+                        connection.execute(text('ALTER TABLE chamado ADD FOREIGN KEY (usuario_id) REFERENCES user(id)'))
+                    except:
+                        pass  # Foreign key pode já existir
+                    connection.commit()
                 print("   ✓ Coluna usuario_id adicionada à tabela chamado")
         except Exception as e:
             print(f"   ⚠ Aviso na migração chamado.usuario_id: {str(e)}")
@@ -317,7 +319,7 @@ def main():
     success = create_database_migration()
     
     if success:
-        print("\n🎉 MIGRAÇÃO CONCLUÍDA COM SUCESSO!")
+        print("\n🎉 MIGRAÇÃO CONCLU��DA COM SUCESSO!")
         print("\nPróximos passos:")
         print("1. Faça login com o usuário admin (senha: admin123)")
         print("2. ALTERE IMEDIATAMENTE a senha do administrador")
