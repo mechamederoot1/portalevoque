@@ -360,6 +360,9 @@ function renderChamadosPage(page) {
                 </div>
                 <h4>Nenhum chamado encontrado</h4>
                 <p>Não há chamados com os filtros selecionados</p>
+                <button class="btn btn-outline-secondary" onclick="limparTodosFiltros()">
+                    <i class="fas fa-times me-1"></i>Limpar Filtros
+                </button>
             </div>
         `;
         pagination.innerHTML = '';
