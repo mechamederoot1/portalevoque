@@ -1590,7 +1590,7 @@ document.querySelectorAll('.sidebar nav > ul > li > a:not(.submenu-toggle)').for
     });
 });
 
-// Fun��ão para lidar com mudanças de hash na URL
+// Função para lidar com mudanças de hash na URL
 window.addEventListener('hashchange', function() {
     const hash = window.location.hash.substring(1);
     if (hash) {
@@ -3076,41 +3076,13 @@ function getAlertIcon(tipo) {
 
 async function carregarBackupManutencao() {
     try {
-        const container = document.getElementById('backupContainer');
-        if (container) {
-            container.innerHTML = `
-                <div class="row">
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5><i class="fas fa-database me-2"></i>Backup do Sistema</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>Último backup: <strong>31/01/2025 06:00:00</strong></p>
-                                <p>Status: <span class="badge bg-success">Sucesso</span></p>
-                                <button class="btn btn-primary" onclick="criarBackup()">
-                                    <i class="fas fa-download"></i> Criar Backup
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card">
-                            <div class="card-header">
-                                <h5><i class="fas fa-tools me-2"></i>Manutenção</h5>
-                            </div>
-                            <div class="card-body">
-                                <p>Limpeza automática: <strong>Ativada</strong></p>
-                                <p>Próxima manutenção: <strong>01/02/2025 02:00:00</strong></p>
-                                <button class="btn btn-warning" onclick="executarManutencao()">
-                                    <i class="fas fa-wrench"></i> Executar Manutenção
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
+        // Adicionar event listeners para os botões existentes
+        const btnCriarBackup = document.getElementById('btnCriarBackup');
+        if (btnCriarBackup) {
+            btnCriarBackup.addEventListener('click', criarBackup);
         }
+
+        console.log('Seção backup/manutenção carregada');
     } catch (error) {
         console.error('Erro ao carregar backup/manutenção:', error);
     }
