@@ -101,7 +101,11 @@ def carregar_configuracoes():
                     else:
                         config_final[config.chave] = valor
                 except json.JSONDecodeError:
-                    logger.error(f"Erro ao decodificar configuração {config.chave}")
+                    # Para valores que não são JSON (strings simples), tratar como strings
+                    if config.chave in ['versao_database', 'data_criacao', 'sistema_inicializado']:
+                        config_final[config.chave] = config.valor
+                    else:
+                        logger.error(f"Erro ao decodificar configuração {config.chave}")
                     continue
 
         except Exception as db_error:
