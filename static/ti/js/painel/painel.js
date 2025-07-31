@@ -2296,13 +2296,16 @@ async function carregarAgentes() {
 }
 
 // Renderizar lista de agentes
-function renderizarAgentes() {
-    const container = document.querySelector('#agentes-suporte .cards-grid');
+function renderizarAgentes(agentes = null) {
+    // Usar dados passados como parâmetro ou dados globais
+    const dadosAgentes = agentes || agentesData;
+
+    const container = document.querySelector('#agentes-suporte .cards-grid') || document.getElementById('agentesGrid');
     if (!container) return;
 
     container.innerHTML = '';
 
-    if (agentesData.length === 0) {
+    if (!dadosAgentes || dadosAgentes.length === 0) {
         container.innerHTML = '<p class="text-center py-4">Nenhum agente cadastrado.</p>';
         return;
     }
