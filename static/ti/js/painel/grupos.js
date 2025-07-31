@@ -15,9 +15,43 @@ function inicializarGrupos() {
     configurarEventListenersGrupos();
 }
 
+// Função de debug para verificar dados de grupos
+async function debugVerificarGrupos() {
+    console.log('=== DEBUG: Verificando dados de grupos ===');
+
+    try {
+        console.log('Buscando grupos...');
+        const responseGrupos = await fetch('/ti/painel/api/grupos');
+        console.log('Status da resposta grupos:', responseGrupos.status);
+
+        if (responseGrupos.ok) {
+            const grupos = await responseGrupos.json();
+            console.log('Total de grupos encontrados:', grupos.length);
+            console.log('Grupos encontrados:', grupos);
+
+            if (grupos.length === 0) {
+                console.log('NENHUM GRUPO ENCONTRADO! Verificar se existem grupos criados no banco');
+            }
+        } else {
+            console.error('Erro ao buscar grupos:', responseGrupos.status, responseGrupos.statusText);
+        }
+
+    } catch (error) {
+        console.error('Erro no debug de grupos:', error);
+    }
+
+    console.log('=== FIM DEBUG GRUPOS ===');
+}
+
+// Adicionar à janela global para fácil acesso
+window.debugVerificarGrupos = debugVerificarGrupos;
+
 // Auto-inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM carregado - grupos.js inicializado');
+
+    // Executar debug automaticamente
+    setTimeout(debugVerificarGrupos, 2000);
 });
 
 function configurarEventListenersGrupos() {
