@@ -16,28 +16,32 @@ BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 @login_required
 @setor_required('Administrador')
 def listar_logs_acesso():
-    """Lista logs de acesso com filtros opcionais"""
+    """Lista logs de acesso com filtros opcionais e paginação"""
     try:
-        # Parâmetros de filtro
+        # Parâmetros de filtro e paginação
         dias = request.args.get('dias', 7, type=int)
         usuario_id = request.args.get('usuario_id', type=int)
         ip_address = request.args.get('ip')
-        
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 5, type=int)
+
         # Data limite
         data_limite = get_brazil_time().replace(tzinfo=None) - timedelta(days=dias)
-        
+
         # Query base
         query = db.session.query(LogAcesso, User).join(User)
         query = query.filter(LogAcesso.data_acesso >= data_limite)
-        
+
         # Aplicar filtros
         if usuario_id:
             query = query.filter(LogAcesso.usuario_id == usuario_id)
         if ip_address:
             query = query.filter(LogAcesso.ip_address.like(f'%{ip_address}%'))
-        
-        # Ordenar por data mais recente
-        logs = query.order_by(LogAcesso.data_acesso.desc()).limit(100).all()
+
+        # Ordenar por data mais recente e paginar
+        logs_paginated = query.order_by(LogAcesso.data_acesso.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
         
         logs_data = []
         for log, usuario in logs:
