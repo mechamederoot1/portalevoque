@@ -557,6 +557,218 @@ class ManutencaoSistema(db.Model):
     def __repr__(self):
         return f'<ManutencaoSistema {self.tipo_manutencao} - {self.status}>'
 
+class AgenteSuporte(db.Model):
+    """Tabela para agentes de suporte"""
+    __tablename__ = 'agentes_suporte'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, unique=True)
+    ativo = db.Column(db.Boolean, default=True)
+    especialidades = db.Column(db.Text, nullable=True)  # JSON com especialidades
+    nivel_experiencia = db.Column(db.String(20), default='junior')  # junior, pleno, senior
+    max_chamados_simultaneos = db.Column(db.Integer, default=10)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_atualizacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+
+    # Relacionamento com usuário
+    usuario = db.relationship('User', backref='agente_suporte')
+
+    # Relacionamento com chamados atribuídos
+    chamados_atribuidos = db.relationship('ChamadoAgente', backref='agente', lazy=True)
+
+    @property
+    def especialidades_list(self):
+        if self.especialidades:
+            try:
+                return json.loads(self.especialidades)
+            except:
+                return []
+        return []
+
+    @especialidades_list.setter
+    def especialidades_list(self, value):
+        if isinstance(value, list):
+            self.especialidades = json.dumps(value)
+        else:
+            self.especialidades = json.dumps([])
+
+    def get_chamados_ativos(self):
+        """Retorna número de chamados ativos atribuídos ao agente"""
+        return ChamadoAgente.query.filter_by(
+            agente_id=self.id,
+            ativo=True
+        ).join(Chamado).filter(
+            Chamado.status.in_(['Aberto', 'Aguardando'])
+        ).count()
+
+    def pode_receber_chamado(self):
+        """Verifica se o agente pode receber um novo chamado"""
+        if not self.ativo:
+            return False
+        return self.get_chamados_ativos() < self.max_chamados_simultaneos
+
+    def __repr__(self):
+        return f'<AgenteSuporte {self.usuario.nome} - {self.nivel_experiencia}>'
+
+class ChamadoAgente(db.Model):
+    """Tabela para atribuição de chamados a agentes"""
+    __tablename__ = 'chamado_agente'
+
+    id = db.Column(db.Integer, primary_key=True)
+    chamado_id = db.Column(db.Integer, db.ForeignKey('chamado.id'), nullable=False)
+    agente_id = db.Column(db.Integer, db.ForeignKey('agentes_suporte.id'), nullable=False)
+    data_atribuicao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_conclusao = db.Column(db.DateTime, nullable=True)
+    ativo = db.Column(db.Boolean, default=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    atribuido_por = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    # Relacionamentos
+    chamado = db.relationship('Chamado', backref='agente_atribuido')
+    atribuido_por_usuario = db.relationship('User', foreign_keys=[atribuido_por])
+
+    def finalizar_atribuicao(self):
+        """Finaliza a atribuição do chamado"""
+        self.ativo = False
+        self.data_conclusao = get_brazil_time().replace(tzinfo=None)
+
+    def __repr__(self):
+        return f'<ChamadoAgente Chamado:{self.chamado_id} - Agente:{self.agente_id}>'
+
+class GrupoUsuarios(db.Model):
+    """Tabela para grupos de usuários"""
+    __tablename__ = 'grupos_usuarios'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(150), unique=True, nullable=False)
+    descricao = db.Column(db.Text, nullable=True)
+    ativo = db.Column(db.Boolean, default=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_atualizacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    criado_por = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
+    # Relacionamentos
+    criador = db.relationship('User', foreign_keys=[criado_por])
+    membros = db.relationship('GrupoMembro', backref='grupo', lazy=True, cascade='all, delete-orphan')
+    unidades = db.relationship('GrupoUnidade', backref='grupo', lazy=True, cascade='all, delete-orphan')
+    permissoes = db.relationship('GrupoPermissao', backref='grupo', lazy=True, cascade='all, delete-orphan')
+
+    def get_membros_count(self):
+        """Retorna número de membros ativos no grupo"""
+        return GrupoMembro.query.filter_by(grupo_id=self.id, ativo=True).count()
+
+    def get_unidades_count(self):
+        """Retorna número de unidades no grupo"""
+        return GrupoUnidade.query.filter_by(grupo_id=self.id).count()
+
+    def __repr__(self):
+        return f'<GrupoUsuarios {self.nome}>'
+
+class GrupoMembro(db.Model):
+    """Tabela para membros dos grupos"""
+    __tablename__ = 'grupo_membros'
+
+    id = db.Column(db.Integer, primary_key=True)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupos_usuarios.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    data_adicao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    ativo = db.Column(db.Boolean, default=True)
+    adicionado_por = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    # Relacionamentos
+    usuario = db.relationship('User', foreign_keys=[usuario_id], backref='grupos_participante')
+    adicionado_por_usuario = db.relationship('User', foreign_keys=[adicionado_por])
+
+    # Índice composto para evitar duplicatas
+    __table_args__ = (db.UniqueConstraint('grupo_id', 'usuario_id', name='uk_grupo_usuario'),)
+
+    def __repr__(self):
+        return f'<GrupoMembro Grupo:{self.grupo_id} - Usuário:{self.usuario_id}>'
+
+class GrupoUnidade(db.Model):
+    """Tabela para unidades dos grupos"""
+    __tablename__ = 'grupo_unidades'
+
+    id = db.Column(db.Integer, primary_key=True)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupos_usuarios.id'), nullable=False)
+    unidade_id = db.Column(db.Integer, db.ForeignKey('unidade.id'), nullable=False)
+    data_adicao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+
+    # Relacionamentos
+    unidade = db.relationship('Unidade', backref='grupos_participante')
+
+    # Índice composto para evitar duplicatas
+    __table_args__ = (db.UniqueConstraint('grupo_id', 'unidade_id', name='uk_grupo_unidade'),)
+
+    def __repr__(self):
+        return f'<GrupoUnidade Grupo:{self.grupo_id} - Unidade:{self.unidade_id}>'
+
+class GrupoPermissao(db.Model):
+    """Tabela para permissões específicas dos grupos"""
+    __tablename__ = 'grupo_permissoes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupos_usuarios.id'), nullable=False)
+    permissao = db.Column(db.String(100), nullable=False)  # criar_chamados, visualizar_relatorios, etc
+    concedida = db.Column(db.Boolean, default=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    concedida_por = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    # Relacionamentos
+    concedida_por_usuario = db.relationship('User', foreign_keys=[concedida_por])
+
+    # Índice composto para evitar duplicatas
+    __table_args__ = (db.UniqueConstraint('grupo_id', 'permissao', name='uk_grupo_permissao'),)
+
+    def __repr__(self):
+        return f'<GrupoPermissao Grupo:{self.grupo_id} - {self.permissao}>'
+
+class EmailMassa(db.Model):
+    """Tabela para histórico de emails em massa"""
+    __tablename__ = 'emails_massa'
+
+    id = db.Column(db.Integer, primary_key=True)
+    grupo_id = db.Column(db.Integer, db.ForeignKey('grupos_usuarios.id'), nullable=True)
+    assunto = db.Column(db.String(255), nullable=False)
+    conteudo = db.Column(db.Text, nullable=False)
+    tipo = db.Column(db.String(50), nullable=False)  # alerta_seguranca, atualizacao, manutencao, etc
+    destinatarios_count = db.Column(db.Integer, default=0)
+    enviados_count = db.Column(db.Integer, default=0)
+    falhas_count = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(20), default='preparando')  # preparando, enviando, concluido, erro
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_envio = db.Column(db.DateTime, nullable=True)
+    data_conclusao = db.Column(db.DateTime, nullable=True)
+    criado_por = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    erro_detalhes = db.Column(db.Text, nullable=True)
+
+    # Relacionamentos
+    grupo = db.relationship('GrupoUsuarios', backref='emails_enviados')
+    criador = db.relationship('User', foreign_keys=[criado_por])
+    destinatarios = db.relationship('EmailMassaDestinatario', backref='email_massa', lazy=True, cascade='all, delete-orphan')
+
+    def __repr__(self):
+        return f'<EmailMassa {self.assunto} - {self.status}>'
+
+class EmailMassaDestinatario(db.Model):
+    """Tabela para destinatários específicos de emails em massa"""
+    __tablename__ = 'email_massa_destinatarios'
+
+    id = db.Column(db.Integer, primary_key=True)
+    email_massa_id = db.Column(db.Integer, db.ForeignKey('emails_massa.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    email_destinatario = db.Column(db.String(120), nullable=False)
+    nome_destinatario = db.Column(db.String(150), nullable=True)
+    status_envio = db.Column(db.String(20), default='pendente')  # pendente, enviado, falha
+    data_envio = db.Column(db.DateTime, nullable=True)
+    erro_envio = db.Column(db.Text, nullable=True)
+
+    # Relacionamentos
+    usuario = db.relationship('User', backref='emails_massa_recebidos')
+
+    def __repr__(self):
+        return f'<EmailMassaDestinatario {self.email_destinatario} - {self.status_envio}>'
+
 def init_app(app):
     db.init_app(app)
     
