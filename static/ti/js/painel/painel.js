@@ -1682,17 +1682,22 @@ function loadSectionContent(sectionId) {
             break;
         case 'agentes-suporte':
             // Carregar agentes de suporte
+            console.log('Carregando seção de agentes de suporte...');
             if (typeof carregarAgentes === 'function') {
                 carregarAgentes();
+            } else {
+                console.error('Função carregarAgentes não encontrada');
             }
             break;
         case 'grupos-usuarios':
             // Carregar grupos de usuários
+            console.log('Carregando seção de grupos de usuários...');
             if (typeof carregarGrupos === 'function') {
                 carregarGrupos();
-            }
-            if (typeof inicializarGrupos === 'function') {
+            } else if (typeof inicializarGrupos === 'function') {
                 inicializarGrupos();
+            } else {
+                console.error('Funções de grupos não encontradas');
             }
             break;
         case 'visao-geral':
