@@ -134,13 +134,79 @@ function filterChamados(status) {
         filtrados = filtrados.filter(chamado => chamado.status === status);
     }
 
-    // Filtrar por agente se o filtro existir
-    const filtroAgente = document.getElementById('filtroAgente');
-    if (filtroAgente && filtroAgente.value) {
-        const agenteId = filtroAgente.value;
+    // Aplicar filtros avançados se estiverem ativos
+    filtrados = aplicarFiltrosAvancados(filtrados);
+
+    return filtrados;
+}
+
+// Função para aplicar filtros avançados
+function aplicarFiltrosAvancados(chamados) {
+    let filtrados = [...chamados];
+
+    // Filtro por solicitante
+    const filtroSolicitante = document.getElementById('filtroSolicitante');
+    if (filtroSolicitante && filtroSolicitante.value.trim()) {
+        const termo = filtroSolicitante.value.trim().toLowerCase();
+        filtrados = filtrados.filter(chamado =>
+            chamado.solicitante.toLowerCase().includes(termo)
+        );
+    }
+
+    // Filtro por problema
+    const filtroProblema = document.getElementById('filtroProblema');
+    if (filtroProblema && filtroProblema.value.trim()) {
+        const termo = filtroProblema.value.trim().toLowerCase();
+        filtrados = filtrados.filter(chamado =>
+            chamado.problema.toLowerCase().includes(termo)
+        );
+    }
+
+    // Filtro por prioridade
+    const filtroPrioridade = document.getElementById('filtroPrioridade');
+    if (filtroPrioridade && filtroPrioridade.value) {
+        filtrados = filtrados.filter(chamado =>
+            chamado.prioridade === filtroPrioridade.value
+        );
+    }
+
+    // Filtro por agente responsável
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    if (filtroAgenteResponsavel && filtroAgenteResponsavel.value) {
+        const agenteId = filtroAgenteResponsavel.value;
         filtrados = filtrados.filter(chamado =>
             chamado.agente_id && chamado.agente_id.toString() === agenteId
         );
+    }
+
+    // Filtro por unidade
+    const filtroUnidade = document.getElementById('filtroUnidade');
+    if (filtroUnidade && filtroUnidade.value) {
+        filtrados = filtrados.filter(chamado =>
+            chamado.unidade === filtroUnidade.value
+        );
+    }
+
+    // Filtro por data de início
+    const filtroDataInicio = document.getElementById('filtroDataInicio');
+    if (filtroDataInicio && filtroDataInicio.value) {
+        const dataInicio = new Date(filtroDataInicio.value);
+        filtrados = filtrados.filter(chamado => {
+            if (!chamado.data_abertura) return false;
+            const dataChamado = new Date(chamado.data_abertura.split(' ')[0].split('/').reverse().join('-'));
+            return dataChamado >= dataInicio;
+        });
+    }
+
+    // Filtro por data fim
+    const filtroDataFim = document.getElementById('filtroDataFim');
+    if (filtroDataFim && filtroDataFim.value) {
+        const dataFim = new Date(filtroDataFim.value);
+        filtrados = filtrados.filter(chamado => {
+            if (!chamado.data_abertura) return false;
+            const dataChamado = new Date(chamado.data_abertura.split(' ')[0].split('/').reverse().join('-'));
+            return dataChamado <= dataFim;
+        });
     }
 
     return filtrados;
