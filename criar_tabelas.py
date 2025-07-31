@@ -94,7 +94,7 @@ def create_database_migration():
             print("- problema_reportado (tipos de problemas)")
             print("- item_internet (itens de internet)")
             print("- historicos_tickets (histórico de tickets)")
-            print("- configuracoes (configurações básicas)")
+            print("- configuracoes (configurações b��sicas)")
             print("- logs_acesso (logs de acesso)")
             print("- logs_acoes (logs de ações)")
             print("- configuracoes_avancadas (configurações avançadas)")
@@ -144,7 +144,9 @@ def execute_custom_migrations():
         try:
             columns = [col['name'] for col in inspector.get_columns('user')]
             if '_setores' not in columns:
-                db.engine.execute(text('ALTER TABLE user ADD COLUMN _setores TEXT'))
+                with db.engine.connect() as connection:
+                    connection.execute(text('ALTER TABLE user ADD COLUMN _setores TEXT'))
+                    connection.commit()
                 print("   ✓ Coluna _setores adicionada à tabela user")
         except Exception as e:
             print(f"   ⚠ Aviso na migração user._setores: {str(e)}")
@@ -319,7 +321,7 @@ def main():
     success = create_database_migration()
     
     if success:
-        print("\n🎉 MIGRAÇÃO CONCLU��DA COM SUCESSO!")
+        print("\n🎉 MIGRAÇÃO CONCLUÍDA COM SUCESSO!")
         print("\nPróximos passos:")
         print("1. Faça login com o usuário admin (senha: admin123)")
         print("2. ALTERE IMEDIATAMENTE a senha do administrador")
