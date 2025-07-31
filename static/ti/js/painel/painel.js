@@ -72,6 +72,33 @@ function initializeNavigation() {
         });
     });
 
+    // Add hashchange listener
+    window.addEventListener('hashchange', function() {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            activateSection(hash);
+
+            // Update active classes
+            navLinks.forEach(link => link.classList.remove('active'));
+
+            // Find and activate corresponding link
+            const targetLink = document.querySelector(`.sidebar a[href="#${hash}"]`);
+            if (targetLink) {
+                targetLink.classList.add('active');
+
+                // If it's a submenu item, also activate parent link
+                const submenu = targetLink.closest('.submenu');
+                if (submenu) {
+                    const parentLink = submenu.previousElementSibling;
+                    if (parentLink) {
+                        parentLink.classList.add('active');
+                        parentLink.parentElement.classList.add('open');
+                    }
+                }
+            }
+        }
+    });
+
     console.log('Navegação inicializada com sucesso');
 }
 
@@ -1301,7 +1328,7 @@ async function loadUsuarios() {
 
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
-        usuariosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar usuários. Tente novamente mais tarde.</p>';
+        usuariosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar usu��rios. Tente novamente mais tarde.</p>';
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar usuários');
         }
@@ -2751,7 +2778,7 @@ async function excluirGrupo(grupoId) {
 
 // Garantir que agentes e grupos sejam carregados corretamente
 function loadSectionContentEnhanced(sectionId) {
-    // Chamar a função original primeiro
+    // Chamar a funç��o original primeiro
     if (typeof loadSectionContent === 'function') {
         loadSectionContent(sectionId);
     }
@@ -4275,7 +4302,7 @@ function debugSistemaPainel() {
         console.log('--- TESTE DE NAVEGAÇÃO ---');
         try {
             if (typeof activateSection === 'function') {
-                console.log('Testando ativação da seção visao-geral...');
+                console.log('Testando ativaç��o da seção visao-geral...');
                 activateSection('visao-geral');
                 console.log('✓ Navegação funcionando');
             } else {
