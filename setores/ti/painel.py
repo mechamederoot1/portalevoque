@@ -1095,6 +1095,12 @@ def atualizar_usuario(user_id):
             usuario.nome = data['nome']
         if 'sobrenome' in data:
             usuario.sobrenome = data['sobrenome']
+        if 'usuario' in data:
+            # Verificar se nome de usuário não está em uso por outro usuário
+            existing_user = User.query.filter(User.usuario == data['usuario'], User.id != user_id).first()
+            if existing_user:
+                return error_response('Nome de usuário já está em uso por outro usuário', 400)
+            usuario.usuario = data['usuario']
         if 'email' in data:
             # Verificar se email não está em uso por outro usuário
             existing_user = User.query.filter(User.email == data['email'], User.id != user_id).first()
