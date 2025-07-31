@@ -440,7 +440,7 @@ async function carregarAlertasSistema(page = 1, filtros = {}) {
             ...filtros
         });
 
-        const response = await fetch(`/ti/admin/api/alertas?${params}`);
+        const response = await fetch(`/ti/painel/api/alertas?${params}`);
         if (!response.ok) {
             throw new Error('Erro ao carregar alertas');
         }
