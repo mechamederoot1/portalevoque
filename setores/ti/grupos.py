@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from database import db, User, GrupoUsuarios, GrupoMembro, GrupoUnidade, GrupoPermissao, Unidade
-from auth.utils import setor_required
+from auth.auth_helpers import setor_required
 import logging
 
 logger = logging.getLogger(__name__)
