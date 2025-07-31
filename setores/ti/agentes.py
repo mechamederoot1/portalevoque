@@ -298,7 +298,7 @@ def usuarios_disponiveis():
             AgenteSuporte.id.is_(None),
             User.bloqueado == False
         )
-        
+
         usuarios_data = []
         for usuario in usuarios_query.all():
             usuarios_data.append({
@@ -308,9 +308,44 @@ def usuarios_disponiveis():
                 'nivel_acesso': usuario.nivel_acesso,
                 'setores': usuario.setores
             })
-        
+
         return json_response(usuarios_data)
-        
+
     except Exception as e:
         logger.error(f"Erro ao listar usuários disponíveis: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@agentes_bp.route('/api/agentes/estatisticas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def obter_estatisticas_agentes():
+    """Obtém estatísticas dos agentes de suporte"""
+    try:
+        # Total de agentes
+        total_agentes = AgenteSuporte.query.count()
+
+        # Agentes ativos
+        agentes_ativos = AgenteSuporte.query.filter_by(ativo=True).count()
+
+        # Chamados atribuídos (total de chamados ativos atribuídos a agentes)
+        chamados_atribuidos = ChamadoAgente.query.filter_by(ativo=True).count()
+
+        # Agentes disponíveis (ativos que podem receber mais chamados)
+        agentes = AgenteSuporte.query.filter_by(ativo=True).all()
+        agentes_disponiveis = 0
+        for agente in agentes:
+            if agente.pode_receber_chamado():
+                agentes_disponiveis += 1
+
+        estatisticas = {
+            'total_agentes': total_agentes,
+            'agentes_ativos': agentes_ativos,
+            'chamados_atribuidos': chamados_atribuidos,
+            'agentes_disponiveis': agentes_disponiveis
+        }
+
+        return json_response(estatisticas)
+
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas dos agentes: {str(e)}")
         return error_response('Erro interno no servidor')
