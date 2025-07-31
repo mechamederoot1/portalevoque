@@ -805,7 +805,7 @@ function validarDadosUsuario(dados) {
     if (!dados.email) erros.push('E-mail é obrigatório');
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
     if (!dados.senha) erros.push('Senha é obrigatória. Clique em "Gerar Senha"');
-    if (!dados.nivel_acesso) erros.push('Nível de acesso é obrigatório');
+    if (!dados.nivel_acesso) erros.push('N��vel de acesso é obrigatório');
     if (!dados.setor || dados.setor.length === 0) erros.push('Selecione pelo menos um setor');
     
     // Validação de e-mail
@@ -1692,10 +1692,10 @@ function loadSectionContent(sectionId) {
         case 'grupos-usuarios':
             // Carregar grupos de usuários
             console.log('Carregando seção de grupos de usuários...');
-            if (typeof carregarGrupos === 'function') {
-                carregarGrupos();
-            } else if (typeof inicializarGrupos === 'function') {
+            if (typeof inicializarGrupos === 'function') {
                 inicializarGrupos();
+            } else if (typeof carregarGrupos === 'function') {
+                carregarGrupos();
             } else {
                 console.error('Funções de grupos não encontradas');
             }
