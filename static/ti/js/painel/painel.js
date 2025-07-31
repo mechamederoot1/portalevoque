@@ -2792,13 +2792,16 @@ function inicializarFiltroPermissoes() {
     // Função para filtrar usuários
     const filtrarUsuarios = () => {
         const termoBusca = filtroInput.value.toLowerCase().trim();
+        console.log('Executando filtro com termo:', termoBusca);
         filtrarListaUsuarios(termoBusca);
 
         // Feedback visual
         if (termoBusca) {
             filtroInput.style.backgroundColor = '#e8f4fd';
+            filtroInput.style.borderColor = '#007bff';
         } else {
             filtroInput.style.backgroundColor = '';
+            filtroInput.style.borderColor = '';
         }
     };
 
