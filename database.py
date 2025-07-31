@@ -236,7 +236,7 @@ class Configuracao(db.Model):
 class LogAcesso(db.Model):
     """Tabela para registrar acessos dos usuários"""
     __tablename__ = 'logs_acesso'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     data_acesso = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
@@ -249,6 +249,16 @@ class LogAcesso(db.Model):
     navegador = db.Column(db.String(100), nullable=True)
     sistema_operacional = db.Column(db.String(100), nullable=True)
     dispositivo = db.Column(db.String(50), nullable=True)  # desktop, mobile, tablet
+
+    # Informações de localização e contexto
+    pais = db.Column(db.String(100), nullable=True)
+    cidade = db.Column(db.String(100), nullable=True)
+    provedor_internet = db.Column(db.String(200), nullable=True)
+    mac_address = db.Column(db.String(17), nullable=True)
+    resolucao_tela = db.Column(db.String(20), nullable=True)
+    timezone = db.Column(db.String(50), nullable=True)
+    latitude = db.Column(db.Numeric(10, 8), nullable=True)
+    longitude = db.Column(db.Numeric(11, 8), nullable=True)
 
     def get_data_acesso_brazil(self):
         """Retorna data de acesso no timezone do Brasil"""
