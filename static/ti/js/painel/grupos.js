@@ -107,7 +107,7 @@ async function carregarGrupos() {
 
 // Renderizar grupos
 function renderizarGrupos() {
-    const container = document.getElementById('gruposContainer');
+    const container = document.getElementById('gruposGrid');
     if (!container) return;
     
     if (!gruposData || gruposData.length === 0) {
