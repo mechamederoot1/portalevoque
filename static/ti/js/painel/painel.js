@@ -1455,6 +1455,8 @@ function loadSectionContent(sectionId) {
             break;
         case 'permissoes':
             loadUsuarios();
+            // Inicializar filtro de permissões
+            inicializarFiltroPermissoes();
             break;
         case 'bloqueios':
             loadUsuariosBloqueados();
