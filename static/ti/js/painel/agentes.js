@@ -6,38 +6,64 @@ let agentesStatisticsData = {};
 // Carregar agentes de suporte
 async function carregarAgentes() {
     try {
-        console.log('Carregando agentes de suporte...');
+        console.log('=== INICIANDO CARREGAMENTO DE AGENTES ===');
+
+        // Verificar se o container existe
+        const container = document.getElementById('agentesGrid');
+        if (!container) {
+            console.error('Container agentesGrid não encontrado!');
+            return;
+        }
+
+        console.log('Container agentesGrid encontrado:', container);
 
         // Carregar usuários com nível "Agente de suporte"
+        console.log('Fazendo requisição para /ti/painel/api/usuarios...');
         const response = await fetch('/ti/painel/api/usuarios');
+        console.log('Status da resposta:', response.status);
+
         if (!response.ok) {
-            throw new Error('Erro ao carregar usuários');
+            throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
         }
 
         const todosUsuarios = await response.json();
+        console.log('Total de usuários recebidos:', todosUsuarios.length);
+        console.log('Primeiros 3 usuários:', todosUsuarios.slice(0, 3));
 
         // Filtrar apenas usuários com nível "Agente de suporte"
         agentesData = todosUsuarios.filter(usuario =>
             usuario.nivel_acesso === 'Agente de suporte' && !usuario.bloqueado
         );
 
-        console.log('Agentes carregados:', agentesData);
+        console.log('Agentes filtrados:', agentesData.length);
+        console.log('Dados dos agentes:', agentesData);
 
-        // Carregar estatísticas
+        // Carregar estat��sticas
         await carregarEstatisticasAgentes();
 
         // Renderizar os dados
         renderizarAgentes();
 
+        console.log('=== CARREGAMENTO DE AGENTES CONCLUÍDO ===');
+
     } catch (error) {
-        console.error('Erro ao carregar agentes:', error);
+        console.error('ERRO ao carregar agentes:', error);
         const container = document.getElementById('agentesGrid');
         if (container) {
-            container.innerHTML = '<p class="text-center py-4">Erro ao carregar agentes. Tente novamente mais tarde.</p>';
+            container.innerHTML = `
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                    <h5 class="text-danger">Erro ao carregar agentes</h5>
+                    <p class="text-muted">${error.message}</p>
+                    <button class="btn btn-primary" onclick="carregarAgentes()">
+                        <i class="fas fa-sync-alt me-1"></i>Tentar Novamente
+                    </button>
+                </div>
+            `;
         }
 
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes de suporte');
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes de suporte: ' + error.message);
         }
     }
 }
