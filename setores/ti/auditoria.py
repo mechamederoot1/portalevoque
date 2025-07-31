@@ -1,7 +1,8 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from database import db, LogAcesso, LogAcao, SessaoAtiva, User, get_brazil_time
-from setores.ti.utils import setor_required, json_response, error_response
+from auth.auth_helpers import setor_required
+from setores.ti.painel import json_response, error_response
 import logging
 from datetime import datetime, timedelta
 import pytz
