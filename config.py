@@ -23,56 +23,28 @@ class Config:
     DB_NAME = os.environ.get('DB_NAME')
     
     # Validar se as variáveis de banco estão configuradas
-    if not all([DB_HOST, DB_USER, DB_NAME]):
-        raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_NAME")
+    if not all([DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
+        raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME")
 
-    # DB_PASSWORD pode estar vazia em desenvolvimento local
-    if not DB_PASSWORD:
-        DB_PASSWORD = ""
-    
     # Codifica a senha para uso na URL
     DB_PASSWORD_ENCODED = quote_plus(DB_PASSWORD)
-    
-    # URI de conexão MySQL
-    # Verificar se é desenvolvimento local ou produção Azure
-    if DB_HOST == 'localhost' or '127.0.0.1' in DB_HOST:
-        # Desenvolvimento local - sem SSL
-        SQLALCHEMY_DATABASE_URI = (
-            f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-            '?charset=utf8mb4'
-        )
-        # Configurações do SQLAlchemy para desenvolvimento
-        SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_pre_ping': True,
-            'pool_recycle': 300,
-            'pool_timeout': 30,
-            'max_overflow': 5,
-            'pool_size': 10
-        }
-    else:
-        # Produção Azure - com SSL
-        SQLALCHEMY_DATABASE_URI = (
-            f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-            '?charset=utf8mb4'
-            '&ssl_ca=DigiCertGlobalRootCA.crt.pem'
-            '&ssl_verify_cert=true'
-        )
-        # Configurações do SQLAlchemy para produção
-        SQLALCHEMY_ENGINE_OPTIONS = {
-            'pool_pre_ping': True,
-            'pool_recycle': 300,
-            'pool_timeout': 30,
-            'max_overflow': 5,
-            'pool_size': 10,
-            'connect_args': {
-                'ssl': {
-                    'ssl_ca': 'DigiCertGlobalRootCA.crt.pem'
-                }
-            }
-        }
+
+    # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
+    SQLALCHEMY_DATABASE_URI = (
+        f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+        '?charset=utf8mb4'
+        '&ssl_disabled=false'
+    )
 
     # Configurações do SQLAlchemy
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_timeout': 30,
+        'max_overflow': 5,
+        'pool_size': 10
+    }
     
     # Configurações do Microsoft Graph API
     CLIENT_ID = os.environ.get('CLIENT_ID')
