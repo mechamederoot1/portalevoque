@@ -779,6 +779,39 @@ class EmailMassaDestinatario(db.Model):
     def __repr__(self):
         return f'<EmailMassaDestinatario {self.email_destinatario} - {self.status_envio}>'
 
+class SessaoAtiva(db.Model):
+    """Tabela para sessões ativas dos usuários"""
+    __tablename__ = 'sessoes_ativas'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    session_id = db.Column(db.String(255), nullable=False)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    data_inicio = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    ultima_atividade = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    ativo = db.Column(db.Boolean, default=True)
+
+    # Informações de localização
+    pais = db.Column(db.String(100), nullable=True)
+    cidade = db.Column(db.String(100), nullable=True)
+    navegador = db.Column(db.String(100), nullable=True)
+    sistema_operacional = db.Column(db.String(100), nullable=True)
+    dispositivo = db.Column(db.String(50), nullable=True)
+
+    # Relacionamentos
+    usuario = db.relationship('User', backref='sessoes_ativas')
+
+    def get_duracao_minutos(self):
+        """Calcula duração da sessão em minutos"""
+        if self.ultima_atividade and self.data_inicio:
+            delta = self.ultima_atividade - self.data_inicio
+            return int(delta.total_seconds() / 60)
+        return 0
+
+    def __repr__(self):
+        return f'<SessaoAtiva {self.usuario.nome} - {self.session_id}>'
+
 def init_app(app):
     db.init_app(app)
     
