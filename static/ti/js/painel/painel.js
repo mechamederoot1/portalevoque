@@ -1287,6 +1287,7 @@ document.getElementById('btnSalvarUsuario').addEventListener('click', async () =
             body: JSON.stringify({
                 nome,
                 sobrenome,
+                usuario,
                 email,
                 nivel_acesso: nivelAcesso,
                 setores,
