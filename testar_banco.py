@@ -19,7 +19,9 @@ def testar_conexao():
         
         with app.app_context():
             # Testar conexão
-            result = db.engine.execute("SELECT 1")
+            from sqlalchemy import text
+            with db.engine.connect() as connection:
+                result = connection.execute(text("SELECT 1"))
             print("✅ Conexão com banco de dados estabelecida!")
             
             # Criar todas as tabelas
