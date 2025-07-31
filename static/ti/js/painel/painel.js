@@ -2814,7 +2814,7 @@ function inicializarFiltroPermissoes() {
     };
 
     // Event listeners para busca em tempo real
-    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 150));
+    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 100));
     btnFiltrar.addEventListener('click', filtrarUsuarios);
 
     // Filtrar ao pressionar Enter
