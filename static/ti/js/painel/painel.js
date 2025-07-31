@@ -311,7 +311,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
 
         const data = await response.json();
         
-        // Se o status foi atualizado com sucesso e é um dos status que requer notificação
+        // Se o status foi atualizado com sucesso e �� um dos status que requer notificação
         if (['Aguardando', 'Cancelado', 'Concluido'].includes(novoStatus)) {
             // Envia a notificação
             const notificacaoResponse = await fetch(`/ti/painel/api/chamados/${chamadoId}/notificar`, {
@@ -1173,7 +1173,7 @@ async function excluirChamado(chamadoId) {
         // Remove o chamado da lista local
         chamadosData = chamadosData.filter(chamado => chamado.id != chamadoId);
         
-        // Atualiza a visualização
+        // Atualiza a visualizaç��o
         renderChamadosPage(currentPage);
         
         // Usar sistema de notificações avançado
@@ -2831,38 +2831,61 @@ function filtrarListaUsuarios(termoBusca) {
     }
 
     // Buscar por cards específicas de usuários
-    const cards = usuariosGrid.querySelectorAll('.usuario-card, .card');
+    const cards = usuariosGrid.querySelectorAll('.usuario-card');
     let usuariosVisiveis = 0;
 
     console.log(`Filtrando ${cards.length} cards de usuários com termo: "${termoBusca}"`);
 
     cards.forEach(card => {
-        // Buscar elementos específicos dentro da card
-        const nomeElement = card.querySelector('h3, .card-title');
-        const emailElement = card.querySelector('.info-row span:contains("@"), .card-text');
-        const nivelElement = card.querySelector('.badge, .status-badge');
+        // Buscar elementos específicos baseados na estrutura real
+        const nomeElement = card.querySelector('.card-header h3');
+        const emailElements = card.querySelectorAll('.info-row span');
+        const statusElement = card.querySelector('.status-badge');
 
-        // Extrair textos
+        // Extrair textos específicos
         const nomeUsuario = nomeElement ? nomeElement.textContent.toLowerCase() : '';
-        const emailUsuario = emailElement ? emailElement.textContent.toLowerCase() : '';
-        const nivelUsuario = nivelElement ? nivelElement.textContent.toLowerCase() : '';
-        const textoCompleto = card.textContent.toLowerCase();
 
-        // Verificar se algum texto contém o termo de busca
+        // Buscar email nos spans das info-rows
+        let emailUsuario = '';
+        let usuarioLogin = '';
+        let nivelUsuario = '';
+        let setoresUsuario = '';
+
+        emailElements.forEach((span, index) => {
+            const texto = span.textContent.toLowerCase();
+            if (texto.includes('@')) {
+                emailUsuario = texto;
+            } else {
+                // Baseado na ordem das info-rows: Usuário, E-mail, Nível, Setor(es)
+                switch(index) {
+                    case 0: usuarioLogin = texto; break;
+                    case 2: nivelUsuario = texto; break;
+                    case 3: setoresUsuario = texto; break;
+                }
+            }
+        });
+
+        const statusUsuario = statusElement ? statusElement.textContent.toLowerCase() : '';
+
+        // Verificar se algum campo contém o termo de busca
         const encontrado = termoBusca === '' ||
                           nomeUsuario.includes(termoBusca) ||
                           emailUsuario.includes(termoBusca) ||
+                          usuarioLogin.includes(termoBusca) ||
                           nivelUsuario.includes(termoBusca) ||
-                          textoCompleto.includes(termoBusca);
+                          setoresUsuario.includes(termoBusca) ||
+                          statusUsuario.includes(termoBusca);
 
         if (encontrado) {
             card.style.display = '';
-            card.style.transition = 'opacity 0.2s ease';
+            card.style.transition = 'opacity 0.3s ease';
             card.style.opacity = '1';
+            card.style.transform = 'scale(1)';
             usuariosVisiveis++;
         } else {
             card.style.display = 'none';
             card.style.opacity = '0';
+            card.style.transform = 'scale(0.95)';
         }
     });
 
