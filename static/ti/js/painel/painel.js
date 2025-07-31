@@ -2265,7 +2265,7 @@ async function criarAgente() {
         document.getElementById('modalCriarAgente').classList.remove('active');
         document.getElementById('formCriarAgente').reset();
 
-        // Recarregar lista de agentes se estiver na seção
+        // Recarregar lista de agentes se estiver na seç��o
         if (document.getElementById('agentes-suporte').classList.contains('active')) {
             await carregarAgentes();
         }
@@ -2622,6 +2622,20 @@ function loadSectionContentEnhanced(sectionId) {
             setTimeout(() => {
                 if (typeof carregarAgentes === 'function') {
                     carregarAgentes();
+                }
+            }, 100);
+            break;
+        case 'auditoria-logs':
+            setTimeout(() => {
+                if (typeof inicializarAuditoria === 'function') {
+                    inicializarAuditoria();
+                }
+            }, 100);
+            break;
+        case 'grupos-usuarios':
+            setTimeout(() => {
+                if (typeof inicializarGrupos === 'function') {
+                    inicializarGrupos();
                 }
             }, 100);
             break;
