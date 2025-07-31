@@ -3130,57 +3130,27 @@ async function carregarLogsAcesso() {
 
 async function carregarDashboardAvancado() {
     try {
-        const container = document.getElementById('dashboardAvancadoContainer');
-        if (container) {
-            container.innerHTML = `
-                <div class="row mb-4">
-                    <div class="col-md-3">
-                        <div class="card bg-primary text-white">
-                            <div class="card-body">
-                                <h6>CPU</h6>
-                                <h3>45%</h3>
-                                <small>Normal</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-success text-white">
-                            <div class="card-body">
-                                <h6>Memória</h6>
-                                <h3>62%</h3>
-                                <small>Normal</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-warning text-white">
-                            <div class="card-body">
-                                <h6>Disco</h6>
-                                <h3>78%</h3>
-                                <small>Atenção</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-3">
-                        <div class="card bg-info text-white">
-                            <div class="card-body">
-                                <h6>Rede</h6>
-                                <h3>23%</h3>
-                                <small>Baixo</small>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card">
-                    <div class="card-header">
-                        <h5>Monitoramento em Tempo Real</h5>
-                    </div>
-                    <div class="card-body">
-                        <canvas id="chartMonitoramento" width="400" height="200"></canvas>
-                    </div>
-                </div>
-            `;
+        // Atualizar dados das métricas existentes
+        const dashTotalUsuarios = document.getElementById('dashTotalUsuarios');
+        const dashTaxaAtividade = document.getElementById('dashTaxaAtividade');
+
+        if (dashTotalUsuarios) dashTotalUsuarios.textContent = '124';
+        if (dashTaxaAtividade) dashTaxaAtividade.textContent = '85% ativos este mês';
+
+        // Adicionar event listener para o botão atualizar
+        const btnAtualizar = document.getElementById('btnAtualizarDashboard');
+        if (btnAtualizar) {
+            btnAtualizar.addEventListener('click', () => {
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showInfo('Dashboard', 'Atualizando dados do dashboard...');
+                }
+                setTimeout(() => {
+                    carregarDashboardAvancado();
+                }, 1000);
+            });
         }
+
+        console.log('Dashboard avançado carregado');
     } catch (error) {
         console.error('Erro ao carregar dashboard avançado:', error);
     }
