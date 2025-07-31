@@ -1,4 +1,3 @@
-
 from flask import request, jsonify, session, g
 from datetime import datetime, timedelta
 import json
@@ -25,10 +24,10 @@ class SecurityMiddleware:
         app.before_request(self.before_request)
         app.after_request(self.after_request)
         
-        # Configurações padrão
-        app.config.setdefault('SECURITY_MAX_FAILED_ATTEMPTS', 5)
+        # Configurações padrão (ajustadas para desenvolvimento)
+        app.config.setdefault('SECURITY_MAX_FAILED_ATTEMPTS', 10)
         app.config.setdefault('SECURITY_BLOCK_DURATION', 3600)  # 1 hora
-        app.config.setdefault('SECURITY_RATE_LIMIT_REQUESTS', 100)
+        app.config.setdefault('SECURITY_RATE_LIMIT_REQUESTS', 5000)  # Aumentado para desenvolvimento
         app.config.setdefault('SECURITY_RATE_LIMIT_WINDOW', 3600)  # 1 hora
         
         logger.info("SecurityMiddleware inicializado")
