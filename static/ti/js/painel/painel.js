@@ -29,39 +29,51 @@ document.querySelectorAll('.sidebar nav ul li.has-submenu > a').forEach(anchor =
     });
 });
 
-// Navigation links activate section
-const navLinks = document.querySelectorAll('.sidebar nav ul li a, .navbar-panel .nav-link-panel');
-const sections = document.querySelectorAll('section.content-section');
+// Navigation will be initialized after DOM is loaded
+let navLinks = null;
+let sections = null;
 
-navLinks.forEach(link => {
-    link.addEventListener('click', e => {
-        e.preventDefault();
-        const href = link.getAttribute('href');
-        if (!href || href === '#') {
-            console.log('Link sem href válido:', link);
-            return;
-        }
+function initializeNavigation() {
+    console.log('Inicializando navegação...');
 
-        const targetId = href.substring(1);
-        console.log('Navegando para seção:', targetId);
+    navLinks = document.querySelectorAll('.sidebar nav ul li a, .navbar-panel .nav-link-panel');
+    sections = document.querySelectorAll('section.content-section');
 
-        // Verificar se a seção existe
-        const targetSection = document.getElementById(targetId);
-        if (!targetSection) {
-            console.error('Seção não encontrada:', targetId);
-            return;
-        }
+    console.log('Links de navegação encontrados:', navLinks.length);
+    console.log('Seções encontradas:', sections.length);
 
-        activateSection(targetId);
-        navLinks.forEach(l => l.classList.remove('active'));
-        navLinks.forEach(l => {
-            if (l.getAttribute('href') === href) l.classList.add('active');
+    navLinks.forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            if (!href || href === '#') {
+                console.log('Link sem href válido:', link);
+                return;
+            }
+
+            const targetId = href.substring(1);
+            console.log('Navegando para seção:', targetId);
+
+            // Verificar se a seção existe
+            const targetSection = document.getElementById(targetId);
+            if (!targetSection) {
+                console.error('Seção não encontrada:', targetId);
+                return;
+            }
+
+            activateSection(targetId);
+            navLinks.forEach(l => l.classList.remove('active'));
+            navLinks.forEach(l => {
+                if (l.getAttribute('href') === href) l.classList.add('active');
+            });
+
+            // Atualizar hash da URL
+            window.location.hash = targetId;
         });
-
-        // Atualizar hash da URL
-        window.location.hash = targetId;
     });
-});
+
+    console.log('Navegação inicializada com sucesso');
+}
 
 function activateSection(id) {
     console.log('Ativando seção:', id);
