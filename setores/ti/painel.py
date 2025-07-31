@@ -86,26 +86,32 @@ def carregar_configuracoes():
     """Carrega configurações do banco de dados ou retorna padrões"""
     try:
         config_final = CONFIGURACOES_PADRAO.copy()
-        
-        # Buscar todas as configurações do banco
-        configs_db = Configuracao.query.all()
-        
-        for config in configs_db:
-            try:
-                valor = json.loads(config.valor)
-                # Atualizar apenas seções existentes
-                if config.chave in config_final and isinstance(valor, dict):
-                    config_final[config.chave].update(valor)
-                else:
-                    config_final[config.chave] = valor
-            except json.JSONDecodeError:
-                logger.error(f"Erro ao decodificar configuração {config.chave}")
-                continue
-        
+
+        # Verificar se a tabela de configurações existe
+        try:
+            # Tentar buscar todas as configurações do banco
+            configs_db = Configuracao.query.all()
+
+            for config in configs_db:
+                try:
+                    valor = json.loads(config.valor)
+                    # Atualizar apenas seções existentes
+                    if config.chave in config_final and isinstance(valor, dict):
+                        config_final[config.chave].update(valor)
+                    else:
+                        config_final[config.chave] = valor
+                except json.JSONDecodeError:
+                    logger.error(f"Erro ao decodificar configuração {config.chave}")
+                    continue
+
+        except Exception as db_error:
+            logger.warning(f"Tabela de configurações não disponível ou vazia: {str(db_error)}")
+            # Retorna configurações padrão se a tabela não existir
+
         return config_final
-        
+
     except Exception as e:
-        logger.error(f"Erro ao carregar configurações: {str(e)}")
+        logger.error(f"Erro geral ao carregar configurações: {str(e)}")
         return CONFIGURACOES_PADRAO.copy()
 
 def salvar_configuracoes_db(config):
