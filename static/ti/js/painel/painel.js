@@ -127,10 +127,23 @@ async function atualizarContadoresVisaoGeral() {
 
 // Função para filtrar chamados
 function filterChamados(status) {
-    if (status === 'all') {
-        return [...chamadosData];
+    let filtrados = [...chamadosData];
+
+    // Filtrar por status
+    if (status !== 'all') {
+        filtrados = filtrados.filter(chamado => chamado.status === status);
     }
-    return chamadosData.filter(chamado => chamado.status === status);
+
+    // Filtrar por agente se o filtro existir
+    const filtroAgente = document.getElementById('filtroAgente');
+    if (filtroAgente && filtroAgente.value) {
+        const agenteId = filtroAgente.value;
+        filtrados = filtrados.filter(chamado =>
+            chamado.agente_id && chamado.agente_id.toString() === agenteId
+        );
+    }
+
+    return filtrados;
 }
 
 // Função para atualizar o status de um chamado
