@@ -2166,6 +2166,14 @@ document.getElementById('modalCriarGrupoClose')?.addEventListener('click', funct
     document.getElementById('modalCriarGrupo').classList.remove('active');
 });
 
+document.getElementById('btnCancelarGrupo')?.addEventListener('click', function() {
+    document.getElementById('modalCriarGrupo').classList.remove('active');
+});
+
+document.getElementById('btnSalvarGrupo')?.addEventListener('click', async function() {
+    await criarGrupo();
+});
+
 document.getElementById('formCriarGrupo')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     await criarGrupo();
