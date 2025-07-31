@@ -1612,8 +1612,10 @@ function loadSectionContent(sectionId) {
             break;
         case 'permissoes':
             loadUsuarios();
-            // Inicializar filtro de permissões
-            inicializarFiltroPermissoes();
+            // Inicializar filtro de permissões após carregar usuários
+            setTimeout(() => {
+                inicializarFiltroPermissoes();
+            }, 100);
             break;
         case 'bloqueios':
             loadUsuariosBloqueados();
@@ -3282,7 +3284,7 @@ async function carregarLogsAcesso() {
             // Simular logs de acesso
             const logs = [
                 { usuario: 'Admin', dataLogin: '31/01/2025 10:30:00', dataLogout: '31/01/2025 12:15:00', duracao: '1h 45m', ip: '192.168.1.100', status: 'Ativo' },
-                { usuario: 'João Silva', dataLogin: '31/01/2025 10:25:00', dataLogout: '31/01/2025 11:30:00', duracao: '1h 05m', ip: '192.168.1.101', status: 'Finalizado' },
+                { usuario: 'Jo��o Silva', dataLogin: '31/01/2025 10:25:00', dataLogout: '31/01/2025 11:30:00', duracao: '1h 05m', ip: '192.168.1.101', status: 'Finalizado' },
                 { usuario: 'Maria Santos', dataLogin: '31/01/2025 10:20:00', dataLogout: '-', duracao: '-', ip: '192.168.1.102', status: 'Bloqueado' }
             ];
 
