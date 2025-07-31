@@ -677,7 +677,7 @@ async function criarBackup() {
 
 async function carregarConfiguracoesAvancadas() {
     try {
-        const response = await fetch('/ti/admin/api/configuracoes-avancadas');
+        const response = await fetch('/ti/painel/api/configuracoes-avancadas');
         if (!response.ok) {
             throw new Error('Erro ao carregar configurações avançadas');
         }
@@ -772,7 +772,7 @@ async function salvarConfiguracoesAvancadas() {
             }
         };
 
-        const response = await fetch('/ti/admin/api/configuracoes-avancadas', {
+        const response = await fetch('/ti/painel/api/configuracoes-avancadas', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
