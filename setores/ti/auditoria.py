@@ -42,9 +42,9 @@ def listar_logs_acesso():
         logs_paginated = query.order_by(LogAcesso.data_acesso.desc()).paginate(
             page=page, per_page=per_page, error_out=False
         )
-        
+
         logs_data = []
-        for log, usuario in logs:
+        for log, usuario in logs_paginated.items:
             # Calcular duração da sessão se ainda ativa
             duracao = log.duracao_sessao
             if log.ativo and not log.data_logout and log.data_acesso:
