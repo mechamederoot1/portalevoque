@@ -445,9 +445,47 @@ function inicializarAgentes() {
     carregarAgentes();
 }
 
+// Função de debug para verificar dados
+async function debugVerificarDados() {
+    console.log('=== DEBUG: Verificando dados de agentes ===');
+
+    try {
+        // Verificar usuários
+        console.log('Buscando usuários...');
+        const responseUsuarios = await fetch('/ti/painel/api/usuarios');
+        console.log('Status da resposta usuários:', responseUsuarios.status);
+
+        if (responseUsuarios.ok) {
+            const usuarios = await responseUsuarios.json();
+            console.log('Total de usuários encontrados:', usuarios.length);
+
+            const agentes = usuarios.filter(u => u.nivel_acesso === 'Agente de suporte');
+            console.log('Usuários com nível "Agente de suporte":', agentes.length);
+            console.log('Agentes encontrados:', agentes);
+
+            if (agentes.length === 0) {
+                console.log('NENHUM AGENTE ENCONTRADO! Verificar se existem usuários com nível "Agente de suporte"');
+            }
+        } else {
+            console.error('Erro ao buscar usuários:', responseUsuarios.status, responseUsuarios.statusText);
+        }
+
+    } catch (error) {
+        console.error('Erro no debug:', error);
+    }
+
+    console.log('=== FIM DEBUG ===');
+}
+
+// Adicionar à janela global para fácil acesso
+window.debugVerificarDados = debugVerificarDados;
+
 // Auto-inicializar quando o DOM estiver pronto
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM carregado - agentes.js inicializado');
+
+    // Executar debug automaticamente
+    setTimeout(debugVerificarDados, 2000);
 });
 
 // Editar usuário agente
