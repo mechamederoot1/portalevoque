@@ -1847,6 +1847,373 @@ def listar_alertas():
         logger.error(f"Erro ao listar alertas: {str(e)}")
         return error_response('Erro interno no servidor')
 
+# ==================== AUDITORIA E LOGS ====================
+
+@painel_bp.route('/api/logs/acoes', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_logs_acoes():
+    """Lista logs de ações com filtros e paginação"""
+    try:
+        from database import LogAcao
+
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        categoria = request.args.get('categoria')
+        usuario_id = request.args.get('usuario_id')
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+
+        # Construir query base
+        query = LogAcao.query
+
+        # Aplicar filtros
+        if categoria:
+            query = query.filter(LogAcao.categoria == categoria)
+        if usuario_id:
+            query = query.filter(LogAcao.usuario_id == int(usuario_id))
+        if data_inicio:
+            try:
+                data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+                query = query.filter(LogAcao.data_acao >= data_inicio_obj)
+            except ValueError:
+                pass
+        if data_fim:
+            try:
+                data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(LogAcao.data_acao < data_fim_obj)
+            except ValueError:
+                pass
+
+        # Ordenar por data mais recente
+        query = query.order_by(LogAcao.data_acao.desc())
+
+        # Paginar
+        logs_paginados = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        logs_list = []
+        for log in logs_paginados.items:
+            data_acao_brazil = log.get_data_acao_brazil()
+
+            logs_list.append({
+                'id': log.id,
+                'usuario_id': log.usuario_id,
+                'usuario_nome': log.usuario.nome if log.usuario else 'Sistema',
+                'acao': log.acao,
+                'categoria': log.categoria,
+                'detalhes': log.detalhes,
+                'data_acao': data_acao_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_acao_brazil else None,
+                'ip_address': log.ip_address,
+                'sucesso': log.sucesso,
+                'erro_detalhes': log.erro_detalhes,
+                'recurso_afetado': log.recurso_afetado,
+                'tipo_recurso': log.tipo_recurso
+            })
+
+        return json_response({
+            'logs': logs_list,
+            'pagination': {
+                'page': logs_paginados.page,
+                'pages': logs_paginados.pages,
+                'per_page': logs_paginados.per_page,
+                'total': logs_paginados.total,
+                'has_next': logs_paginados.has_next,
+                'has_prev': logs_paginados.has_prev
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar logs de ações: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/logs/acoes/categorias', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_categorias_logs_acoes():
+    """Lista categorias únicas dos logs de ações"""
+    try:
+        from database import LogAcao
+
+        categorias = db.session.query(LogAcao.categoria).distinct().filter(
+            LogAcao.categoria.isnot(None)
+        ).all()
+
+        categorias_list = [cat[0] for cat in categorias if cat[0]]
+
+        return json_response(categorias_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao listar categorias: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/logs/acoes/estatisticas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def estatisticas_logs_acoes():
+    """Retorna estatísticas dos logs de ações"""
+    try:
+        from database import LogAcao
+
+        # Estatísticas gerais
+        total_acoes = LogAcao.query.count()
+        acoes_sucesso = LogAcao.query.filter_by(sucesso=True).count()
+        acoes_erro = LogAcao.query.filter_by(sucesso=False).count()
+
+        # Ações por categoria (últimos 30 dias)
+        trinta_dias_atras = get_brazil_time() - timedelta(days=30)
+        acoes_por_categoria = db.session.query(
+            LogAcao.categoria,
+            func.count(LogAcao.id).label('quantidade')
+        ).filter(
+            LogAcao.data_acao >= trinta_dias_atras.replace(tzinfo=None)
+        ).group_by(LogAcao.categoria).all()
+
+        # Usuários mais ativos (últimos 30 dias)
+        usuarios_ativos = db.session.query(
+            LogAcao.usuario_id,
+            User.nome,
+            func.count(LogAcao.id).label('quantidade')
+        ).join(User).filter(
+            LogAcao.data_acao >= trinta_dias_atras.replace(tzinfo=None)
+        ).group_by(LogAcao.usuario_id, User.nome).order_by(
+            func.count(LogAcao.id).desc()
+        ).limit(10).all()
+
+        return json_response({
+            'total_acoes': total_acoes,
+            'acoes_sucesso': acoes_sucesso,
+            'acoes_erro': acoes_erro,
+            'taxa_sucesso': round((acoes_sucesso / total_acoes * 100) if total_acoes > 0 else 0, 2),
+            'por_categoria': [{'categoria': cat[0], 'quantidade': cat[1]} for cat in acoes_por_categoria],
+            'usuarios_ativos': [{'usuario_id': u[0], 'nome': u[1], 'quantidade': u[2]} for u in usuarios_ativos]
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas de logs: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/logs/acesso', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_logs_acesso():
+    """Lista logs de acesso com filtros e paginação"""
+    try:
+        from database import LogAcesso
+
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        usuario_id = request.args.get('usuario_id')
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        ativo = request.args.get('ativo')
+
+        # Construir query base
+        query = LogAcesso.query
+
+        # Aplicar filtros
+        if usuario_id:
+            query = query.filter(LogAcesso.usuario_id == int(usuario_id))
+        if data_inicio:
+            try:
+                data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+                query = query.filter(LogAcesso.data_acesso >= data_inicio_obj)
+            except ValueError:
+                pass
+        if data_fim:
+            try:
+                data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(LogAcesso.data_acesso < data_fim_obj)
+            except ValueError:
+                pass
+        if ativo == 'true':
+            query = query.filter(LogAcesso.ativo == True)
+        elif ativo == 'false':
+            query = query.filter(LogAcesso.ativo == False)
+
+        # Ordenar por data mais recente
+        query = query.order_by(LogAcesso.data_acesso.desc())
+
+        # Paginar
+        logs_paginados = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        logs_list = []
+        for log in logs_paginados.items:
+            data_acesso_brazil = log.get_data_acesso_brazil()
+            data_logout_brazil = log.get_data_logout_brazil()
+
+            logs_list.append({
+                'id': log.id,
+                'usuario_id': log.usuario_id,
+                'usuario_nome': log.usuario.nome if log.usuario else 'Usuário Removido',
+                'data_acesso': data_acesso_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_acesso_brazil else None,
+                'data_logout': data_logout_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_logout_brazil else None,
+                'duracao_sessao': log.duracao_sessao,
+                'ip_address': log.ip_address,
+                'navegador': log.navegador,
+                'sistema_operacional': log.sistema_operacional,
+                'dispositivo': log.dispositivo,
+                'ativo': log.ativo
+            })
+
+        return json_response({
+            'logs': logs_list,
+            'pagination': {
+                'page': logs_paginados.page,
+                'pages': logs_paginados.pages,
+                'per_page': logs_paginados.per_page,
+                'total': logs_paginados.total,
+                'has_next': logs_paginados.has_next,
+                'has_prev': logs_paginados.has_prev
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar logs de acesso: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/logs/acesso/estatisticas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def estatisticas_logs_acesso():
+    """Retorna estatísticas dos logs de acesso"""
+    try:
+        from database import LogAcesso
+
+        # Estatísticas gerais
+        total_acessos = LogAcesso.query.count()
+        sessoes_ativas = LogAcesso.query.filter_by(ativo=True).count()
+
+        # Acessos por dia (últimos 30 dias)
+        trinta_dias_atras = get_brazil_time() - timedelta(days=30)
+        acessos_por_dia = db.session.query(
+            func.date(LogAcesso.data_acesso).label('data'),
+            func.count(LogAcesso.id).label('quantidade')
+        ).filter(
+            LogAcesso.data_acesso >= trinta_dias_atras.replace(tzinfo=None)
+        ).group_by(func.date(LogAcesso.data_acesso)).all()
+
+        # Dispositivos mais utilizados
+        dispositivos = db.session.query(
+            LogAcesso.dispositivo,
+            func.count(LogAcesso.id).label('quantidade')
+        ).filter(
+            LogAcesso.dispositivo.isnot(None)
+        ).group_by(LogAcesso.dispositivo).all()
+
+        # Navegadores mais utilizados
+        navegadores = db.session.query(
+            LogAcesso.navegador,
+            func.count(LogAcesso.id).label('quantidade')
+        ).filter(
+            LogAcesso.navegador.isnot(None)
+        ).group_by(LogAcesso.navegador).all()
+
+        return json_response({
+            'total_acessos': total_acessos,
+            'sessoes_ativas': sessoes_ativas,
+            'por_dia': [{'data': str(d[0]), 'quantidade': d[1]} for d in acessos_por_dia],
+            'dispositivos': [{'dispositivo': d[0], 'quantidade': d[1]} for d in dispositivos],
+            'navegadores': [{'navegador': n[0], 'quantidade': n[1]} for n in navegadores]
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas de acesso: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/analise/problemas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def analise_problemas():
+    """Análise estatística de problemas reportados"""
+    try:
+        # Problemas mais frequentes (últimos 3 meses)
+        tres_meses_atras = get_brazil_time() - timedelta(days=90)
+        problemas_frequentes = db.session.query(
+            Chamado.problema,
+            func.count(Chamado.id).label('quantidade'),
+            func.avg(func.extract('epoch', Chamado.data_conclusao - Chamado.data_abertura)/3600).label('tempo_medio_resolucao')
+        ).filter(
+            Chamado.data_abertura >= tres_meses_atras.replace(tzinfo=None)
+        ).group_by(Chamado.problema).order_by(
+            func.count(Chamado.id).desc()
+        ).limit(10).all()
+
+        # Unidades com mais problemas
+        unidades_problemas = db.session.query(
+            Chamado.unidade,
+            func.count(Chamado.id).label('quantidade'),
+            func.sum(case([(Chamado.status == 'Aberto', 1)], else_=0)).label('abertos'),
+            func.sum(case([(Chamado.status == 'Concluido', 1)], else_=0)).label('concluidos')
+        ).filter(
+            Chamado.data_abertura >= tres_meses_atras.replace(tzinfo=None)
+        ).group_by(Chamado.unidade).order_by(
+            func.count(Chamado.id).desc()
+        ).limit(15).all()
+
+        # Tendências temporais (por semana nos últimos 3 meses)
+        tendencias = db.session.query(
+            func.extract('week', Chamado.data_abertura).label('semana'),
+            func.extract('year', Chamado.data_abertura).label('ano'),
+            func.count(Chamado.id).label('quantidade')
+        ).filter(
+            Chamado.data_abertura >= tres_meses_atras.replace(tzinfo=None)
+        ).group_by(
+            func.extract('week', Chamado.data_abertura),
+            func.extract('year', Chamado.data_abertura)
+        ).order_by('ano', 'semana').all()
+
+        # Análise de resolução por prioridade
+        resolucao_prioridade = db.session.query(
+            Chamado.prioridade,
+            func.count(Chamado.id).label('total'),
+            func.sum(case([(Chamado.status == 'Concluido', 1)], else_=0)).label('resolvidos'),
+            func.avg(func.extract('epoch', Chamado.data_conclusao - Chamado.data_abertura)/3600).label('tempo_medio')
+        ).filter(
+            Chamado.data_abertura >= tres_meses_atras.replace(tzinfo=None)
+        ).group_by(Chamado.prioridade).all()
+
+        return json_response({
+            'problemas_frequentes': [{
+                'problema': p[0],
+                'quantidade': p[1],
+                'tempo_medio_resolucao': round(p[2], 2) if p[2] else None
+            } for p in problemas_frequentes],
+            'unidades_problemas': [{
+                'unidade': u[0],
+                'total': u[1],
+                'abertos': u[2],
+                'concluidos': u[3],
+                'taxa_resolucao': round((u[3] / u[1] * 100) if u[1] > 0 else 0, 2)
+            } for u in unidades_problemas],
+            'tendencias_semanais': [{
+                'semana': t[0],
+                'ano': t[1],
+                'quantidade': t[2]
+            } for t in tendencias],
+            'resolucao_por_prioridade': [{
+                'prioridade': r[0],
+                'total': r[1],
+                'resolvidos': r[2],
+                'taxa_resolucao': round((r[2] / r[1] * 100) if r[1] > 0 else 0, 2),
+                'tempo_medio': round(r[3], 2) if r[3] else None
+            } for r in resolucao_prioridade]
+        })
+
+    except Exception as e:
+        logger.error(f"Erro na análise de problemas: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
 # ==================== CONFIGURAÇÕES AVANÇADAS ====================
 
 @painel_bp.route('/api/configuracoes-avancadas', methods=['GET'])
