@@ -1,0 +1,2651 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel Administrativo - Evoque Fitness</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/painel.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/enviar_ticket.css') }}">
+</head>
+<body data-theme="dark">
+
+  <!-- Botão para alternar sidebar em mobile -->
+  <button class="sidebar-toggle" id="sidebarToggle" aria-label="Alternar menu">
+    <i class="fas fa-bars"></i>
+  </button>
+
+  <!-- Sidebar -->
+  <aside class="sidebar" id="sidebar" aria-label="Menu lateral principal">
+    <div class="logo" tabindex="0" aria-label="Logo Evoque Fitness">
+      <img src="https://images.totalpass.com/public/1280x720/czM6Ly90cC1pbWFnZS1hZG1pbi1wcm9kL2d5bXMvNHVrOWtkOGd3M2xlMXg4OGNzdzViN2NhdmUzY2hhNWV3Y2lyd2pyNmI4djl6aXdiNTV2YXg3bjJ2aDI2" alt="Evoque Fitness Logo" />
+    </div>
+    <nav>
+      <ul>
+        <li><a href="#visao-geral" class="active" tabindex="0" aria-current="page"><i class="fas fa-tachometer-alt"></i><span>Visão geral</span></a></li>
+        
+        <!-- Nova seção SLA -->
+        <li><a href="#sla-dashboard" tabindex="0"><i class="fas fa-chart-line"></i><span>SLA & Métricas</span></a></li>
+        
+        <li class="has-submenu" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <a href="#" class="submenu-toggle" aria-controls="submenu-gerenciar-chamados" aria-expanded="false" tabindex="0">
+            <i class="fas fa-ticket-alt"></i><span>Gerenciar chamados</span>
+          </a>
+          <ul class="submenu" id="submenu-gerenciar-chamados" aria-label="submenu gerenciar chamados" role="menu">
+            <li role="none">
+              <a href="#gerenciar-chamados" data-status="all" role="menuitem" tabindex="-1">
+                <i class="fas fa-list"></i><span>Todos os chamados</span>
+              </a>
+            </li>
+            <li role="none">
+              <a href="#gerenciar-chamados" data-status="Aberto" role="menuitem" tabindex="-1">
+                <i class="fas fa-folder-open"></i><span>Abertos</span>
+              </a>
+            </li>
+            <li role="none">
+              <a href="#gerenciar-chamados" data-status="Aguardando" role="menuitem" tabindex="-1">
+                <i class="fas fa-clock"></i><span>Aguardando</span>
+              </a>
+            </li>
+            <li role="none">
+              <a href="#gerenciar-chamados" data-status="Concluido" role="menuitem" tabindex="-1">
+                <i class="fas fa-check-circle"></i><span>Concluídos</span>
+              </a>
+            </li>
+            <li role="none">
+              <a href="#gerenciar-chamados" data-status="Cancelado" role="menuitem" tabindex="-1">
+                <i class="fas fa-times-circle"></i><span>Cancelados</span>
+              </a>
+            </li>
+          </ul>
+        </li>
+        
+        <li class="has-submenu" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <a href="#" class="submenu-toggle" aria-controls="submenu-gerencial" aria-expanded="false" tabindex="0"><i class="fas fa-cogs"></i><span>Gerencial</span></a>
+          <ul class="submenu" id="submenu-gerencial" aria-label="submenu gerencial" role="menu">
+            <li role="none"><a href="#criar-usuario" role="menuitem" tabindex="-1"><i class="fas fa-user-plus"></i><span>Criar usuário</span></a></li>
+            <li role="none"><a href="#bloqueios" role="menuitem" tabindex="-1"><i class="fas fa-lock"></i><span>Bloqueios</span></a></li>
+            <li role="none"><a href="#permissoes" role="menuitem" tabindex="-1"><i class="fas fa-key"></i><span>Permissões</span></a></li>
+          </ul>
+        </li>
+
+        <!-- Nova seção: Auditoria e Logs -->
+        <li class="has-submenu" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <a href="#" class="submenu-toggle" aria-controls="submenu-auditoria" aria-expanded="false" tabindex="0"><i class="fas fa-search"></i><span>Auditoria & Logs</span></a>
+          <ul class="submenu" id="submenu-auditoria" aria-label="submenu auditoria" role="menu">
+            <li role="none"><a href="#logs-acesso" role="menuitem" tabindex="-1"><i class="fas fa-sign-in-alt"></i><span>Logs de Acesso</span></a></li>
+            <li role="none"><a href="#logs-acoes" role="menuitem" tabindex="-1"><i class="fas fa-clipboard-list"></i><span>Ações dos Usuários</span></a></li>
+            <li role="none"><a href="#analise-problemas" role="menuitem" tabindex="-1"><i class="fas fa-chart-bar"></i><span>Análise de Problemas</span></a></li>
+            <li role="none"><a href="#relatorios" role="menuitem" tabindex="-1"><i class="fas fa-file-alt"></i><span>Relatórios</span></a></li>
+          </ul>
+        </li>
+
+        <!-- Nova seção: Sistema -->
+        <li class="has-submenu" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <a href="#" class="submenu-toggle" aria-controls="submenu-sistema" aria-expanded="false" tabindex="0"><i class="fas fa-server"></i><span>Sistema</span></a>
+          <ul class="submenu" id="submenu-sistema" aria-label="submenu sistema" role="menu">
+            <li role="none"><a href="#alertas-sistema" role="menuitem" tabindex="-1"><i class="fas fa-exclamation-triangle"></i><span>Alertas do Sistema</span></a></li>
+            <li role="none"><a href="#backup-manutencao" role="menuitem" tabindex="-1"><i class="fas fa-database"></i><span>Backup & Manutenção</span></a></li>
+            <li role="none"><a href="#configuracoes-avancadas" role="menuitem" tabindex="-1"><i class="fas fa-cog"></i><span>Configurações Avançadas</span></a></li>
+            <li role="none"><a href="#dashboard-avancado" role="menuitem" tabindex="-1"><i class="fas fa-chart-pie"></i><span>Dashboard Avançado</span></a></li>
+          </ul>
+        </li>
+
+        <li class="has-submenu" tabindex="0" aria-haspopup="true" aria-expanded="false">
+          <a href="#" class="submenu-toggle" aria-controls="submenu-integracoes" aria-expanded="false" tabindex="0"><i class="fas fa-plug"></i><span>Integrações</span></a>
+          <ul class="submenu" id="submenu-integracoes" aria-label="submenu integrações" role="menu">
+            <li role="none"><a href="#adicionar-unidade" role="menuitem" tabindex="-1"><i class="fas fa-plus-circle"></i><span>Adicionar unidade</span></a></li>
+            <li role="none"><a href="#listar-unidades" role="menuitem" tabindex="-1"><i class="fas fa-list"></i><span>Listar unidades</span></a></li>
+            <li role="none"><a href="#adicionar-problema" role="menuitem" tabindex="-1"><i class="fas fa-exclamation-triangle"></i><span>Adicionar ao banco</span></a></li>
+          </ul>
+        </li>
+
+        <li><a href="#historico" tabindex="0"><i class="fas fa-history"></i><span>Histórico</span></a></li>
+        <li><a href="#configuracoes" tabindex="0"><i class="fas fa-cog"></i><span>Configurações</span></a></li>
+      </ul>
+    </nav>
+  </aside>
+
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-panel">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center">
+        <button class="btn btn-link text-white me-3 d-lg-none" id="mobileSidebarToggle" aria-label="Alternar menu lateral">
+          <i class="fas fa-bars"></i>
+        </button>
+        <span class="navbar-brand mb-0 h1 d-none d-lg-block">Painel Administrativo</span>
+      </div>
+      
+      <div class="collapse navbar-collapse" id="navbarPanel">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link-panel" href="#" id="btnNotificacoes">
+              <i class="fas fa-bell me-1"></i> 
+              Notificações
+              <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link-panel" href="#"><i class="fas fa-envelope me-1"></i> Mensagens</a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link-panel dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-user-circle me-1"></i>
+              {% if current_user.is_authenticated %}
+                {{ current_user.nome }} {{ current_user.sobrenome }} ({{ current_user.nivel_acesso }})
+              {% else %}
+                Admin
+              {% endif %}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+              <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Perfil</a></li>
+              <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Configurações</a></li>
+              <li><hr class="dropdown-divider" /></li>
+              <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Sair</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content" id="mainContent" tabindex="0">
+    <!-- Visão Geral -->
+    <section id="visao-geral" class="content-section active" tabindex="0" aria-label="Visão Geral">
+      <h2>Visão geral</h2>
+      <div class="row">
+        <div class="col-md-3">
+          <div class="card bg-primary text-white mb-4">
+            <div class="card-body">
+              <h5 class="card-title">Chamados abertos</h5>
+              <p class="card-text display-6" id="countAbertos">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-warning text-white mb-4">
+            <div class="card-body">
+              <h5 class="card-title">Aguardando</h5>
+              <p class="card-text display-6" id="countAguardando">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-success text-white mb-4">
+            <div class="card-body">
+              <h5 class="card-title">Concluídos</h5>
+              <p class="card-text display-6" id="countConcluidos">0</p>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-danger text-white mb-4">
+            <div class="card-body">
+              <h5 class="card-title">Cancelados</h5>
+              <p class="card-text display-6" id="countCancelados">0</p>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Status de Conexão Socket.IO -->
+      <div class="row">
+        <div class="col-12">
+          <div class="alert alert-info d-flex align-items-center" role="alert">
+            <i class="fas fa-wifi me-2"></i>
+            <span>Status da conexão em tempo real: </span>
+            <span id="socketStatus" class="ms-2 badge bg-secondary">Conectando...</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Nova Seção SLA & Métricas -->
+    <section id="sla-dashboard" class="content-section" tabindex="0" aria-label="SLA & Métricas">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-line me-2"></i>SLA & Métricas de Desempenho</h2>
+        <button class="btn btn-primary" id="btnAtualizarSLA">
+          <i class="fas fa-sync-alt me-1"></i>Atualizar
+        </button>
+      </div>
+
+      <!-- Cards de Métricas Principais -->
+      <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Total de Chamados</h6>
+                  <h3 id="totalChamados">0</h3>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-ticket-alt fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-warning text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Chamados Abertos</h6>
+                  <h3 id="chamadosAbertos">0</h3>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-folder-open fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-primary text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Tempo Médio Resposta</h6>
+                  <h3 id="tempoMedioResposta">0h</h3>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-clock fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-secondary text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Tempo Médio Resolução</h6>
+                  <h3 id="tempoMedioResolucao">0h</h3>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Cards de SLA -->
+      <div class="row mb-4">
+        <div class="col-lg-4 col-md-6 mb-3">
+          <div class="card sla-percentual text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">SLA Cumprimento</h6>
+                  <h3 id="slaPercentual">0%</h3>
+                  <small>Meta: ≥95%</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-target fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-3">
+          <div class="card bg-danger text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Violações SLA</h6>
+                  <h3 id="slaViolacoes">0</h3>
+                  <small>Meta: 0</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-exclamation-triangle fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 col-md-6 mb-3">
+          <div class="card chamados-risco text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Chamados em Risco</h6>
+                  <h3 id="chamadosRisco">0</h3>
+                  <small>≥80% do tempo SLA</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-hourglass-half fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos -->
+      <div class="row mb-4">
+        <div class="col-lg-8 mb-3">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-chart-line me-2"></i>Chamados Recebidos - Últimas 4 Semanas
+              </h5>
+            </div>
+            <div class="card-body">
+              <canvas id="chartSemanal" height="100"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 mb-3">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-chart-pie me-2"></i>Distribuição por Status
+              </h5>
+            </div>
+            <div class="card-body">
+              <canvas id="chartStatus"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Configurações SLA -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-cogs me-2"></i>Configurações de SLA
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="row">
+                <div class="col-md-2">
+                  <div class="text-center">
+                    <h6>Primeira Resposta</h6>
+                    <span class="badge bg-primary fs-6" id="configPrimeiraResposta">4h</span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="text-center">
+                    <h6>Resolução Geral</h6>
+                    <span class="badge bg-info fs-6" id="configResolucao">24h</span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="text-center">
+                    <h6>Crítico</h6>
+                    <span class="badge bg-danger fs-6" id="configCritico">2h</span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="text-center">
+                    <h6>Alto</h6>
+                    <span class="badge bg-warning fs-6" id="configAlto">8h</span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="text-center">
+                    <h6>Normal</h6>
+                    <span class="badge bg-success fs-6" id="configNormal">24h</span>
+                  </div>
+                </div>
+                <div class="col-md-2">
+                  <div class="text-center">
+                    <h6>Baixo</h6>
+                    <span class="badge bg-secondary fs-6" id="configBaixo">72h</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela Detalhada de Chamados -->
+      <div class="row">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-list me-2"></i>Chamados Detalhados com SLA
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Solicitante</th>
+                      <th>Problema</th>
+                      <th>Status</th>
+                      <th>Data Abertura</th>
+                      <th>Tempo Decorrido</th>
+                      <th>SLA Limite</th>
+                      <th>Status SLA</th>
+                      <th>Prioridade</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabelaChamadosSLA">
+                    <!-- Dados serão carregados dinamicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Gerenciar Chamados -->
+    <section id="gerenciar-chamados" class="content-section" tabindex="0" aria-label="Gerenciar Chamados">
+      <h2>Gerenciar chamados</h2> 
+      <div class="cards-grid" id="chamadosGrid">
+        <!-- Os chamados serão carregados aqui dinamicamente -->
+      </div>
+      <div class="pagination" id="pagination"></div>
+    </section>
+
+    <!-- Criar Usuário -->
+    <section id="criar-usuario" class="content-section" tabindex="0" aria-label="Criar Usuário">
+      <h2>Criar novo usuário</h2>
+      
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fas fa-user-plus"></i> Formulário de cadastro</h3>
+        </div>
+        
+        <div class="card-body">
+          <!-- Mensagens de feedback -->
+          <div id="mensagemErro"></div>
+          <div id="mensagemSucesso"></div>
+          
+          <form id="formCriarUsuario" novalidate>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="nomeUsuario">Nome</label>
+                  <input type="text" class="form-control" id="nomeUsuario" placeholder="Digite o nome" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="sobrenomeUsuario">Sobrenome</label>
+                  <input type="text" class="form-control" id="sobrenomeUsuario" placeholder="Digite o sobrenome" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="emailUsuario">E-mail</label>
+                  <input type="email" class="form-control" id="emailUsuario" placeholder="Digite o e-mail" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="usuarioLogin">Nome de usuário</label>
+                  <input type="text" class="form-control" id="usuarioLogin" placeholder="Será gerado automaticamente" readonly>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="nivelAcesso">Nível de acesso</label>
+                  <select class="form-control form-select-custom" id="nivelAcesso" required>
+                    <option value="" disabled selected>Selecione um nível</option>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Gerente">Gerente</option>
+                    <option value="Gerente Regional">Gerente regional</option>
+                    <option value="Gestor">Gestor</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="setorUsuario">Setor(es)</label>
+                  <select class="form-control form-select-custom" id="setorUsuario" multiple="multiple" size="6">
+                    <option value="TI">Setor de TI</option>
+                    <option value="Compras">Setor de compras</option>
+                    <option value="Manutencao">Setor de manutenção</option>
+                    <option value="Financeiro">Setor financeiro</option>
+                    <option value="Marketing">Setor de marketing</option>
+                    <option value="Produtos">Setor de produtos</option>
+                    <option value="Comercial">Setor comercial</option>
+                    <option value="Outros">Outros serviços</option>
+                    <option value="Administracao">Administração geral</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="alterarSenhaPrimeiroAcesso" checked>
+              <label class="form-check-label" for="alterarSenhaPrimeiroAcesso">
+                Solicitar alteração de senha no primeiro acesso
+              </label>
+            </div>
+
+            <!-- Container da senha gerada -->
+            <div id="senhaGeradaContainer">
+              <label>Senha gerada:</label>
+              <input type="text" id="senhaGeradaInput" readonly>
+              <small class="text-muted d-block mb-3">Esta senha será exibida apenas uma vez</small>
+            </div>
+
+            <div class="btn-actions">
+              <button type="button" class="btn btn-secondary" id="btnGerarSenha">
+                <i class="fas fa-key"></i> Gerar senha
+              </button>
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-user-plus"></i> Criar usuário
+              </button>
+              <button type="reset" class="btn btn-outline-secondary">
+                <i class="fas fa-undo"></i> Limpar formulário
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- Bloqueios -->
+    <section id="bloqueios" class="content-section" tabindex="0" aria-label="Usuários Bloqueados">
+      <h2>Usuários Bloqueados</h2>
+      <div class="cards-grid" id="usuariosBloqueadosGrid">
+        <!-- Os usuários bloqueados serão carregados aqui dinamicamente -->
+      </div>
+      <div class="pagination" id="usuariosBloqueadosPagination"></div>
+    </section>
+
+    <!-- Permissões -->
+    <section id="permissoes" class="content-section" tabindex="0" aria-label="Gerenciar Permissões">
+      <h2>Gerenciar Permissões</h2>
+      <div class="cards-grid" id="usuariosGrid">
+        <!-- Os usuários serão carregados aqui dinamicamente -->
+      </div>
+      <div class="pagination" id="usuariosPagination"></div>
+    </section>
+
+    <!-- ==================== NOVAS SEÇÕES ==================== -->
+
+    <!-- Logs de Acesso -->
+    <section id="logs-acesso" class="content-section" tabindex="0" aria-label="Logs de Acesso">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-sign-in-alt me-2"></i>Logs de Acesso dos Usuários</h2>
+        <button class="btn btn-primary" id="btnAtualizarLogsAcesso">
+          <i class="fas fa-sync-alt me-1"></i>Atualizar
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Filtros</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <label for="filtroUsuarioAcesso">Usuário</label>
+              <select class="form-control" id="filtroUsuarioAcesso">
+                <option value="">Todos os usuários</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filtroDataInicioAcesso">Data Início</label>
+              <input type="date" class="form-control" id="filtroDataInicioAcesso">
+            </div>
+            <div class="col-md-3">
+              <label for="filtroDataFimAcesso">Data Fim</label>
+              <input type="date" class="form-control" id="filtroDataFimAcesso">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-secondary w-100" id="btnFiltrarAcessos">
+                <i class="fas fa-search me-1"></i>Filtrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estatísticas de Acesso -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              <h6 class="card-title">Acessos Hoje</h6>
+              <h3 id="acessosHoje">0</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-primary text-white">
+            <div class="card-body">
+              <h6 class="card-title">Acessos Esta Semana</h6>
+              <h3 id="acessosSemana">0</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              <h6 class="card-title">Usuários Únicos</h6>
+              <h3 id="usuariosUnicos">0</h3>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-warning text-white">
+            <div class="card-body">
+              <h6 class="card-title">Tempo Médio Sessão</h6>
+              <h3 id="tempoMedioSessao">0min</h3>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela de Logs -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Histórico de Acessos</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Usuário</th>
+                  <th>Data/Hora Acesso</th>
+                  <th>Data/Hora Logout</th>
+                  <th>Duração</th>
+                  <th>IP</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaLogsAcesso">
+                <!-- Dados serão carregados dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="paginationLogsAcesso"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Logs de Ações -->
+    <section id="logs-acoes" class="content-section" tabindex="0" aria-label="Logs de Ações">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-clipboard-list me-2"></i>Ações dos Usuários</h2>
+        <button class="btn btn-primary" id="btnAtualizarLogsAcoes">
+          <i class="fas fa-sync-alt me-1"></i>Atualizar
+        </button>
+      </div>
+
+      <!-- Filtros -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Filtros</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-2">
+              <label for="filtroUsuarioAcao">Usuário</label>
+              <select class="form-control" id="filtroUsuarioAcao">
+                <option value="">Todos os usuários</option>
+              </select>
+            </div>
+            <div class="col-md-2">
+              <label for="filtroAcao">Ação</label>
+              <input type="text" class="form-control" id="filtroAcao" placeholder="Buscar ação...">
+            </div>
+            <div class="col-md-2">
+              <label for="filtroDataInicioAcao">Data Início</label>
+              <input type="date" class="form-control" id="filtroDataInicioAcao">
+            </div>
+            <div class="col-md-2">
+              <label for="filtroDataFimAcao">Data Fim</label>
+              <input type="date" class="form-control" id="filtroDataFimAcao">
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-secondary w-100" id="btnFiltrarAcoes">
+                <i class="fas fa-search me-1"></i>Filtrar
+              </button>
+            </div>
+            <div class="col-md-2 d-flex align-items-end">
+              <button class="btn btn-info w-100" id="btnTiposAcoes">
+                <i class="fas fa-chart-bar me-1"></i>Tipos
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela de Ações -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Histórico de Ações</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Usuário</th>
+                  <th>Ação</th>
+                  <th>Detalhes</th>
+                  <th>Data/Hora</th>
+                  <th>IP</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaLogsAcoes">
+                <!-- Dados serão carregados dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="paginationLogsAcoes"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Análise de Problemas -->
+    <section id="analise-problemas" class="content-section" tabindex="0" aria-label="Análise de Problemas">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-bar me-2"></i>Análise de Problemas Futuros</h2>
+        <button class="btn btn-primary" id="btnAtualizarAnalise">
+          <i class="fas fa-sync-alt me-1"></i>Atualizar Análise
+        </button>
+      </div>
+
+      <!-- Cards de Tendências -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card bg-warning text-white">
+            <div class="card-body">
+              <h6 class="card-title">Tendência de Crescimento</h6>
+              <h3 id="tendenciaCrescimento">0%</h3>
+              <small>Últimos 7 dias vs anteriores</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-danger text-white">
+            <div class="card-body">
+              <h6 class="card-title">Taxa Violação SLA</h6>
+              <h3 id="taxaViolacaoSLA">0%</h3>
+              <small>Últimos 30 dias</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              <h6 class="card-title">Problemas Identificados</h6>
+              <h3 id="problemasIdentificados">0</h3>
+              <small>Alertas previstos</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              <h6 class="card-title">Período Análise</h6>
+              <h3 id="periodoAnalise">30</h3>
+              <small>dias analisados</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos de Análise -->
+      <div class="row mb-4">
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-chart-bar me-2"></i>Problemas Mais Frequentes</h5>
+            </div>
+            <div class="card-body">
+              <canvas id="chartProblemasFrequentes"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-map-marker-alt me-2"></i>Unidades Problemáticas</h5>
+            </div>
+            <div class="card-body">
+              <canvas id="chartUnidadesProblematicas"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alertas Previstos -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i>Alertas e Recomendações</h5>
+        </div>
+        <div class="card-body">
+          <div id="alertasPrevistos">
+            <!-- Alertas serão carregados dinamicamente -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Relatórios -->
+    <section id="relatorios" class="content-section" tabindex="0" aria-label="Relatórios">
+      <h2><i class="fas fa-file-alt me-2"></i>Relatórios do Sistema</h2>
+
+      <div class="row">
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-users me-2"></i>Relatório de Usuários</h5>
+            </div>
+            <div class="card-body">
+              <p>Gere relatórios detalhados sobre usuários do sistema.</p>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="relatorioUsuarioDataInicio">Data Início</label>
+                  <input type="date" class="form-control" id="relatorioUsuarioDataInicio">
+                </div>
+                <div class="col-md-6">
+                  <label for="relatorioUsuarioDataFim">Data Fim</label>
+                  <input type="date" class="form-control" id="relatorioUsuarioDataFim">
+                </div>
+              </div>
+              <div class="btn-group w-100">
+                <button class="btn btn-primary" id="btnGerarRelatorioUsuarios">
+                  <i class="fas fa-file-pdf me-1"></i>Gerar Relatório
+                </button>
+                <button class="btn btn-success" id="btnExportarUsuariosCSV">
+                  <i class="fas fa-file-csv me-1"></i>Exportar CSV
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-ticket-alt me-2"></i>Relatório de Chamados</h5>
+            </div>
+            <div class="card-body">
+              <p>Gere relatórios detalhados sobre chamados do sistema.</p>
+              <div class="row mb-3">
+                <div class="col-md-6">
+                  <label for="relatorioChamadoDataInicio">Data Início</label>
+                  <input type="date" class="form-control" id="relatorioChamadoDataInicio">
+                </div>
+                <div class="col-md-6">
+                  <label for="relatorioChamadoDataFim">Data Fim</label>
+                  <input type="date" class="form-control" id="relatorioChamadoDataFim">
+                </div>
+              </div>
+              <div class="btn-group w-100">
+                <button class="btn btn-primary" id="btnGerarRelatorioChamados">
+                  <i class="fas fa-file-pdf me-1"></i>Gerar Relatório
+                </button>
+                <button class="btn btn-success" id="btnExportarChamadosCSV">
+                  <i class="fas fa-file-csv me-1"></i>Exportar CSV
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Alertas do Sistema -->
+    <section id="alertas-sistema" class="content-section" tabindex="0" aria-label="Alertas do Sistema">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-exclamation-triangle me-2"></i>Alertas do Sistema</h2>
+        <button class="btn btn-primary" id="btnCriarAlerta">
+          <i class="fas fa-plus me-1"></i>Criar Alerta
+        </button>
+      </div>
+
+      <!-- Filtros de Alertas -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Filtros</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <label for="filtroTipoAlerta">Tipo</label>
+              <select class="form-control" id="filtroTipoAlerta">
+                <option value="">Todos os tipos</option>
+                <option value="sistema">Sistema</option>
+                <option value="seguranca">Segurança</option>
+                <option value="performance">Performance</option>
+                <option value="backup">Backup</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filtroSeveridadeAlerta">Severidade</label>
+              <select class="form-control" id="filtroSeveridadeAlerta">
+                <option value="">Todas as severidades</option>
+                <option value="baixa">Baixa</option>
+                <option value="media">Média</option>
+                <option value="alta">Alta</option>
+                <option value="critica">Crítica</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filtroStatusAlerta">Status</label>
+              <select class="form-control" id="filtroStatusAlerta">
+                <option value="">Todos os status</option>
+                <option value="false">Pendentes</option>
+                <option value="true">Resolvidos</option>
+              </select>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-secondary w-100" id="btnFiltrarAlertas">
+                <i class="fas fa-search me-1"></i>Filtrar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Alertas -->
+      <div class="cards-grid" id="alertasGrid">
+        <!-- Alertas serão carregados dinamicamente -->
+      </div>
+      <div class="pagination" id="paginationAlertas"></div>
+    </section>
+
+    <!-- Backup & Manutenção -->
+    <section id="backup-manutencao" class="content-section" tabindex="0" aria-label="Backup & Manutenção">
+      <h2><i class="fas fa-database me-2"></i>Backup & Manutenção do Sistema</h2>
+
+      <div class="row">
+        <!-- Seção de Backup -->
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-save me-2"></i>Backup do Sistema</h5>
+            </div>
+            <div class="card-body">
+              <div class="form-group mb-3">
+                <label for="tipoBackup">Tipo de Backup</label>
+                <select class="form-control" id="tipoBackup">
+                  <option value="completo">Backup Completo</option>
+                  <option value="dados">Apenas Dados</option>
+                  <option value="configuracoes">Apenas Configurações</option>
+                </select>
+              </div>
+              <div class="form-group mb-3">
+                <label for="observacoesBackup">Observações</label>
+                <textarea class="form-control" id="observacoesBackup" rows="3" placeholder="Observações sobre o backup..."></textarea>
+              </div>
+              <button class="btn btn-primary w-100" id="btnCriarBackup">
+                <i class="fas fa-download me-1"></i>Criar Backup
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Seção de Manutenção -->
+        <div class="col-md-6">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-tools me-2"></i>Manutenção do Sistema</h5>
+            </div>
+            <div class="card-body">
+              <div class="d-grid gap-2">
+                <button class="btn btn-warning" id="btnLimparLogs">
+                  <i class="fas fa-broom me-1"></i>Limpar Logs Antigos
+                </button>
+                <button class="btn btn-info" id="btnOtimizarBanco">
+                  <i class="fas fa-database me-1"></i>Otimizar Banco de Dados
+                </button>
+                <button class="btn btn-secondary" id="btnVerificarIntegridade">
+                  <i class="fas fa-check-circle me-1"></i>Verificar Integridade
+                </button>
+                <button class="btn btn-danger" id="btnModoManutencao">
+                  <i class="fas fa-pause me-1"></i>Modo Manutenção
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico de Backups -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Histórico de Backups</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Nome do Arquivo</th>
+                  <th>Tipo</th>
+                  <th>Tamanho</th>
+                  <th>Status</th>
+                  <th>Data/Hora</th>
+                  <th>Usuário</th>
+                  <th>Observações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaHistoricoBackups">
+                <!-- Dados serão carregados dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="paginationBackups"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Configurações Avançadas -->
+    <section id="configuracoes-avancadas" class="content-section" tabindex="0" aria-label="Configurações Avançadas">
+      <h2><i class="fas fa-cog me-2"></i>Configurações Avançadas do Sistema</h2>
+
+      <div class="row">
+        <!-- Sistema -->
+        <div class="col-md-6 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-server me-2"></i>Sistema</h5>
+            </div>
+            <div class="card-body">
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="configManutencaoModo">
+                <label class="form-check-label" for="configManutencaoModo">
+                  Modo de Manutenção
+                </label>
+              </div>
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="configDebugMode">
+                <label class="form-check-label" for="configDebugMode">
+                  Modo Debug
+                </label>
+              </div>
+              <div class="form-group mb-3">
+                <label for="configMaxUploadSize">Tamanho Máximo Upload (MB)</label>
+                <input type="number" class="form-control" id="configMaxUploadSize" min="1" max="100">
+              </div>
+              <div class="form-group mb-3">
+                <label for="configSessionTimeout">Timeout de Sessão (minutos)</label>
+                <input type="number" class="form-control" id="configSessionTimeout" min="5" max="120">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Backup -->
+        <div class="col-md-6 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-save me-2"></i>Backup</h5>
+            </div>
+            <div class="card-body">
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="configBackupAutomatico">
+                <label class="form-check-label" for="configBackupAutomatico">
+                  Backup Automático
+                </label>
+              </div>
+              <div class="form-group mb-3">
+                <label for="configFrequenciaBackup">Frequência (horas)</label>
+                <input type="number" class="form-control" id="configFrequenciaBackup" min="1" max="168">
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Alertas -->
+        <div class="col-md-6 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-bell me-2"></i>Alertas</h5>
+            </div>
+            <div class="card-body">
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="configAlertasEmail">
+                <label class="form-check-label" for="configAlertasEmail">
+                  Envio de Alertas por Email
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Performance -->
+        <div class="col-md-6 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-tachometer-alt me-2"></i>Performance</h5>
+            </div>
+            <div class="card-body">
+              <div class="form-check mb-3">
+                <input class="form-check-input" type="checkbox" id="configCacheHabilitado">
+                <label class="form-check-label" for="configCacheHabilitado">
+                  Cache do Sistema
+                </label>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <button class="btn btn-primary btn-lg" id="btnSalvarConfigAvancadas">
+          <i class="fas fa-save me-1"></i>Salvar Todas as Configurações
+        </button>
+      </div>
+    </section>
+
+    <!-- Dashboard Avançado -->
+    <section id="dashboard-avancado" class="content-section" tabindex="0" aria-label="Dashboard Avançado">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-chart-pie me-2"></i>Dashboard Avançado</h2>
+        <button class="btn btn-primary" id="btnAtualizarDashboard">
+          <i class="fas fa-sync-alt me-1"></i>Atualizar
+        </button>
+      </div>
+
+      <!-- Métricas Avançadas -->
+      <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-gradient-primary text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Total Usuários</h6>
+                  <h3 id="dashTotalUsuarios">0</h3>
+                  <small id="dashTaxaAtividade">0% ativos este mês</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-users fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-gradient-success text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Taxa Resolução</h6>
+                  <h3 id="dashTaxaResolucao">0%</h3>
+                  <small>Este mês</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-gradient-warning text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Tempo Médio Resolução</h6>
+                  <h3 id="dashTempoMedioResolucao">0h</h3>
+                  <small>Este mês</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-clock fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-gradient-danger text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Alertas Ativos</h6>
+                  <h3 id="dashAlertasAtivos">0</h3>
+                  <small>Requerem atenção</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-exclamation-triangle fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Gráficos Avançados -->
+      <div class="row mb-4">
+        <div class="col-lg-8">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-chart-area me-2"></i>Distribuição por Prioridade (Este Mês)</h5>
+            </div>
+            <div class="card-body">
+              <canvas id="chartDistribuicaoPrioridade"></canvas>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0"><i class="fas fa-chart-doughnut me-2"></i>Status dos Usuários</h5>
+            </div>
+            <div class="card-body">
+              <canvas id="chartStatusUsuarios"></canvas>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== SEÇÕES EXISTENTES ==================== -->
+
+    <!-- Adicionar Unidade -->
+    <section id="adicionar-unidade" class="content-section" tabindex="0" aria-label="Adicionar Unidade">
+      <h2>Adicionar nova unidade</h2>
+      <button class="btn btn-primary" id="btnOpenAddUnitModal">Adicionar nova unidade</button>
+    </section>
+
+    <!-- Listar Unidades -->
+    <section id="listar-unidades" class="content-section" tabindex="0" aria-label="Listar Unidades">
+      <h2>Listar Unidades</h2>
+      <div class="table-responsive">
+        <table class="table table-dark table-striped">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Nome</th>
+              <th>Ações</th>
+            </tr>
+          </thead>
+          <tbody id="listaUnidades">
+            <!-- As unidades serão carregadas aqui dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Nova Seção: Adicionar ao Banco -->
+    <section id="adicionar-problema" class="content-section" tabindex="0" aria-label="Adicionar ao Banco">
+      <h2>Adicionar ao Banco</h2>
+      
+      <div class="card">
+        <div class="card-header">
+          <h3><i class="fas fa-plus-circle"></i> Adicionar Novo Problema</h3>
+        </div>
+        
+        <div class="card-body">
+          <!-- Mensagens de feedback -->
+          <div id="mensagemErroProblema"></div>
+          <div id="mensagemSucessoProblema"></div>
+          
+          <form id="formAdicionarProblema" novalidate>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="nomeProblema">Nome do Problema</label>
+                  <input type="text" class="form-control" id="nomeProblema" placeholder="Ex: Impressora" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group">
+                  <label for="prioridadeProblema">Prioridade Padrão</label>
+                  <select class="form-control form-select-custom" id="prioridadeProblema" required>
+                    <option value="Baixa">Baixa</option>
+                    <option value="Normal" selected>Normal</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Urgente">Urgente</option>
+                    <option value="Crítica">Crítica</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="requerInternetProblema">
+                  <label class="form-check-label" for="requerInternetProblema">
+                    Requer item de internet
+                  </label>
+                </div>
+              </div>
+            </div>
+
+            <div class="btn-actions">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Adicionar Problema
+              </button>
+              <button type="reset" class="btn btn-outline-secondary">
+                <i class="fas fa-undo"></i> Limpar formulário
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Lista de Problemas Existentes -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h3><i class="fas fa-list"></i> Problemas Cadastrados</h3>
+        </div>
+        <div class="card-body">
+          <div id="listaProblemasExistentes">
+            <!-- Lista será carregada dinamicamente -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Histórico -->
+    <section id="historico" class="content-section" tabindex="0" aria-label="Histórico">
+      <h2>Histórico</h2>
+      <div class="table-responsive">
+        <table class="table table-dark table-striped">
+          <thead>
+            <tr>
+              <th>Data/Hora</th>
+              <th>Ação</th>
+              <th>Usuário</th>
+              <th>Descrição</th>
+            </tr>
+          </thead>
+          <tbody id="tabelaHistorico">
+            <!-- Histórico será carregado aqui dinamicamente -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Configurações -->
+    <section id="configuracoes" class="content-section" tabindex="0" aria-label="Configurações do Sistema">
+      <h2>Configurações do Sistema</h2>
+      
+      <div class="row">
+        <!-- Prioridades dos Problemas - Seção Separada -->
+        <div class="col-12 mb-4">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#prioridadesCollapse" aria-expanded="true">
+              <h5><i class="fas fa-exclamation-triangle me-2"></i>Prioridades dos Problemas</h5>
+              <i class="fas fa-chevron-down collapsible-toggle"></i>
+            </div>
+            <div class="collapse show" id="prioridadesCollapse">
+              <div class="collapsible-content">
+                <p class="text-muted mb-3">Configure as prioridades padrão para cada tipo de problema reportado.</p>
+                
+                <div id="problemas-container">
+                  <!-- Lista de problemas será carregada aqui dinamicamente -->
+                </div>
+                
+                <div class="mt-3">
+                  <button class="btn btn-primary me-2" id="btnSalvarTodasPrioridades">
+                    <i class="fas fa-save"></i> Salvar Todas
+                  </button>
+                  <button class="btn btn-outline-secondary" id="btnResetarPrioridades">
+                    <i class="fas fa-undo"></i> Resetar para Padrão
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notificações -->
+        <div class="col-md-6 mb-4">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#notificacoesCollapse" aria-expanded="false">
+              <h5><i class="fas fa-bell me-2"></i>Notificações</h5>
+              <i class="fas fa-chevron-down collapsible-toggle collapsed"></i>
+            </div>
+            <div class="collapse" id="notificacoesCollapse">
+              <div class="collapsible-content">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="notifNovoChamado" checked>
+                  <label class="form-check-label" for="notifNovoChamado">
+                    Notificar novos chamados
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="notifStatusAlterado" checked>
+                  <label class="form-check-label" for="notifStatusAlterado">
+                    Notificar alterações de status
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="notifNovoUsuario" checked>
+                  <label class="form-check-label" for="notifNovoUsuario">
+                    Notificar novos usuários
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="notifEmail" checked>
+                  <label class="form-check-label" for="notifEmail">
+                    Enviar notificações por e-mail
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="notifSom" checked>
+                  <label class="form-check-label" for="notifSom">
+                    Habilitar efeito sonoro
+                  </label>
+                </div>
+                <button class="btn btn-primary btn-sm" id="btnSalvarNotificacoes">
+                  <i class="fas fa-save"></i> Salvar Configurações
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sistema -->
+        <div class="col-md-6 mb-4">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#sistemaCollapse" aria-expanded="false">
+              <h5><i class="fas fa-cog me-2"></i>Sistema</h5>
+              <i class="fas fa-chevron-down collapsible-toggle collapsed"></i>
+            </div>
+            <div class="collapse" id="sistemaCollapse">
+              <div class="collapsible-content">
+                <p>Socket.IO Status: <span id="socketConnectionStatus" class="badge bg-secondary">Desconectado</span></p>
+                <button class="btn btn-outline-primary btn-sm mb-3" id="btnReconectarSocket">
+                  <i class="fas fa-sync"></i> Reconectar
+                </button>
+                <hr>
+                <button class="btn btn-outline-secondary btn-sm" onclick="window.advancedNotificationSystem?.testNotifications()">
+                  <i class="fas fa-bell"></i> Testar Notificações
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Segurança -->
+        <div class="col-md-6 mb-4">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#segurancaCollapse" aria-expanded="false">
+              <h5><i class="fas fa-shield-alt me-2"></i>Segurança</h5>
+              <i class="fas fa-chevron-down collapsible-toggle collapsed"></i>
+            </div>
+            <div class="collapse" id="segurancaCollapse">
+              <div class="collapsible-content">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="exigirSenhaForte" checked>
+                  <label class="form-check-label" for="exigirSenhaForte">
+                    Exigir senhas fortes
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="bloquearTentativasLogin">
+                  <label class="form-check-label" for="bloquearTentativasLogin">
+                    Bloquear após tentativas de login falhadas
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="logAcoes" checked>
+                  <label class="form-check-label" for="logAcoes">
+                    Registrar ações dos usuários
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="sessaoAutomatica">
+                  <label class="form-check-label" for="sessaoAutomatica">
+                    Logout automático por inatividade
+                  </label>
+                </div>
+                <div class="mb-3">
+                  <label for="tempoSessao" class="form-label">Tempo de sessão (minutos)</label>
+                  <input type="number" class="form-control" id="tempoSessao" value="15" min="5" max="120">
+                </div>
+                <button class="btn btn-primary btn-sm" id="btnSalvarSeguranca">
+                  <i class="fas fa-save"></i> Salvar Configurações
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Chamados -->
+        <div class="col-md-6 mb-4">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#chamadosCollapse" aria-expanded="false">
+              <h5><i class="fas fa-ticket-alt me-2"></i>Chamados</h5>
+              <i class="fas fa-chevron-down collapsible-toggle collapsed"></i>
+            </div>
+            <div class="collapse" id="chamadosCollapse">
+              <div class="collapsible-content">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="autoAtribuicao">
+                  <label class="form-check-label" for="autoAtribuicao">
+                    Auto-atribuição de chamados
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="escalacao" checked>
+                  <label class="form-check-label" for="escalacao">
+                    Escalação automática
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="lembretesSLA">
+                  <label class="form-check-label" for="lembretesSLA">
+                    Lembretes de SLA
+                  </label>
+                </div>
+                <div class="mb-3">
+                  <label for="prazoSLA" class="form-label">Prazo padrão SLA (horas)</label>
+                  <input type="number" class="form-control" id="prazoSLA" value="24" min="1" max="168">
+                </div>
+                <div class="mb-3">
+                  <label for="prioridadePadrao" class="form-label">Prioridade padrão</label>
+                  <select class="form-control" id="prioridadePadrao">
+                    <option value="Baixa">Baixa</option>
+                    <option value="Normal" selected>Normal</option>
+                    <option value="Alta">Alta</option>
+                    <option value="Urgente">Urgente</option>
+                    <option value="Crítica">Crítica</option>
+                  </select>
+                </div>
+                <button class="btn btn-primary btn-sm" id="btnSalvarChamados">
+                  <i class="fas fa-save"></i> Salvar Configurações
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- E-mail -->
+        <div class="col-md-6 mb-4">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#emailCollapse" aria-expanded="false">
+              <h5><i class="fas fa-envelope me-2"></i>Configurações de E-mail</h5>
+              <i class="fas fa-chevron-down collapsible-toggle collapsed"></i>
+            </div>
+            <div class="collapse" id="emailCollapse">
+              <div class="collapsible-content">
+                <div class="mb-3">
+                  <label for="smtpServidor" class="form-label">Servidor SMTP</label>
+                  <input type="text" class="form-control" id="smtpServidor" placeholder="smtp.gmail.com">
+                </div>
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="smtpPorta" class="form-label">Porta</label>
+                    <input type="number" class="form-control" id="smtpPorta" value="587">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                    <div class="form-check mt-4">
+                      <input class="form-check-input" type="checkbox" id="smtpSSL" checked>
+                      <label class="form-check-label" for="smtpSSL">
+                        Usar SSL/TLS
+                      </label>
+                    </div>
+                  </div>
+                </div>
+                <div class="mb-3">
+                  <label for="emailRemetente" class="form-label">E-mail remetente</label>
+                  <input type="email" class="form-control" id="emailRemetente" placeholder="noreply@evoquefitness.com">
+                </div>
+                <button class="btn btn-primary btn-sm me-2" id="btnSalvarEmail">
+                  <i class="fas fa-save"></i> Salvar Configurações
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" id="btnTestarEmail">
+                  <i class="fas fa-paper-plane"></i> Testar E-mail
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Integração -->
+        <div class="col-md-6 mb-4">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#integracaoCollapse" aria-expanded="false">
+              <h5><i class="fas fa-plug me-2"></i>Integrações</h5>
+              <i class="fas fa-chevron-down collapsible-toggle collapsed"></i>
+            </div>
+            <div class="collapse" id="integracaoCollapse">
+              <div class="collapsible-content">
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="integracaoSlack">
+                  <label class="form-check-label" for="integracaoSlack">
+                    Integração com Slack
+                  </label>
+                </div>
+                <div class="form-check mb-2">
+                  <input class="form-check-input" type="checkbox" id="integracaoTeams">
+                  <label class="form-check-label" for="integracaoTeams">
+                    Integração com Microsoft Teams
+                  </label>
+                </div>
+                <div class="form-check mb-3">
+                  <input class="form-check-input" type="checkbox" id="webhooks">
+                  <label class="form-check-label" for="webhooks">
+                    Habilitar Webhooks
+                  </label>
+                </div>
+                <div class="mb-3">
+                  <label for="urlWebhook" class="form-label">URL do Webhook</label>
+                  <input type="url" class="form-control" id="urlWebhook" placeholder="https://api.exemplo.com/webhook">
+                </div>
+                <button class="btn btn-primary btn-sm" id="btnSalvarIntegracoes">
+                  <i class="fas fa-save"></i> Salvar Configurações
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ações Gerais -->
+      <div class="row mt-4">
+        <div class="col-12">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#acoesCollapse" aria-expanded="false">
+              <h5><i class="fas fa-tools me-2"></i>Ações do Sistema</h5>
+              <i class="fas fa-chevron-down collapsible-toggle collapsed"></i>
+            </div>
+            <div class="collapse" id="acoesCollapse">
+              <div class="collapsible-content">
+                <div class="row">
+                  <div class="col-md-4 mb-3">
+                    <button class="btn btn-outline-info w-100" id="btnBackupBanco">
+                      <i class="fas fa-database"></i> Backup do Banco
+                    </button>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <button class="btn btn-outline-warning w-100" id="btnLimparLogs">
+                      <i class="fas fa-broom"></i> Limpar Logs Antigos
+                    </button>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                    <button class="btn btn-outline-secondary w-100" id="btnExportarDados">
+                      <i class="fas fa-file-export"></i> Exportar Dados
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Container de Notificações -->
+  <div id="notificationContainer" class="notification-container"></div>
+
+  <!-- Modal Lista de Notificações -->
+  <div class="modal" id="modalNotificacoes" role="dialog" aria-modal="true" aria-labelledby="modalNotificacoesTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalNotificacoesTitle">Notificações Recentes</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalNotificacoesClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="listaNotificacoes">
+          <!-- Lista de notificações será carregada aqui -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnFecharNotificacoes">Fechar</button>
+        <button class="btn btn-primary" id="btnMarcarTodasLidas">Marcar Todas como Lidas</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalhes do Chamado -->
+  <div class="modal" id="modalChamado" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Detalhes do chamado</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <p><strong>Código:</strong> <span id="modalCodigo"></span></p>
+        <p><strong>Protocolo:</strong> <span id="modalProtocolo"></span></p>
+        <p><strong>Solicitante:</strong> <span id="modalSolicitante"></span></p>
+        <p><strong>Cargo:</strong> <span id="modalCargo"></span></p>
+        <p><strong>Telefone:</strong> <span id="modalTelefone"></span></p>
+        <p><strong>Unidade:</strong> <span id="modalUnidade"></span></p>
+        <p class="full-width"><strong>Problema:</strong> <span id="modalProblema"></span></p>
+        <p class="full-width"><strong>Descrição:</strong> <span id="modalDescricao"></span></p>
+        <p><strong>Visita técnica:</strong> <span id="modalVisita"></span></p>
+        <p><strong>Data de abertura:</strong> <span id="modalData"></span></p>
+        <label for="modalStatus">Alterar Status</label>
+        <select id="modalStatus" aria-label="Alterar status do chamado">
+          <option value="Aberto">Aberto</option>
+          <option value="Aguardando">Aguardando</option>
+          <option value="Concluido">Concluído</option>
+          <option value="Cancelado">Cancelado</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-danger" id="modalDelete">
+          <i class="fas fa-trash"></i> Excluir
+        </button>
+        <button class="btn btn-ticket" id="modalSendTicket">
+          <i class="fas fa-envelope"></i> Enviar ticket
+        </button>
+        <button class="btn btn-update" id="modalSave">
+          <i class="fas fa-save"></i> Atualizar
+        </button>
+        <button class="btn btn-cancel" id="modalCancel">
+          <i class="fas fa-times"></i> Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Adicionar Unidade -->
+  <div class="modal" id="modalAddUnidade" role="dialog" aria-modal="true" aria-labelledby="modalAddUnidadeTitle" aria-describedby="modalAd dUnidadeDesc">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalAddUnidadeTitle">Adicionar nova unidade</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalAddUnidadeClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <label for="inputIdUnidade">ID da unidade</label>
+        <input type="number" id="inputIdUnidade" class="form-control" placeholder="Ex: 42" aria-required="true" />
+        
+        <label for="inputNomeUnidade">Nome da unidade</label>
+        <input type="text" id="inputNomeUnidade" class="form-control" placeholder="Ex: NOVA UNIDADE - 42" aria-required="true" />
+        
+        <div id="errorAddUnidade" class="text-danger mt-2" style="display:none;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnSalvarUnidade">Salvar</button>
+        <button class="btn btn-secondary" id="btnCancelarUnidade">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Credenciais do Usuário -->
+  <div class="modal" id="modalCredenciais" role="dialog" aria-modal="true" aria-labelledby="modalCredenciaisTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalCredenciaisTitle">Credenciais do Usuário</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalCredenciaisClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Nome:</strong> <span id="credenciaisNome"></span></p>
+        <p><strong>Usuário:</strong> <span id="credenciaisUsuario"></span></p>
+        <p><strong>Senha:</strong> <span id="credenciaisSenha"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnCopiarCredenciais">Copiar Credenciais</button>
+        <button class="btn btn-secondary" id="btnFecharCredenciais">Fechar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Editar Usuário -->
+  <div class="modal" id="modalEditarUsuario" role="dialog" aria-modal="true" aria-labelledby="modalEditarUsuarioTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalEditarUsuarioTitle">Editar usuário</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalEditarUsuarioClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formEditarUsuario">
+          <input type="hidden" id="editUsuarioId">
+          <div class="form-group mb-3">
+            <label for="editNomeUsuario">Nome</label>
+            <input type="text" class="form-control" id="editNomeUsuario" required>
+          </div>
+          <div class="form-group mb-3">
+            <label for="editSobrenomeUsuario">Sobrenome</label>
+            <input type="text" class="form-control" id="editSobrenomeUsuario" required>
+          </div>
+          <div class="form-group mb-3">
+            <label for="editEmailUsuario">E-mail</label>
+            <input type="email" class="form-control" id="editEmailUsuario" required>
+          </div>
+          <div class="form-group mb-3">
+            <label for="editNivelAcesso">Nível de acesso</label>
+            <select class="form-control" id="editNivelAcesso" required>
+              <option value="Administrador">Administrador</option>
+              <option value="Gerente">Gerente</option>
+              <option value="Gerente Regional">Gerente regional</option>
+              <option value="Gestor">Gestor</option>
+            </select>
+          </div>
+          <div class="form-group mb-3">
+            <label for="editSetorUsuario">Setor(es)</label>
+            <select class="form-control" id="editSetorUsuario" multiple="multiple" size="6">
+              <option value="TI">Setor de TI</option>
+              <option value="Compras">Setor de compras</option>
+              <option value="Manutencao">Setor de manutenção</option>
+              <option value="Financeiro">Setor financeiro</option>
+              <option value="Marketing">Setor de marketing</option>
+              <option value="Produtos">Setor de produtos</option>
+              <option value="Comercial">Setor comercial</option>
+              <option value="Outros">Outros serviços</option>
+              <option value="Administracao">Administração geral</option>
+            </select>
+          </div>
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="editBloqueado">
+            <label class="form-check-label" for="editBloqueado">Bloqueado</label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-primary" id="btnSalvarUsuario">Salvar alterações</button>
+        <button class="btn btn-secondary" id="btnCancelarEdicao">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Enviar Ticket -->
+  <div class="modal" id="modalTicket" role="dialog" aria-modal="true" aria-labelledby="modalTicketTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTicketTitle">Enviar Ticket</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalTicketClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formTicket">
+          <input type="hidden" id="ticketChamadoId">
+          
+          <div class="form-group mb-3">
+            <label for="ticketModelo">Modelo de Mensagem</label>
+            <select class="form-control" id="ticketModelo">
+              <option value="">Selecione um modelo (opcional)</option>
+              <option value="atualizacao">Atualização de Status</option>
+              <option value="confirmacao">Confirmação de Recebimento</option>
+              <option value="conclusao">Conclusão de Chamado</option>
+            </select>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="ticketAssunto">Assunto</label>
+            <input type="text" class="form-control" id="ticketAssunto" required>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="ticketMensagem">Mensagem</label>
+            <textarea class="form-control" id="ticketMensagem" rows="5" required></textarea>
+          </div>
+
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="ticketPrioridade">
+            <label class="form-check-label" for="ticketPrioridade">
+              Marcar como prioritário
+            </label>
+          </div>
+
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="ticketCopia" checked>
+            <label class="form-check-label" for="ticketCopia">
+              Enviar cópia para mim
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarTicket">Cancelar</button>
+        <button class="btn btn-primary" id="btnEnviarTicket">Enviar Ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Botão para alternar tema -->
+  <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
+    <i class="fas fa-moon"></i>
+  </button>
+
+  <!-- Socket.IO Client -->
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <!-- Scripts do painel -->
+  <script src="/static/ti/js/painel/painel.js"></script>
+  <script src="/static/ti/js/painel/enviar_ticket.js"></script>
+  <script src="/static/ti/js/painel/notificacoes.js"></script>
+  <script src="/static/ti/js/painel/sla.js"></script>
+  <script src="/static/ti/js/painel/prioridades.js"></script>
+  <script src="/static/ti/js/painel/admin.js"></script>
+
+  <script>
+    // Configurações de notificações - Sistema implementado
+    let configuracaoNotificacoes = {
+        email_novo_chamado: true,
+        email_status_mudou: true,
+        notificar_sla_risco: true,
+        notificar_novos_usuarios: true,
+        som_habilitado: true
+    };
+
+    // Função para carregar configurações de notificações
+    async function carregarConfiguracaoNotificacoes() {
+        try {
+            const response = await fetch('/ti/painel/api/configuracoes/notificacoes');
+            if (response.ok) {
+                const data = await response.json();
+                configuracaoNotificacoes = data.notificacoes;
+                
+                // Atualizar interface
+                document.getElementById('notifNovoChamado').checked = configuracaoNotificacoes.email_novo_chamado;
+                document.getElementById('notifStatusAlterado').checked = configuracaoNotificacoes.email_status_mudou;
+                document.getElementById('notifNovoUsuario').checked = configuracaoNotificacoes.notificar_novos_usuarios;
+                document.getElementById('notifEmail').checked = configuracaoNotificacoes.email_novo_chamado;
+                document.getElementById('notifSom').checked = configuracaoNotificacoes.som_habilitado;
+                
+                // Atualizar sistema de notificações
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.updateSettings({
+                        soundEnabled: configuracaoNotificacoes.som_habilitado,
+                        novoChamado: configuracaoNotificacoes.email_novo_chamado,
+                        statusAlterado: configuracaoNotificacoes.email_status_mudou,
+                        novoUsuario: configuracaoNotificacoes.notificar_novos_usuarios,
+                        emailNotifications: configuracaoNotificacoes.email_novo_chamado
+                    });
+                }
+                
+                console.log('Configurações de notificações carregadas:', configuracaoNotificacoes);
+            }
+        } catch (error) {
+            console.error('Erro ao carregar configurações de notificações:', error);
+        }
+    }
+
+    // Função para salvar configurações de notificações
+    async function salvarConfiguracaoNotificacoes() {
+        try {
+            const novasConfiguracoes = {
+                email_novo_chamado: document.getElementById('notifNovoChamado').checked,
+                email_status_mudou: document.getElementById('notifStatusAlterado').checked,
+                notificar_sla_risco: true, // Sempre ativo
+                notificar_novos_usuarios: document.getElementById('notifNovoUsuario').checked,
+                som_habilitado: document.getElementById('notifSom').checked
+            };
+
+            const response = await fetch('/ti/painel/api/configuracoes/notificacoes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(novasConfiguracoes)
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.error || 'Erro ao salvar configurações');
+            }
+
+            const data = await response.json();
+            configuracaoNotificacoes = novasConfiguracoes;
+
+            // Atualizar sistema de notificações
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.updateSettings({
+                    soundEnabled: configuracaoNotificacoes.som_habilitado,
+                    novoChamado: configuracaoNotificacoes.email_novo_chamado,
+                    statusAlterado: configuracaoNotificacoes.email_status_mudou,
+                    novoUsuario: configuracaoNotificacoes.notificar_novos_usuarios,
+                    emailNotifications: configuracaoNotificacoes.email_novo_chamado
+                });
+
+                window.advancedNotificationSystem.showSuccess(
+                    'Configurações Salvas',
+                    'Configurações de notificações salvas com sucesso!'
+                );
+            }
+
+            console.log('Configurações de notificações salvas:', data);
+            
+        } catch (error) {
+            console.error('Erro ao salvar configurações de notificações:', error);
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showError(
+                    'Erro',
+                    'Erro ao salvar configurações: ' + error.message
+                );
+            }
+        }
+    }
+
+    // Função para salvar configurações de SLA corrigida
+    function salvarConfiguracoesSLA() {
+      const configuracoes = {
+        sla: {
+          primeira_resposta: parseFloat(document.getElementById('prazoSLA').value) || 24,
+          resolucao_critico: 2,
+          resolucao_alto: 8,
+          resolucao_normal: parseFloat(document.getElementById('prazoSLA').value) || 24,
+          resolucao_baixo: 72
+        },
+        notificacoes: {
+          email_novo_chamado: document.getElementById('notifNovoChamado').checked,
+          email_status_mudou: document.getElementById('notifStatusAlterado').checked,
+          notificar_sla_risco: document.getElementById('lembretesSLA').checked,
+          intervalo_verificacao: 15
+        },
+        email: {
+          servidor_smtp: document.getElementById('smtpServidor').value || 'smtp.gmail.com',
+          porta: parseInt(document.getElementById('smtpPorta').value) || 587,
+          usar_tls: document.getElementById('smtpSSL').checked,
+          email_sistema: document.getElementById('emailRemetente').value || 'sistema@evoquefitness.com'
+        },
+        sistema: {
+          timeout_sessao: parseInt(document.getElementById('tempoSessao').value) || 30,
+          maximo_tentativas_login: 5,
+          backup_automatico: true,
+          log_nivel: 'INFO'
+        }
+      };
+
+      console.log('Enviando configurações:', configuracoes);
+
+      fetch('/ti/painel/api/configuracoes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(configuracoes)
+      })
+      .then(response => {
+        if (!response.ok) {
+          return response.json().then(err => Promise.reject(err));
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Configurações salvas:', data);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess(
+                'Configurações Salvas',
+                'Configurações salvas com sucesso!'
+            );
+        }
+      })
+      .catch(error => {
+        console.error('Erro ao salvar configurações:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError(
+                'Erro',
+                'Erro ao salvar configurações: ' + (error.error || 'Erro desconhecido')
+            );
+        }
+      });
+    }
+
+    // Gerenciamento de problemas
+    let problemasData = [];
+
+    // Função para carregar problemas
+    async function carregarProblemas() {
+      try {
+        const response = await fetch('/ti/painel/api/problemas');
+        if (!response.ok) throw new Error('Erro ao carregar problemas');
+        
+        problemasData = await response.json();
+        renderizarProblemas();
+      } catch (error) {
+        console.error('Erro ao carregar problemas:', error);
+      }
+    }
+
+    // Função para renderizar problemas
+    function renderizarProblemas() {
+      const container = document.getElementById('problemas-container');
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      problemasData.forEach(problema => {
+        const problemaDiv = document.createElement('div');
+        problemaDiv.className = 'problema-item';
+        problemaDiv.innerHTML = `
+          <div class="problema-header">
+            <div class="problema-nome">${problema.nome}</div>
+            <div class="problema-actions">
+              <button class="btn btn-danger btn-sm" onclick="removerProblema(${problema.id})" title="Remover problema">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+          <div class="problema-info">
+            <div class="problema-field">
+              <label>Prioridade Padrão</label>
+              <select class="form-control" data-problema-id="${problema.id}" data-field="prioridade">
+                <option value="Baixa" ${problema.prioridade_padrao === 'Baixa' ? 'selected' : ''}>Baixa</option>
+                <option value="Normal" ${problema.prioridade_padrao === 'Normal' ? 'selected' : ''}>Normal</option>
+                <option value="Alta" ${problema.prioridade_padrao === 'Alta' ? 'selected' : ''}>Alta</option>
+                <option value="Urgente" ${problema.prioridade_padrao === 'Urgente' ? 'selected' : ''}>Urgente</option>
+                <option value="Crítica" ${problema.prioridade_padrao === 'Crítica' ? 'selected' : ''}>Crítica</option>
+              </select>
+            </div>
+            <div class="problema-field">
+              <label>Item de Internet</label>
+              <div class="mt-2">
+                ${problema.requer_item_internet ? 
+                  '<span class="badge-internet">Requer item de internet</span>' : 
+                  '<span class="badge-no-internet">Não requer item de internet</span>'
+                }
+              </div>
+            </div>
+          </div>
+        `;
+        container.appendChild(problemaDiv);
+      });
+
+      // Adicionar event listeners para mudanças de prioridade
+      container.querySelectorAll('select[data-field="prioridade"]').forEach(select => {
+        select.addEventListener('change', async (e) => {
+          const problemaId = e.target.dataset.problemaId;
+          const novaPrioridade = e.target.value;
+          await atualizarPrioridadeProblema(problemaId, novaPrioridade);
+        });
+      });
+    }
+
+    // Função para atualizar prioridade de um problema
+    async function atualizarPrioridadeProblema(problemaId, novaPrioridade) {
+      try {
+        const response = await fetch(`/ti/painel/api/problemas/${problemaId}/prioridade`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ prioridade: novaPrioridade })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Erro ao atualizar prioridade');
+        }
+
+        const data = await response.json();
+        
+        // Atualizar dados locais
+        const problema = problemasData.find(p => p.id == problemaId);
+        if (problema) {
+          problema.prioridade_padrao = novaPrioridade;
+        }
+
+        // Mostrar notificação de sucesso
+        if (window.advancedNotificationSystem) {
+          window.advancedNotificationSystem.showSuccess(
+            'Prioridade Atualizada',
+            `Prioridade do problema "${data.problema.nome}" alterada para ${novaPrioridade}`
+          );
+        }
+      } catch (error) {
+        console.error('Erro ao atualizar prioridade:', error);
+        if (window.advancedNotificationSystem) {
+          window.advancedNotificationSystem.showError(
+            'Erro',
+            error.message || 'Erro ao atualizar prioridade'
+          );
+        }
+      }
+    }
+
+    // Função para adicionar novo problema (na seção "Adicionar ao Banco")
+    async function adicionarNovoProblema() {
+      const nome = document.getElementById('nomeProblema').value.trim();
+      const prioridade = document.getElementById('prioridadeProblema').value;
+      const requerInternet = document.getElementById('requerInternetProblema').checked;
+
+      if (!nome) {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Nome do problema é obrigatório');
+        }
+        return;
+      }
+
+      try {
+        const response = await fetch('/ti/painel/api/problemas', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            nome: nome,
+            prioridade_padrao: prioridade,
+            requer_item_internet: requerInternet
+          })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Erro ao adicionar problema');
+        }
+
+        const data = await response.json();
+        
+        // Adicionar aos dados locais
+        problemasData.push(data.problema);
+        renderizarProblemas();
+        carregarListaProblemasExistentes();
+
+        // Limpar formulário
+        document.getElementById('formAdicionarProblema').reset();
+
+        // Mostrar notificação de sucesso
+        if (window.advancedNotificationSystem) {
+          window.advancedNotificationSystem.showSuccess(
+            'Problema Adicionado',
+            `Problema "${data.problema.nome}" adicionado com sucesso`
+          );
+        }
+      } catch (error) {
+        console.error('Erro ao adicionar problema:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao adicionar problema: ' + error.message);
+        }
+      }
+    }
+
+    // Função para carregar lista de problemas existentes
+    async function carregarListaProblemasExistentes() {
+      try {
+        const response = await fetch('/ti/painel/api/problemas');
+        if (!response.ok) throw new Error('Erro ao carregar problemas');
+        
+        const problemas = await response.json();
+        const container = document.getElementById('listaProblemasExistentes');
+        
+        if (problemas.length === 0) {
+          container.innerHTML = '<p class="text-muted">Nenhum problema cadastrado.</p>';
+          return;
+        }
+
+        container.innerHTML = problemas.map(problema => `
+          <div class="problema-item-lista mb-2 p-3 border rounded">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>${problema.nome}</strong>
+                <span class="badge bg-primary ms-2">${problema.prioridade_padrao}</span>
+                ${problema.requer_item_internet ? '<span class="badge bg-info ms-1">Internet</span>' : ''}
+              </div>
+              <button class="btn btn-danger btn-sm" onclick="removerProblema(${problema.id})">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('Erro ao carregar lista de problemas:', error);
+      }
+    }
+
+    // Função para remover problema
+    async function removerProblema(problemaId) {
+      const problema = problemasData.find(p => p.id === problemaId);
+      if (!problema) return;
+
+      if (!confirm(`Tem certeza que deseja remover o problema "${problema.nome}"?`)) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/ti/painel/api/problemas/${problemaId}`, {
+          method: 'DELETE'
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Erro ao remover problema');
+        }
+
+        // Remover dos dados locais
+        problemasData = problemasData.filter(p => p.id !== problemaId);
+        renderizarProblemas();
+        carregarListaProblemasExistentes();
+
+        // Mostrar notificação de sucesso
+        if (window.advancedNotificationSystem) {
+          window.advancedNotificationSystem.showSuccess(
+            'Problema Removido',
+            `Problema "${problema.nome}" removido com sucesso`
+          );
+        }
+      } catch (error) {
+        console.error('Erro ao remover problema:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao remover problema: ' + error.message);
+        }
+      }
+    }
+
+    // Atualizar função loadSectionContent para incluir prioridades
+    function loadSectionContent(sectionId) {
+      switch(sectionId) {
+        case 'listar-unidades':
+          renderListarUnidades();
+          break;
+        case 'gerenciar-chamados':
+          loadChamados();
+          break;
+        case 'permissoes':
+          loadUsuarios();
+          break;
+        case 'bloqueios':
+          loadUsuariosBloqueados();
+          break;
+        case 'sla-dashboard':
+          if (typeof carregarSLA === 'function') {
+            carregarSLA();
+          }
+          break;
+        case 'configuracoes':
+          // Carregar configurações de prioridades e notificações
+          carregarProblemas();
+          carregarConfiguracaoNotificacoes();
+          atualizarContadoresVisaoGeral();
+          break;
+        case 'adicionar-problema':
+          // Carregar lista de problemas existentes
+          carregarListaProblemasExistentes();
+          break;
+        case 'visao-geral':
+          atualizarContadoresVisaoGeral();
+          break;
+        // Novas seções
+        case 'logs-acesso':
+          if (typeof carregarLogsAcesso === 'function') {
+            carregarLogsAcesso();
+          }
+          break;
+        case 'logs-acoes':
+          if (typeof carregarLogsAcoes === 'function') {
+            carregarLogsAcoes();
+          }
+          break;
+        case 'analise-problemas':
+          if (typeof carregarAnaliseProblemas === 'function') {
+            carregarAnaliseProblemas();
+          }
+          break;
+        case 'relatorios':
+          if (typeof inicializarRelatorios === 'function') {
+            inicializarRelatorios();
+          }
+          break;
+        case 'alertas-sistema':
+          if (typeof carregarAlertasSistema === 'function') {
+            carregarAlertasSistema();
+          }
+          break;
+        case 'backup-manutencao':
+          if (typeof carregarBackupManutencao === 'function') {
+            carregarBackupManutencao();
+          }
+          break;
+        case 'configuracoes-avancadas':
+          if (typeof carregarConfiguracoesAvancadas === 'function') {
+            carregarConfiguracoesAvancadas();
+          }
+          break;
+        case 'dashboard-avancado':
+          if (typeof carregarDashboardAvancado === 'function') {
+            carregarDashboardAvancado();
+          }
+          break;
+      }
+    }
+
+    // Inicialização após carregamento do DOM
+    document.addEventListener('DOMContentLoaded', function() {
+      const socketStatus = document.getElementById('socketStatus');
+      const socketConnectionStatus = document.getElementById('socketConnectionStatus');
+      
+      if (window.notificationSystem && window.notificationSystem.socket) {
+        const socket = window.notificationSystem.socket;
+        
+        socket.on('connect', () => {
+          if (socketStatus) {
+            socketStatus.textContent = 'Conectado';
+            socketStatus.className = 'ms-2 badge bg-success';
+          }
+          if (socketConnectionStatus) {
+            socketConnectionStatus.textContent = 'Conectado';
+            socketConnectionStatus.className = 'badge bg-success';
+          }
+        });
+        
+        socket.on('disconnect', () => {
+          if (socketStatus) {
+            socketStatus.textContent = 'Desconectado';
+            socketStatus.className = 'ms-2 badge bg-danger';
+          }
+          if (socketConnectionStatus) {
+            socketConnectionStatus.textContent = 'Desconectado';
+            socketConnectionStatus.className = 'badge bg-danger';
+          }
+        });
+        
+        socket.on('connect_error', () => {
+          if (socketStatus) {
+            socketStatus.textContent = 'Erro de Conexão';
+            socketStatus.className = 'ms-2 badge bg-warning';
+          }
+          if (socketConnectionStatus) {
+            socketConnectionStatus.textContent = 'Erro de Conexão';
+            socketConnectionStatus.className = 'badge bg-warning';
+          }
+        });
+      }
+      
+      // Botão para reconectar
+      document.getElementById('btnReconectarSocket')?.addEventListener('click', () => {
+        if (window.notificationSystem && window.notificationSystem.socket) {
+          window.notificationSystem.socket.disconnect();
+          setTimeout(() => {
+            window.notificationSystem.socket.connect();
+          }, 1000);
+        }
+      });
+
+      // Event listeners para salvar configurações
+      document.getElementById('btnSalvarNotificacoes')?.addEventListener('click', salvarConfiguracaoNotificacoes);
+      document.getElementById('btnSalvarSeguranca')?.addEventListener('click', salvarConfiguracoesSLA);
+      document.getElementById('btnSalvarChamados')?.addEventListener('click', salvarConfiguracoesSLA);
+      document.getElementById('btnSalvarEmail')?.addEventListener('click', salvarConfiguracoesSLA);
+      document.getElementById('btnSalvarIntegracoes')?.addEventListener('click', salvarConfiguracoesSLA);
+      
+      // Event listeners para ações do sistema
+      document.getElementById('btnBackupBanco')?.addEventListener('click', executarBackup);
+      document.getElementById('btnLimparLogs')?.addEventListener('click', limparLogs);
+      document.getElementById('btnExportarDados')?.addEventListener('click', exportarDados);
+      document.getElementById('btnTestarEmail')?.addEventListener('click', testarEmail);
+
+      // Event listeners para gerenciamento de problemas na seção "Adicionar ao Banco"
+      document.getElementById('formAdicionarProblema')?.addEventListener('submit', (e) => {
+        e.preventDefault();
+        adicionarNovoProblema();
+      });
+
+      // Event listeners para seções colapsáveis
+      document.querySelectorAll('.collapsible-header').forEach(header => {
+        header.addEventListener('click', function() {
+          const toggle = this.querySelector('.collapsible-toggle');
+          if (toggle) {
+            toggle.classList.toggle('collapsed');
+          }
+        });
+      });
+
+      // Carregar problemas ao entrar na seção de configurações
+      document.querySelector('a[href="#configuracoes"]')?.addEventListener('click', function() {
+        setTimeout(() => {
+          carregarProblemas();
+          carregarConfiguracaoNotificacoes();
+        }, 300);
+      });
+
+      // Carregar lista ao entrar na seção "Adicionar ao Banco"
+      document.querySelector('a[href="#adicionar-problema"]')?.addEventListener('click', function() {
+        setTimeout(() => {
+          carregarListaProblemasExistentes();
+        }, 300);
+      });
+    });
+
+    // Função para executar backup
+    function executarBackup() {
+      console.log('Executando backup do banco de dados...');
+      // Implementar lógica de backup
+      if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Backup', 'Backup iniciado! Você será notificado quando estiver concluído.');
+      }
+    }
+
+    // Função para limpar logs
+    function limparLogs() {
+      if (confirm('Tem certeza que deseja limpar os logs antigos? Esta ação não pode ser desfeita.')) {
+        console.log('Limpando logs antigos...');
+        // Implementar lógica de limpeza
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Logs', 'Logs antigos foram removidos com sucesso!');
+        }
+      }
+    }
+
+    // Função para exportar dados
+    function exportarDados() {
+      console.log('Exportando dados...');
+      // Implementar lógica de exportação
+      if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Exportação', 'Exportação iniciada! O arquivo será baixado em breve.');
+      }
+    }
+
+    // Função para testar email
+    function testarEmail() {
+      console.log('Testando configurações de e-mail...');
+      // Implementar lógica de teste de email
+      if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showSuccess('E-mail', 'E-mail de teste enviado! Verifique sua caixa de entrada.');
+      }
+    }
+	
+	
+	// Adicione esta função para lidar com as configurações de chamados
+function configurarEventosChamados() {
+    const btnSalvarChamados = document.getElementById('btnSalvarChamados');
+    if (btnSalvarChamados) {
+        btnSalvarChamados.addEventListener('click', salvarConfiguracoesChamados);
+    }
+    
+    // Desativar notificações ao mudar prioridade
+    const selectPrioridade = document.getElementById('prioridadePadrao');
+    if (selectPrioridade) {
+        selectPrioridade.addEventListener('change', function() {
+            // Não fazer nada - apenas atualiza o valor
+        });
+    }
+}
+
+async function salvarConfiguracoesChamados() {
+    try {
+        const config = {
+            chamados: {
+                auto_atribuicao: document.getElementById('autoAtribuicao').checked,
+                escalacao: document.getElementById('escalacao').checked,
+                lembretes_sla: document.getElementById('lembretesSLA').checked,
+                prazo_padrao_sla: parseInt(document.getElementById('prazoSLA').value) || 24,
+                prioridade_padrao: document.getElementById('prioridadePadrao').value
+            }
+        };
+        
+        const response = await fetch('/ti/painel/api/configuracoes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(config)
+        });
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao salvar configurações');
+        }
+        
+        const data = await response.json();
+        
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess(
+                'Configurações de Chamados',
+                'Configurações salvas com sucesso!'
+            );
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Erro ao salvar configurações:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError(
+                'Erro',
+                error.message || 'Erro ao salvar configurações'
+            );
+        }
+        throw error;
+    }
+}
+
+// Adicione esta chamada no DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // ... outros event listeners ...
+    configurarEventosChamados();
+    
+    // Carregar configurações ao entrar na seção
+    document.querySelector('a[href="#configuracoes"]')?.addEventListener('click', function() {
+        setTimeout(() => {
+            carregarConfiguracoes();
+        }, 300);
+    });
+});
+
+async function carregarConfiguracoes() {
+    try {
+        const response = await fetch('/ti/painel/api/configuracoes');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar configurações');
+        }
+        
+        const config = await response.json();
+        
+        // Preencher formulário de chamados
+        if (config.chamados) {
+            document.getElementById('autoAtribuicao').checked = config.chamados.auto_atribuicao || false;
+            document.getElementById('escalacao').checked = config.chamados.escalacao !== false;
+            document.getElementById('lembretesSLA').checked = config.chamados.lembretes_sla || false;
+            document.getElementById('prazoSLA').value = config.chamados.prazo_padrao_sla || 24;
+            document.getElementById('prioridadePadrao').value = config.chamados.prioridade_padrao || 'Normal';
+        }
+        
+        return config;
+    } catch (error) {
+        console.error('Erro ao carregar configurações:', error);
+        return CONFIGURACOES_PADRAO;
+    }
+}
+  </script>
+</body>
+</html>

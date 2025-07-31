@@ -1,0 +1,1893 @@
+// Sidebar toggle for mobile
+const sidebar = document.getElementById('sidebar');
+const sidebarToggleBtn = document.getElementById('sidebarToggle');
+const mobileSidebarToggleBtn = document.getElementById('mobileSidebarToggle');
+
+function toggleSidebar() {
+    sidebar.classList.toggle('active');
+}
+
+sidebarToggleBtn?.addEventListener('click', toggleSidebar);
+mobileSidebarToggleBtn?.addEventListener('click', toggleSidebar);
+
+// Submenu toggle
+document.querySelectorAll('.sidebar nav ul li.has-submenu > a').forEach(anchor => {
+    anchor.addEventListener('click', e => {
+        e.preventDefault();
+        const parentLi = anchor.parentElement;
+        const isOpen = parentLi.classList.contains('open');
+        document.querySelectorAll('.sidebar nav ul li.has-submenu.open').forEach(li => {
+            if (li !== parentLi) li.classList.remove('open');
+        });
+        if (isOpen) {
+            parentLi.classList.remove('open');
+            anchor.setAttribute('aria-expanded', 'false');
+        } else {
+            parentLi.classList.add('open');
+            anchor.setAttribute('aria-expanded', 'true');
+        }
+    });
+});
+
+// Navigation links activate section
+const navLinks = document.querySelectorAll('.sidebar nav ul li a, .navbar-panel .nav-link-panel');
+const sections = document.querySelectorAll('section.content-section');
+
+navLinks.forEach(link => {
+    link.addEventListener('click', e => {
+        e.preventDefault();
+        const targetId = link.getAttribute('href').substring(1);
+        activateSection(targetId);
+        navLinks.forEach(l => l.classList.remove('active'));
+        navLinks.forEach(l => {
+            if (l.getAttribute('href').substring(1) === targetId) l.classList.add('active');
+        });
+    });
+});
+
+function activateSection(id) {
+    sections.forEach(section => {
+        if (section.id === id) {
+            section.classList.add('active');
+            section.setAttribute('tabindex', '0');
+            section.focus();
+            
+            // Carregar conteúdo específico da seção
+            loadSectionContent(id);
+        } else {
+            section.classList.remove('active');
+            section.removeAttribute('tabindex');
+        }
+    });
+}
+
+// Theme toggle
+const themeToggleBtn = document.getElementById('themeToggle');
+themeToggleBtn.addEventListener('click', () => {
+    if (document.body.getAttribute('data-theme') === 'dark') {
+        document.body.setAttribute('data-theme', 'light');
+        themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
+    } else {
+        document.body.setAttribute('data-theme', 'dark');
+        themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
+    }
+});
+
+// Variáveis globais para chamados
+let chamadosData = [];
+const chamadosPerPage = 6;
+let currentPage = 1;
+let currentFilter = 'all';
+
+const chamadosGrid = document.getElementById('chamadosGrid');
+const pagination = document.getElementById('pagination');
+
+// Função para carregar os chamados da API
+async function loadChamados() {
+    try {
+        const response = await fetch('/ti/painel/api/chamados');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar chamados');
+        }
+        chamadosData = await response.json();
+        renderChamadosPage(currentPage);
+        
+        // Atualizar contadores da visão geral
+        atualizarContadoresVisaoGeral();
+    } catch (error) {
+        console.error('Erro ao carregar chamados:', error);
+        chamadosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar chamados. Tente novamente mais tarde.</p>';
+        // Usar sistema de notificações avançado
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar chamados');
+        }
+    }
+}
+
+// Função para atualizar contadores da visão geral
+async function atualizarContadoresVisaoGeral() {
+    try {
+        const response = await fetch('/ti/painel/api/chamados/estatisticas');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar estatísticas');
+        }
+        const stats = await response.json();
+        
+        document.getElementById('countAbertos').textContent = stats.Aberto || 0;
+        document.getElementById('countAguardando').textContent = stats.Aguardando || 0;
+        document.getElementById('countConcluidos').textContent = stats.Concluido || 0;
+        document.getElementById('countCancelados').textContent = stats.Cancelado || 0;
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar estatísticas');
+        }
+    }
+}
+
+// Função para filtrar chamados
+function filterChamados(status) {
+    if (status === 'all') {
+        return [...chamadosData];
+    }
+    return chamadosData.filter(chamado => chamado.status === status);
+}
+
+// Função para atualizar o status de um chamado
+async function updateChamadoStatus(chamadoId, novoStatus) {
+    try {
+        // Primeiro atualiza o status
+        const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/status`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: novoStatus })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao atualizar status');
+        }
+
+        const data = await response.json();
+        
+        // Se o status foi atualizado com sucesso e é um dos status que requer notificação
+        if (['Aguardando', 'Cancelado', 'Concluido'].includes(novoStatus)) {
+            // Envia a notificação
+            const notificacaoResponse = await fetch(`/ti/painel/api/chamados/${chamadoId}/notificar`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ 
+                    status: novoStatus,
+                    chamadoId: chamadoId
+                })
+            });
+
+            if (!notificacaoResponse.ok) {
+                console.error('Erro ao enviar notificação:', await notificacaoResponse.text());
+                throw new Error('Erro ao enviar notificação por e-mail');
+            }
+        }
+
+        // Atualiza o chamado na lista local
+        const chamado = chamadosData.find(c => c.id == chamadoId);
+        if (chamado) {
+            chamado.status = novoStatus;
+        }
+
+        return data;
+    } catch (error) {
+        console.error('Erro ao atualizar status:', error);
+        throw error;
+    }
+}
+
+// Função para renderizar a página de chamados
+function renderChamadosPage(page) {
+    chamadosGrid.innerHTML = '';
+    const start = (page - 1) * chamadosPerPage;
+    const end = start + chamadosPerPage;
+    const filteredChamados = filterChamados(currentFilter);
+    const pageChamados = filteredChamados.slice(start, end);
+
+    if (pageChamados.length === 0) {
+        chamadosGrid.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+                <div class="empty-icon">
+                    <i class="fas fa-inbox"></i>
+                </div>
+                <h4>Nenhum chamado encontrado</h4>
+                <p>Não há chamados com os filtros selecionados</p>
+            </div>
+        `;
+        pagination.innerHTML = '';
+        return;
+    }
+
+    pageChamados.forEach(chamado => {
+        const card = document.createElement('div');
+        card.className = 'chamado-card';
+        card.tabIndex = 0;
+
+        const statusClass = chamado.status.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        const statusIcon = {
+            'aberto': 'fa-circle-notch',
+            'aguardando': 'fa-clock',
+            'concluido': 'fa-check-circle',
+            'cancelado': 'fa-times-circle'
+        }[statusClass] || 'fa-circle';
+
+card.innerHTML = `
+    <div class="card-header">
+        <h3>${chamado.codigo}</h3>
+        <div class="status-badge status-${statusClass}">
+            <i class="fas ${statusIcon}"></i>
+            ${chamado.status}
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="info-row">
+            <strong>Solicitante:</strong>
+            <span>${chamado.solicitante}</span>
+        </div>
+        <div class="info-row">
+            <strong>Problema:</strong>
+            <span>${chamado.problema}</span>
+        </div>
+        <div class="info-row">
+            <strong>Unidade:</strong>
+            <span>${chamado.unidade}</span>
+        </div>
+        <div class="info-row">
+            <strong>Data:</strong>
+            <span>${formatarData(chamado.data_abertura)}</span>
+        </div>
+    </div>
+    <div class="card-footer">
+        <select id="status-${chamado.id}">
+            <option value="Aberto" ${chamado.status === 'Aberto' ? 'selected' : ''}>Aberto</option>
+            <option value="Aguardando" ${chamado.status === 'Aguardando' ? 'selected' : ''}>Aguardando</option>
+            <option value="Concluido" ${chamado.status === 'Concluido' ? 'selected' : ''}>Concluído</option>
+            <option value="Cancelado" ${chamado.status === 'Cancelado' ? 'selected' : ''}>Cancelado</option>
+        </select>
+        <button class="btn btn-update-sm" data-id="${chamado.id}" title="Atualizar status">
+            <i class="fas fa-save"></i> Atualizar
+        </button>
+        <button class="btn btn-danger-sm" data-id="${chamado.id}" title="Excluir chamado">
+            <i class="fas fa-trash"></i> Excluir
+        </button>
+        <button class="btn btn-ticket-sm" data-id="${chamado.id}" title="Enviar ticket">
+            <i class="fas fa-envelope"></i> Ticket
+        </button>
+    </div>
+        `;
+
+        // Abrir modal ao clicar no card (exceto nos elementos interativos)
+        card.addEventListener('click', function(e) {
+            if (!e.target.closest('.card-footer') && !e.target.closest('.status-badge')) {
+                openModal(chamado);
+            }
+        });
+
+        chamadosGrid.appendChild(card);
+    });
+
+    renderPagination(filteredChamados.length);
+    attachCardEventListeners();
+}
+
+function formatarData(dataString) {
+    if (!dataString) return 'Não informado';
+    const [data, hora] = dataString.split(' ');
+    const [dia, mes, ano] = data.split('/');
+    return `${dia}/${mes}/${ano}`;
+}
+
+// Função para renderizar a paginação
+function renderPagination(totalItems) {
+    pagination.innerHTML = '';
+    const totalPages = Math.ceil(totalItems / chamadosPerPage);
+
+    function createPageButton(num, active = false) {
+        const btn = document.createElement('button');
+        btn.textContent = num;
+        btn.disabled = active;
+        if (active) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+            currentPage = num;
+            renderChamadosPage(currentPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        return btn;
+    }
+
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = '«';
+    prevBtn.disabled = currentPage === 1;
+    prevBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            renderChamadosPage(currentPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+    pagination.appendChild(prevBtn);
+
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(startPage + 4, totalPages);
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+    for (let i = startPage; i <= endPage; i++) {
+        pagination.appendChild(createPageButton(i, i === currentPage));
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = '»';
+    nextBtn.disabled = currentPage === totalPages;
+    nextBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            renderChamadosPage(currentPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+    pagination.appendChild(nextBtn);
+}
+
+// Função para anexar event listeners aos cards de chamados
+function attachCardEventListeners() {
+    // Listener para mudança no select
+    document.querySelectorAll('.card select').forEach(select => {
+        select.addEventListener('click', function(e) {
+            e.stopPropagation();
+        });
+        
+        select.addEventListener('change', async function(e) {
+            e.stopPropagation();
+            const chamadoId = this.id.replace('status-', '');
+            const novoStatus = this.value;
+            
+            try {
+                await updateChamadoStatus(chamadoId, novoStatus);
+                const mensagem = `Status atualizado para "${novoStatus}"${novoStatus === 'Aguardando' || novoStatus === 'Cancelado' || novoStatus === 'Concluido' ? '. E-mail enviado ao solicitante.' : ''}`;
+                
+                // Usar sistema de notificações avançado
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showSuccess('Status Atualizado', mensagem);
+                }
+            } catch (error) {
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showError('Erro', error.message);
+                }
+                const chamado = chamadosData.find(c => c.id == chamadoId);
+                if (chamado) {
+                    this.value = chamado.status;
+                }
+            }
+        });
+    });
+
+    // Listener para botão Atualizar
+    document.querySelectorAll('.btn-update-sm').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const chamadoId = this.dataset.id;
+            const statusSelect = document.getElementById(`status-${chamadoId}`);
+            const novoStatus = statusSelect.value;
+            
+            try {
+                await updateChamadoStatus(chamadoId, novoStatus);
+                const mensagem = `Status atualizado para "${novoStatus}"${novoStatus === 'Aguardando' || novoStatus === 'Cancelado' || novoStatus === 'Concluido' ? '. E-mail enviado ao solicitante.' : ''}`;
+                
+                // Usar sistema de notificações avançado
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showSuccess('Status Atualizado', mensagem);
+                }
+                renderChamadosPage(currentPage); // Atualiza a visualização
+            } catch (error) {
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showError('Erro', error.message);
+                }
+                const chamado = chamadosData.find(c => c.id == chamadoId);
+                if (chamado) {
+                    statusSelect.value = chamado.status;
+                }
+            }
+        });
+    });
+
+    // Listener para botão Excluir
+    document.querySelectorAll('.btn-danger-sm').forEach(btn => {
+        btn.addEventListener('click', async function(e) {
+            e.stopPropagation();
+            const chamadoId = this.dataset.id;
+            await excluirChamado(chamadoId);
+        });
+    });
+
+    // Listener para botão Enviar Ticket
+    document.querySelectorAll('.btn-ticket-sm').forEach(btn => {
+        btn.addEventListener('click', e => {
+            e.stopPropagation();
+            const id = btn.dataset.id;
+            
+    const chamado = chamadosData.find(c => c.id == id);
+    if (chamado) {
+        openTicketModal(chamado);
+    } else {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Chamado não encontrado.');
+        }
+    }
+    ;
+        });
+    });
+}
+
+// Event listener para os links do submenu de gerenciar chamados
+document.querySelectorAll('#submenu-gerenciar-chamados a').forEach(link => {
+    link.addEventListener('click', function(e) {
+        e.preventDefault();
+        const status = this.getAttribute('data-status');
+        currentFilter = status;
+        currentPage = 1;
+        renderChamadosPage(currentPage);
+        activateSection('gerenciar-chamados');
+        
+        // Atualizar o item ativo no menu
+        document.querySelectorAll('.sidebar a.active').forEach(item => {
+            item.classList.remove('active');
+        });
+        this.classList.add('active');
+        const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
+        parentSubmenuToggle.classList.add('active');
+    });
+});
+
+// Modal Chamado - Elementos
+const modal = document.getElementById('modalChamado');
+const modalCloseBtn = document.getElementById('modalClose');
+const modalCancelBtn = document.getElementById('modalCancel');
+const modalSaveBtn = document.getElementById('modalSave');
+const modalSendTicketBtn = document.getElementById('modalSendTicket');
+
+const modalCodigo = document.getElementById('modalCodigo');
+const modalProtocolo = document.getElementById('modalProtocolo');
+const modalSolicitante = document.getElementById('modalSolicitante');
+const modalCargo = document.getElementById('modalCargo');
+const modalTelefone = document.getElementById('modalTelefone');
+const modalUnidade = document.getElementById('modalUnidade');
+const modalProblema = document.getElementById('modalProblema');
+const modalDescricao = document.getElementById('modalDescricao');
+const modalVisita = document.getElementById('modalVisita');
+const modalData = document.getElementById('modalData');
+const modalStatusSelect = document.getElementById('modalStatus');
+
+let currentModalChamadoId = null;
+
+// Funções do Modal de Chamados
+function openModal(chamado) {
+    currentModalChamadoId = chamado.id;
+    modalCodigo.textContent = chamado.codigo;
+    modalProtocolo.textContent = chamado.protocolo;
+    modalSolicitante.textContent = chamado.solicitante;
+    modalCargo.textContent = chamado.cargo;
+    modalTelefone.textContent = chamado.telefone;
+    modalUnidade.textContent = chamado.unidade;
+    modalProblema.textContent = chamado.problema;
+    modalDescricao.textContent = chamado.descricao;
+    modalVisita.textContent = chamado.visita_tecnica ? 'Sim' : 'Não';
+    modalData.textContent = chamado.data_abertura.split(' ')[0];
+    modalStatusSelect.value = chamado.status;
+
+    modal.classList.add('active');
+}
+
+function closeModal() {
+    modal.classList.remove('active');
+    currentModalChamadoId = null;
+}
+
+// Event Listeners do Modal de Chamados
+modalCloseBtn.addEventListener('click', closeModal);
+modalCancelBtn.addEventListener('click', closeModal);
+modal.addEventListener('click', e => {
+    if (e.target === modal) closeModal();
+});
+
+// No modalSaveBtn
+modalSaveBtn.addEventListener('click', async () => {
+    if (!currentModalChamadoId) {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Nenhum chamado selecionado.');
+        }
+        return;
+    }
+    
+    const novoStatus = modalStatusSelect.value;
+    
+    try {
+        await updateChamadoStatus(currentModalChamadoId, novoStatus);
+        closeModal();
+        const mensagem = `Status atualizado para "${novoStatus}"${novoStatus === 'Aguardando' || novoStatus === 'Cancelado' || novoStatus === 'Concluido' ? '. E-mail enviado ao solicitante.' : ''}`;
+        
+        // Usar sistema de notificações avançado
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Status Atualizado', mensagem);
+        }
+        renderChamadosPage(currentPage); // Atualiza a visualização
+    } catch (error) {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+});
+
+modalSendTicketBtn.addEventListener('click', () => {
+    if (!currentModalChamadoId) {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Nenhum chamado selecionado.');
+        }
+        return;
+    }
+    
+    const chamado = chamadosData.find(c => c.id == currentModalChamadoId);
+    if (chamado) {
+        openTicketModal(chamado);
+    } else {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Chamado não encontrado.');
+        }
+    }
+    ;
+});
+
+// Funcionalidades de Usuário
+// Função para gerar nome de usuário automaticamente
+function gerarNomeUsuario() {
+    const nome = document.getElementById('nomeUsuario').value.trim().toLowerCase();
+    const sobrenome = document.getElementById('sobrenomeUsuario').value.trim().toLowerCase();
+    
+    if (nome && sobrenome) {
+        // Remove acentos e caracteres especiais
+        const nomeNormalizado = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const sobrenomeNormalizado = sobrenome.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        
+        // Gera o nome de usuário
+        const usuario = `${nomeNormalizado.split(' ')[0]}.${sobrenomeNormalizado.split(' ')[0]}`;
+        document.getElementById('usuarioLogin').value = usuario;
+    }
+}
+
+// Event listeners para campos de nome e sobrenome
+document.getElementById('nomeUsuario')?.addEventListener('input', gerarNomeUsuario);
+document.getElementById('sobrenomeUsuario')?.addEventListener('input', gerarNomeUsuario);
+
+// Prevenir comportamento padrão dos selects
+document.getElementById('nivelAcesso')?.addEventListener('click', function(e) {
+    e.stopPropagation();
+});
+
+document.getElementById('setorUsuario')?.addEventListener('click', function(e) {
+    e.stopPropagation();
+});
+
+// Função para gerar senha
+async function gerarSenha() {
+    try {
+        const response = await fetch('/ti/painel/api/gerar-senha');
+        if (!response.ok) {
+            throw new Error('Erro ao gerar senha');
+        }
+        
+        const data = await response.json();
+        
+        // Atualiza campos da senha gerada de forma compacta no formulário
+        document.getElementById('senhaGeradaInput').value = data.senha;
+        
+        // Atualiza indicador de força
+        const forcaIndicador = document.getElementById('forcaSenha');
+        forcaIndicador.textContent = data.forca;
+        forcaIndicador.className = `badge ${data.forca.toLowerCase()}`;
+        
+        // Mostra container compacto
+        document.getElementById('senhaGeradaContainer').style.display = 'flex';
+    } catch (error) {
+        console.error('Erro ao gerar senha:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao gerar senha. Tente novamente.');
+        }
+    }
+}
+
+// Event listener para o botão de gerar senha
+document.getElementById('btnGerarSenha')?.addEventListener('click', function(e) {
+    e.preventDefault();
+    gerarSenha();
+});
+
+// Função para validar dados do usuário
+function validarDadosUsuario(dados) {
+    const erros = [];
+    
+    if (!dados.nome) erros.push('Nome é obrigatório');
+    if (!dados.sobrenome) erros.push('Sobrenome é obrigatório');
+    if (!dados.email) erros.push('E-mail é obrigatório');
+    if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
+    if (!dados.senha) erros.push('Senha é obrigatória. Clique em "Gerar Senha"');
+    if (!dados.nivel_acesso) erros.push('Nível de acesso é obrigatório');
+    if (!dados.setor || dados.setor.length === 0) erros.push('Selecione pelo menos um setor');
+    
+    // Validação de e-mail
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (dados.email && !emailRegex.test(dados.email)) {
+        erros.push('E-mail inválido');
+    }
+    
+    return erros;
+}
+
+// Event listener para o formulário de criar usuário
+document.getElementById('formCriarUsuario')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    
+    // Elementos de mensagem
+    const mensagemErro = document.getElementById('mensagemErro');
+    const mensagemSucesso = document.getElementById('mensagemSucesso');
+    
+    // Esconde mensagens anteriores
+    mensagemErro.style.display = 'none';
+    mensagemSucesso.style.display = 'none';
+    
+    // Desabilita o botão de submit para evitar duplo envio
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalButtonText = submitButton.innerHTML;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Criando usuário...';
+    
+    try {
+        // Coleta dados do formulário
+        const usuarioData = {
+            nome: document.getElementById('nomeUsuario').value.trim(),
+            sobrenome: document.getElementById('sobrenomeUsuario').value.trim(),
+            email: document.getElementById('emailUsuario').value.trim(),
+            usuario: document.getElementById('usuarioLogin').value.trim(),
+            senha: document.getElementById('senhaGeradaInput').value,
+            nivel_acesso: document.getElementById('nivelAcesso').value,
+            setor: Array.from(document.getElementById('setorUsuario').selectedOptions).map(opt => opt.value),
+            alterar_senha_primeiro_acesso: document.getElementById('alterarSenhaPrimeiroAcesso').checked
+        };
+
+        // Validação
+        const errosValidacao = validarDadosUsuario(usuarioData);
+        if (errosValidacao.length > 0) {
+            throw new Error(errosValidacao.join('<br>'));
+        }
+
+        // Enviar para a API
+        const response = await fetch('/ti/painel/api/usuarios', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(usuarioData)
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || 'Erro ao criar usuário');
+        }
+
+        // Usar sistema de notificações avançado
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Usuário Criado', `Usuário ${data.nome} criado com sucesso!`);
+        }
+        
+        // Mostrar credenciais no modal
+        document.getElementById('credenciaisNome').textContent = `${data.nome} ${data.sobrenome}`;
+        document.getElementById('credenciaisUsuario').textContent = data.usuario;
+        document.getElementById('credenciaisSenha').textContent = usuarioData.senha;
+        
+        // Abrir modal de credenciais
+        document.getElementById('modalCredenciais').classList.add('active');
+        
+        // Limpar formulário
+        this.reset();
+        document.getElementById('senhaGeradaContainer').style.display = 'none';
+        
+        // Atualizar lista de usuários se estiver visível
+        if (document.getElementById('permissoes').classList.contains('active')) {
+            await loadUsuarios();
+        }
+        
+    } catch (error) {
+        console.error('Erro ao criar usuário:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    } finally {
+        // Reabilita o botão de submit
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalButtonText;
+    }
+});
+
+// Validação em tempo real do e-mail
+document.getElementById('emailUsuario')?.addEventListener('input', function() {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (this.value && !emailRegex.test(this.value)) {
+        this.classList.add('is-invalid');
+        this.classList.remove('is-valid');
+    } else if (this.value) {
+        this.classList.add('is-valid');
+        this.classList.remove('is-invalid');
+    } else {
+        this.classList.remove('is-valid', 'is-invalid');
+    }
+});
+
+// Validação em tempo real para campos obrigatórios
+['nomeUsuario', 'sobrenomeUsuario', 'nivelAcesso', 'setorUsuario'].forEach(id => {
+    const elemento = document.getElementById(id);
+    if (elemento) {
+        elemento.addEventListener('change', function() {
+            if (this.value) {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            } else {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            }
+        });
+    }
+});
+
+// Modal Add Unidade
+const modalAddUnidade = document.getElementById('modalAddUnidade');
+const btnOpenAddUnitModal = document.getElementById('btnOpenAddUnitModal');
+const modalAddUnidadeClose = document.getElementById('modalAddUnidadeClose');
+const btnSalvarUnidade = document.getElementById('btnSalvarUnidade');
+const btnCancelarUnidade = document.getElementById('btnCancelarUnidade');
+const inputIdUnidade = document.getElementById('inputIdUnidade');
+const inputNomeUnidade = document.getElementById('inputNomeUnidade');
+const errorAddUnidade = document.getElementById('errorAddUnidade');
+
+function openAddUnidadeModal() {
+    inputIdUnidade.value = '';
+    inputNomeUnidade.value = '';
+    errorAddUnidade.style.display = 'none';
+    modalAddUnidade.classList.add('active');
+}
+
+function closeAddUnidadeModal() {
+    modalAddUnidade.classList.remove('active');
+    errorAddUnidade.style.display = 'none';
+    inputNomeUnidade.value = '';
+    inputIdUnidade.value = '';
+}
+
+// Função para buscar unidades
+async function fetchUnidades() {
+    try {
+        const response = await fetch('/ti/painel/api/unidades');
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status} - ${response.statusText}`);
+        }
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Erro ao buscar unidades:', error);
+        throw error;
+    }
+}
+
+// Função para renderizar a lista de unidades
+async function renderListarUnidades() {
+    const lista = document.getElementById('listaUnidades');
+    try {
+        lista.innerHTML = '<tr><td colspan="3" class="text-center">Carregando unidades...</td></tr>';
+        
+        const unidades = await fetchUnidades();
+        
+        if (unidades.length === 0) {
+            lista.innerHTML = '<tr><td colspan="3" class="text-center">Nenhuma unidade cadastrada.</td></tr>';
+            return;
+        }
+        
+        lista.innerHTML = '';
+        
+        unidades.forEach(unidade => {
+            const row = document.createElement('tr');
+            row.innerHTML = `
+                <td>${unidade.id}</td>
+                <td>${unidade.nome}</td>
+                <td>
+                    <button class="btn btn-danger btn-sm btn-remover-unidade" data-id="${unidade.id}">
+                        <i class="fas fa-trash"></i> Remover
+                    </button>
+                </td>
+            `;
+            lista.appendChild(row);
+        });
+
+        // Adiciona event listeners aos botões de remover
+        document.querySelectorAll('.btn-remover-unidade').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                const id = btn.dataset.id;
+                const unidadeNome = btn.closest('tr').querySelector('td:nth-child(2)').textContent;
+                
+                if (confirm(`Tem certeza que deseja remover a unidade "${unidadeNome}"?`)) {
+                    try {
+                        const response = await fetch(`/ti/painel/api/unidades/${id}`, {
+                            method: 'DELETE'
+                        });
+                        
+                        if (response.ok) {
+                            if (window.advancedNotificationSystem) {
+                                window.advancedNotificationSystem.showSuccess('Unidade Removida', 'Unidade removida com sucesso!');
+                            }
+                            await renderListarUnidades();
+                        } else {
+                            const errorData = await response.json();
+                            if (window.advancedNotificationSystem) {
+                                window.advancedNotificationSystem.showError('Erro', errorData.error || 'Erro ao remover unidade');
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Erro ao remover unidade:', error);
+                        if (window.advancedNotificationSystem) {
+                            window.advancedNotificationSystem.showError('Erro', 'Erro ao remover unidade');
+                        }
+                    }
+                }
+            });
+        });
+    } catch (error) {
+        lista.innerHTML = `<tr><td colspan="3" class="text-center text-danger">${error.message}</td></tr>`;
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar unidades');
+        }
+    }
+}
+
+// Event listeners para modal de unidade
+btnOpenAddUnitModal.addEventListener('click', openAddUnidadeModal);
+modalAddUnidadeClose.addEventListener('click', closeAddUnidadeModal);
+btnCancelarUnidade.addEventListener('click', closeAddUnidadeModal);
+
+// Event listener para o botão de salvar unidade
+btnSalvarUnidade.addEventListener('click', async () => {
+    const id = inputIdUnidade.value.trim();
+    const nome = inputNomeUnidade.value.trim();
+
+    // Validações
+    if (!id || isNaN(id) || parseInt(id) <= 0) {
+        errorAddUnidade.textContent = 'Por favor, informe um ID válido maior que zero.';
+        errorAddUnidade.style.display = 'block';
+        return;
+    }
+    if (!nome) {
+        errorAddUnidade.textContent = 'Por favor, informe o nome da unidade.';
+        errorAddUnidade.style.display = 'block';
+        return;
+    }
+
+    try {
+        const response = await fetch('/ti/painel/api/unidades', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ 
+                id: parseInt(id), 
+                nome: nome 
+            })
+        });
+        
+        if (response.ok) {
+            closeAddUnidadeModal();
+            await renderListarUnidades();
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showSuccess('Unidade Adicionada', 'Unidade adicionada com sucesso!');
+            }
+        } else {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao adicionar unidade');
+        }
+    } catch (error) {
+        errorAddUnidade.textContent = error.message;
+        errorAddUnidade.style.display = 'block';
+    }
+});
+
+// Event listeners para o modal de credenciais
+document.getElementById('btnCopiarCredenciais')?.addEventListener('click', function() {
+    const nome = document.getElementById('credenciaisNome').textContent;
+    const usuario = document.getElementById('credenciaisUsuario').textContent;
+    const senha = document.getElementById('credenciaisSenha').textContent;
+    
+    const texto = `Nome: ${nome}\nUsuário: ${usuario}\nSenha: ${senha}`;
+    
+    navigator.clipboard.writeText(texto).then(() => {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Copiado', 'Credenciais copiadas para a área de transferência!');
+        }
+    }).catch(err => {
+        console.error('Erro ao copiar texto: ', err);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showWarning('Aviso', 'Não foi possível copiar as credenciais automaticamente. Por favor, copie manualmente.');
+        }
+    });
+});
+
+document.getElementById('btnFecharCredenciais')?.addEventListener('click', function() {
+    document.getElementById('modalCredenciais').classList.remove('active');
+});
+
+// Função para excluir chamado
+async function excluirChamado(chamadoId) {
+    if (!confirm('Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.')) {
+        return false; // Retorna false se o usuário cancelar
+    }
+    
+    try {
+        const response = await fetch(`/ti/painel/api/chamados/${chamadoId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao excluir chamado');
+        }
+        
+        // Remove o chamado da lista local
+        chamadosData = chamadosData.filter(chamado => chamado.id != chamadoId);
+        
+        // Atualiza a visualização
+        renderChamadosPage(currentPage);
+        
+        // Usar sistema de notificações avançado
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Chamado Excluído', 'Chamado excluído com sucesso');
+        }
+        return true; // Retorna true se a exclusão foi bem-sucedida
+    } catch (error) {
+        console.error('Erro ao excluir chamado:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+        }
+        return false;
+    }
+}
+
+// Listener para botão Excluir no modal
+document.getElementById('modalDelete')?.addEventListener('click', async function() {
+    if (!currentModalChamadoId) {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Nenhum chamado selecionado.');
+        }
+        return;
+    }
+    await excluirChamado(currentModalChamadoId);
+    closeModal();
+});
+
+// Variáveis globais para usuários
+let usuariosData = [];
+const usuariosPerPage = 6;
+let currentUsuariosPage = 1;
+
+const usuariosGrid = document.getElementById('usuariosGrid');
+const usuariosPagination = document.getElementById('usuariosPagination');
+
+// Função para carregar os usuários da API
+async function loadUsuarios() {
+    try {
+        const response = await fetch('/ti/painel/api/usuarios');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar usuários');
+        }
+        usuariosData = await response.json();
+        renderUsuariosPage(currentUsuariosPage);
+    } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+        usuariosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar usuários. Tente novamente mais tarde.</p>';
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar usuários');
+        }
+    }
+}
+
+// Função para renderizar a página de usuários
+function renderUsuariosPage(page) {
+    usuariosGrid.innerHTML = '';
+    const start = (page - 1) * usuariosPerPage;
+    const end = start + usuariosPerPage;
+    const pageUsuarios = usuariosData.slice(start, end);
+
+    if (pageUsuarios.length === 0) {
+        usuariosGrid.innerHTML = '<p class="text-center py-4">Nenhum usuário encontrado.</p>';
+        usuariosPagination.innerHTML = '';
+        return;
+    }
+
+    pageUsuarios.forEach(usuario => {
+        const card = document.createElement('div');
+        card.className = 'card usuario-card';
+        card.tabIndex = 0;
+
+        const bloqueadoClass = usuario.bloqueado ? 'status-cancelado' : 'status-concluido';
+        const bloqueadoText = usuario.bloqueado ? 'Bloqueado' : 'Ativo';
+
+        card.innerHTML = `
+            <div class="card-header">
+                <h3>${usuario.nome} ${usuario.sobrenome}</h3>
+                <div class="status-badge ${bloqueadoClass}">
+                    <i class="fas ${usuario.bloqueado ? 'fa-lock' : 'fa-check-circle'}"></i>
+                    ${bloqueadoText}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <strong>Usuário:</strong>
+                    <span>${usuario.usuario}</span>
+                </div>
+                <div class="info-row">
+                    <strong>E-mail:</strong>
+                    <span>${usuario.email}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Nível:</strong>
+                    <span>${usuario.nivel_acesso}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Setor(es):</strong>
+                    <span>${Array.isArray(usuario.setores) ? usuario.setores.join(', ') : usuario.setor}</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-primary btn-sm btn-editar" data-id="${usuario.id}">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="btn ${usuario.bloqueado ? 'btn-success' : 'btn-warning'} btn-sm" 
+                        data-id="${usuario.id}">
+                    <i class="fas ${usuario.bloqueado ? 'fa-unlock' : 'fa-lock'}"></i>
+                    ${usuario.bloqueado ? 'Desbloquear' : 'Bloquear'}
+                </button>
+                <button class="btn btn-info btn-sm btn-ticket" data-id="${usuario.id}">
+                    <i class="fas fa-key"></i> Nova Senha
+                </button>
+                <button class="btn btn-danger btn-sm" data-id="${usuario.id}">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        `;
+
+        usuariosGrid.appendChild(card);
+    });
+
+    renderUsuariosPagination(usuariosData.length);
+    attachUsuariosEventListeners();
+}
+
+// Função para renderizar a paginação de usuários
+function renderUsuariosPagination(totalItems) {
+    usuariosPagination.innerHTML = '';
+    const totalPages = Math.ceil(totalItems / usuariosPerPage);
+
+    function createPageButton(num, active = false) {
+        const btn = document.createElement('button');
+        btn.textContent = num;
+        btn.disabled = active;
+        if (active) btn.classList.add('active');
+        btn.addEventListener('click', () => {
+            currentUsuariosPage = num;
+            renderUsuariosPage(currentUsuariosPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        return btn;
+    }
+
+    const prevBtn = document.createElement('button');
+    prevBtn.textContent = '«';
+    prevBtn.disabled = currentUsuariosPage === 1;
+    prevBtn.addEventListener('click', () => {
+        if (currentUsuariosPage > 1) {
+            currentUsuariosPage--;
+            renderUsuariosPage(currentUsuariosPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+    usuariosPagination.appendChild(prevBtn);
+
+    let startPage = Math.max(1, currentUsuariosPage - 2);
+    let endPage = Math.min(startPage + 4, totalPages);
+    if (endPage - startPage < 4) {
+        startPage = Math.max(1, endPage - 4);
+    }
+    for (let i = startPage; i <= endPage; i++) {
+        usuariosPagination.appendChild(createPageButton(i, i === currentUsuariosPage));
+    }
+
+    const nextBtn = document.createElement('button');
+    nextBtn.textContent = '»';
+    nextBtn.disabled = currentUsuariosPage === totalPages;
+    nextBtn.addEventListener('click', () => {
+        if (currentUsuariosPage < totalPages) {
+            currentUsuariosPage++;
+            renderUsuariosPage(currentUsuariosPage);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    });
+    usuariosPagination.appendChild(nextBtn);
+}
+
+// Função para anexar event listeners aos cards de usuários
+function attachUsuariosEventListeners() {
+    // Listener para botão Editar
+    document.querySelectorAll('.btn-editar').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const usuarioId = this.dataset.id;
+            abrirModalEditarUsuario(usuarioId);
+        });
+    });
+
+    // Listener para botão Gerar Senha
+    document.querySelectorAll('.btn-ticket').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const usuarioId = this.dataset.id;
+            await gerarNovaSenha(usuarioId);
+        });
+    });
+
+    // Listener para botão Bloquear/Desbloquear
+    document.querySelectorAll('.btn-warning, .btn-success').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const usuarioId = this.dataset.id;
+            await toggleBloqueioUsuario(usuarioId);
+        });
+    });
+
+    // Listener para botão Excluir
+    document.querySelectorAll('.btn-danger').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const usuarioId = this.dataset.id;
+            await excluirUsuario(usuarioId);
+        });
+    });
+}
+
+// Função para abrir modal de edição
+function abrirModalEditarUsuario(usuarioId) {
+    const usuario = usuariosData.find(u => u.id == usuarioId);
+    if (!usuario) return;
+
+    // Preencher formulário
+    document.getElementById('editUsuarioId').value = usuario.id;
+    document.getElementById('editNomeUsuario').value = usuario.nome;
+    document.getElementById('editSobrenomeUsuario').value = usuario.sobrenome;
+    document.getElementById('editEmailUsuario').value = usuario.email;
+    document.getElementById('editNivelAcesso').value = usuario.nivel_acesso;
+    document.getElementById('editBloqueado').checked = usuario.bloqueado;
+
+    // Limpar e selecionar setores
+    const setorSelect = document.getElementById('editSetorUsuario');
+    Array.from(setorSelect.options).forEach(option => {
+        option.selected = usuario.setores.includes(option.value);
+    });
+
+    // Abrir modal
+    document.getElementById('modalEditarUsuario').classList.add('active');
+}
+
+// Função para gerar nova senha
+async function gerarNovaSenha(usuarioId) {
+    if (!confirm('Tem certeza que deseja gerar uma nova senha para este usuário?')) return;
+    
+    try {
+        const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}/gerar-senha`, {
+            method: 'POST'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao gerar nova senha');
+        }
+        
+        const data = await response.json();
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Nova Senha Gerada', `Nova senha gerada: ${data.nova_senha}`);
+        }
+    } catch (error) {
+        console.error('Erro ao gerar nova senha:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+        }
+    }
+}
+
+// Função para bloquear/desbloquear usuário
+async function toggleBloqueioUsuario(usuarioId) {
+    try {
+        const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}/bloquear`, {
+            method: 'PUT'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao alterar status');
+        }
+        
+        const data = await response.json();
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Status Alterado', `Usuário ${data.bloqueado ? 'bloqueado' : 'desbloqueado'} com sucesso!`);
+        }
+        await loadUsuarios();
+    } catch (error) {
+        console.error('Erro ao alterar status do usuário:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+        }
+    }
+}
+
+// Função para excluir usuário
+async function excluirUsuario(usuarioId) {
+    if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) return;
+    
+    try {
+        const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}`, {
+            method: 'DELETE'
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao excluir usuário');
+        }
+        
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Usuário Excluído', 'Usuário excluído com sucesso!');
+        }
+        await loadUsuarios();
+    } catch (error) {
+        console.error('Erro ao excluir usuário:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+        }
+    }
+}
+
+// Event listener para salvar edição
+document.getElementById('btnSalvarUsuario').addEventListener('click', async () => {
+    const usuarioId = document.getElementById('editUsuarioId').value;
+    const nome = document.getElementById('editNomeUsuario').value.trim();
+    const sobrenome = document.getElementById('editSobrenomeUsuario').value.trim();
+    const email = document.getElementById('editEmailUsuario').value.trim();
+    const nivelAcesso = document.getElementById('editNivelAcesso').value;
+    const setorSelect = document.getElementById('editSetorUsuario');
+    const setores = Array.from(setorSelect.selectedOptions).map(option => option.value);
+    const bloqueado = document.getElementById('editBloqueado').checked;
+
+    try {
+        const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nome,
+                sobrenome,
+                email,
+                nivel_acesso: nivelAcesso,
+                setores,
+                bloqueado
+            })
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao atualizar usuário');
+        }
+        
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Usuário Atualizado', 'Usuário atualizado com sucesso!');
+        }
+        document.getElementById('modalEditarUsuario').classList.remove('active');
+        await loadUsuarios();
+    } catch (error) {
+        console.error('Erro ao atualizar usuário:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+        }
+    }
+});
+
+// Event listener para cancelar edição
+document.getElementById('btnCancelarEdicao').addEventListener('click', () => {
+    document.getElementById('modalEditarUsuario').classList.remove('active');
+});
+
+// Adicione estas variáveis globais junto com as outras
+let usuariosBloqueadosData = [];
+const usuariosBloqueadosPerPage = 6;
+let currentBloqueadosPage = 1;
+
+// Função para carregar usuários bloqueados
+async function loadUsuariosBloqueados() {
+    try {
+        const response = await fetch('/ti/painel/api/usuarios');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar usuários');
+        }
+        const allUsers = await response.json();
+        usuariosBloqueadosData = allUsers.filter(user => user.bloqueado);
+        renderUsuariosBloqueadosPage(currentBloqueadosPage);
+    } catch (error) {
+        console.error('Erro ao carregar usuários bloqueados:', error);
+        document.getElementById('usuariosBloqueadosGrid').innerHTML = 
+            '<p class="text-center py-4">Erro ao carregar usuários bloqueados. Tente novamente mais tarde.</p>';
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar usuários bloqueados');
+        }
+    }
+}
+
+// Função para renderizar a página de usuários bloqueados
+function renderUsuariosBloqueadosPage(page) {
+    const bloqueadosGrid = document.getElementById('usuariosBloqueadosGrid');
+    const bloqueadosPagination = document.getElementById('usuariosBloqueadosPagination');
+    
+    bloqueadosGrid.innerHTML = '';
+    const start = (page - 1) * usuariosBloqueadosPerPage;
+    const end = start + usuariosBloqueadosPerPage;
+    const pageBloqueados = usuariosBloqueadosData.slice(start, end);
+
+    if (pageBloqueados.length === 0) {
+        bloqueadosGrid.innerHTML = '<p class="text-center py-4">Nenhum usuário bloqueado encontrado.</p>';
+        bloqueadosPagination.innerHTML = '';
+        return;
+    }
+
+    pageBloqueados.forEach(usuario => {
+        const card = document.createElement('div');
+        card.className = 'card usuario-card';
+        card.tabIndex = 0;
+
+        card.innerHTML = `
+            <div class="card-header">
+                <h3>${usuario.nome} ${usuario.sobrenome}</h3>
+                <div class="status-container status-cancelado">Bloqueado</div>
+            </div>
+            <div class="card-body">
+                <p><strong>Usuário:</strong> ${usuario.usuario}</p>
+                <p><strong>E-mail:</strong> ${usuario.email}</p>
+                <p><strong>Nível de Acesso:</strong> ${usuario.nivel_acesso}</p>
+                <p><strong>Setor(es):</strong> ${usuario.setores.join(', ')}</p>
+                <small><strong>Criado em:</strong> ${usuario.data_criacao}</small>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-success btn-desbloquear" data-id="${usuario.id}" 
+                    aria-label="Desbloquear usuário ${usuario.usuario}">
+                    <i class="fas fa-unlock"></i> Desbloquear
+                </button>
+            </div>
+        `;
+
+        bloqueadosGrid.appendChild(card);
+    });
+
+    renderBloqueadosPagination(usuariosBloqueadosData.length);
+    attachBloqueadosEventListeners();
+}
+
+// Função para renderizar a paginação dos bloqueados
+function renderBloqueadosPagination(totalItems) {
+    const bloqueadosPagination = document.getElementById('usuariosBloqueadosPagination');
+    bloqueadosPagination.innerHTML = '';
+    const totalPages = Math.ceil(totalItems / usuariosBloqueadosPerPage);
+
+    // ... (similar à função renderPagination existente, mas para bloqueados)
+}
+
+// Função para anexar event listeners aos cards de usuários bloqueados
+function attachBloqueadosEventListeners() {
+    document.querySelectorAll('.btn-desbloquear').forEach(btn => {
+        btn.addEventListener('click', async function() {
+            const usuarioId = this.dataset.id;
+            try {
+                await toggleBloqueioUsuario(usuarioId);
+                // Recarrega tanto a lista de bloqueados quanto a lista geral
+                await loadUsuariosBloqueados();
+                if (document.getElementById('permissoes').classList.contains('active')) {
+                    await loadUsuarios();
+                }
+            } catch (error) {
+                console.error('Erro ao desbloquear usuário:', error);
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showError('Erro', 'Erro ao desbloquear usuário');
+                }
+            }
+        });
+    });
+}
+
+// Função para carregar conteúdo específico da seção quando ativada
+function loadSectionContent(sectionId) {
+    switch(sectionId) {
+        case 'listar-unidades':
+            renderListarUnidades();
+            break;
+        case 'gerenciar-chamados':
+            loadChamados();
+            break;
+        case 'permissoes':
+            loadUsuarios();
+            break;
+        case 'bloqueios':
+            loadUsuariosBloqueados();
+            break;
+        case 'sla-dashboard':
+            // Carregar dados SLA se a função existir
+            if (typeof carregarSLA === 'function') {
+                carregarSLA();
+            }
+            break;
+        case 'configuracoes':
+            // Carregar configurações de prioridades
+            if (window.prioridadesManager) {
+                window.prioridadesManager.carregarProblemas();
+            }
+            atualizarContadoresVisaoGeral();
+            break;
+        case 'visao-geral':
+            atualizarContadoresVisaoGeral();
+            break;
+    }
+}
+
+// Controle de inatividade (15 minutos)
+let inactivityTimer;
+
+function resetInactivityTimer() {
+    clearTimeout(inactivityTimer);
+    // 15 minutos = 900000 ms
+    inactivityTimer = setTimeout(() => {
+        window.location.href = "{{ url_for('auth.logout') }}?timeout=1";
+    }, 900000);
+}
+
+// Resetar o timer em eventos de interação
+['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart'].forEach(event => {
+    document.addEventListener(event, resetInactivityTimer);
+});
+
+// Iniciar o timer quando a página carregar
+resetInactivityTimer();
+
+// Inicialização
+document.addEventListener('DOMContentLoaded', function() {
+    // Carregar chamados
+    loadChamados();
+    
+    // Se estiver na seção de listar unidades, carrega elas
+    if (window.location.hash === '#listar-unidades') {
+        renderListarUnidades();
+    }
+    
+    // Ativa a seção baseada no hash da URL
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+        activateSection(hash);
+    } else {
+        activateSection('visao-geral');
+    }
+});
+
+// Adiciona event listeners para links de navegação do submenu
+document.querySelectorAll('.submenu a').forEach(link => {
+    link.addEventListener('click', function(e) {
+        // Previne o comportamento padrão
+        e.preventDefault();
+        
+        // Obtém o ID da seção alvo
+        const targetId = this.getAttribute('href').substring(1);
+        
+        // Ativa a seção
+        activateSection(targetId);
+        
+        // Atualiza a classe active nos links
+        document.querySelectorAll('.sidebar a.active').forEach(item => {
+            item.classList.remove('active');
+        });
+        this.classList.add('active');
+        
+        // Adiciona active ao link pai do submenu
+        const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
+        if (parentSubmenuToggle) {
+            parentSubmenuToggle.classList.add('active');
+        }
+        
+        // Atualiza a URL com o hash
+        window.location.hash = targetId;
+    });
+});
+
+// Adiciona event listeners para links diretos (sem submenu)
+document.querySelectorAll('.sidebar nav > ul > li > a:not(.submenu-toggle)').forEach(link => {
+    link.addEventListener('click', function(e) {
+        // Previne o comportamento padrão
+        e.preventDefault();
+        
+        // Obtém o ID da seção alvo
+        const targetId = this.getAttribute('href').substring(1);
+        
+        // Ativa a seção
+        activateSection(targetId);
+        
+        // Atualiza a classe active nos links
+        document.querySelectorAll('.sidebar a.active').forEach(item => {
+            item.classList.remove('active');
+        });
+        this.classList.add('active');
+        
+        // Atualiza a URL com o hash
+        window.location.hash = targetId;
+        
+        // Em dispositivos móveis, fecha o sidebar após a navegação
+        if (window.innerWidth < 992) {
+            sidebar.classList.remove('active');
+        }
+    });
+});
+
+// Função para lidar com mudanças de hash na URL
+window.addEventListener('hashchange', function() {
+    const hash = window.location.hash.substring(1);
+    if (hash) {
+        activateSection(hash);
+        
+        // Atualiza a classe active nos links
+        document.querySelectorAll('.sidebar a.active').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Encontra e ativa o link correspondente
+        const targetLink = document.querySelector(`.sidebar a[href="#${hash}"]`);
+        if (targetLink) {
+            targetLink.classList.add('active');
+            
+            // Se for um item de submenu, ativa também o link pai
+            const submenu = targetLink.closest('.submenu');
+            if (submenu) {
+                const parentLink = submenu.previousElementSibling;
+                if (parentLink) {
+                    parentLink.classList.add('active');
+                    parentLink.parentElement.classList.add('open');
+                }
+            }
+        }
+    }
+});
+
+// Adiciona suporte a teclas de acessibilidade para o menu
+document.querySelectorAll('.sidebar nav ul li').forEach(item => {
+    item.addEventListener('keydown', function(e) {
+        // Enter ou espaço ativa o item
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            const link = this.querySelector('a');
+            if (link) link.click();
+        }
+    });
+});
+
+// Melhora a acessibilidade dos submenus
+document.querySelectorAll('.has-submenu').forEach(item => {
+    const toggle = item.querySelector('.submenu-toggle');
+    const submenu = item.querySelector('.submenu');
+    
+    if (toggle && submenu) {
+        toggle.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+                toggle.setAttribute('aria-expanded', !isExpanded);
+                item.classList.toggle('open');
+            }
+        });
+    }
+});
+
+// Função para verificar se uma seção existe
+function sectionExists(id) {
+    return Array.from(sections).some(section => section.id === id);
+}
+
+// Verifica o hash inicial e redireciona se necessário
+window.addEventListener('load', function() {
+    const hash = window.location.hash.substring(1);
+    if (hash && sectionExists(hash)) {
+        activateSection(hash);
+        
+        // Atualiza a classe active nos links
+        document.querySelectorAll('.sidebar a.active').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Encontra e ativa o link correspondente
+        const targetLink = document.querySelector(`.sidebar a[href="#${hash}"]`);
+        if (targetLink) {
+            targetLink.classList.add('active');
+            
+            // Se for um item de submenu, ativa também o link pai
+            const submenu = targetLink.closest('.submenu');
+            if (submenu) {
+                const parentLink = submenu.previousElementSibling;
+                if (parentLink) {
+                    parentLink.classList.add('active');
+                    parentLink.parentElement.classList.add('open');
+                }
+            }
+        }
+    } else {
+        // Se não houver hash ou a seção não existir, vai para a seção padrão
+        activateSection('visao-geral');
+    }
+});
+
+// Função para abrir modal de ticket
+function openTicketModal(chamado) {
+    document.getElementById('ticketChamadoId').value = chamado.id;
+    document.getElementById('ticketAssunto').value = `Atualização do Chamado ${chamado.codigo}`;
+    document.getElementById('ticketMensagem').value = '';
+    document.getElementById('modalTicket').classList.add('active');
+}
+
+// Event listeners para modal de ticket
+document.getElementById('modalTicketClose')?.addEventListener('click', () => {
+    document.getElementById('modalTicket').classList.remove('active');
+});
+
+document.getElementById('btnCancelarTicket')?.addEventListener('click', () => {
+    document.getElementById('modalTicket').classList.remove('active');
+});
+
+document.getElementById('btnEnviarTicket')?.addEventListener('click', async () => {
+    const chamadoId = document.getElementById('ticketChamadoId').value;
+    const assunto = document.getElementById('ticketAssunto').value;
+    const mensagem = document.getElementById('ticketMensagem').value;
+    const prioridade = document.getElementById('ticketPrioridade').checked;
+    const enviarCopia = document.getElementById('ticketCopia').checked;
+
+    if (!mensagem.trim()) {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'A mensagem é obrigatória');
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/ticket`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                assunto,
+                mensagem,
+                prioridade,
+                enviar_copia: enviarCopia
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao enviar ticket');
+        }
+
+        document.getElementById('modalTicket').classList.remove('active');
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Ticket Enviado', 'Ticket enviado com sucesso!');
+        }
+    } catch (error) {
+        console.error('Erro ao enviar ticket:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+        }
+    }
+});
+
+// Event listeners para modelos de ticket
+document.getElementById('ticketModelo')?.addEventListener('change', function() {
+    const modelo = this.value;
+    const mensagemField = document.getElementById('ticketMensagem');
+    
+    const modelos = {
+        'atualizacao': 'Prezado(a) cliente,\n\nInformamos que o status do seu chamado foi atualizado.\n\nAtenciosamente,\nEquipe de Suporte',
+        'confirmacao': 'Prezado(a) cliente,\n\nConfirmamos o recebimento do seu chamado e nossa equipe já está trabalhando na solução.\n\nAtenciosamente,\nEquipe de Suporte',
+        'conclusao': 'Prezado(a) cliente,\n\nSeu chamado foi concluído com sucesso. Caso tenha alguma dúvida, entre em contato conosco.\n\nAtenciosamente,\nEquipe de Suporte'
+    };
+    
+    if (modelo && modelos[modelo]) {
+        mensagemField.value = modelos[modelo];
+    }
+});
+
+// Event listeners para fechar modais
+document.querySelectorAll('.modal-close').forEach(btn => {
+    btn.addEventListener('click', function() {
+        this.closest('.modal').classList.remove('active');
+    });
+});
+
+// Fechar modais ao clicar fora
+document.querySelectorAll('.modal').forEach(modal => {
+    modal.addEventListener('click', function(e) {
+        if (e.target === this) {
+            this.classList.remove('active');
+        }
+    });
+});
+
+// Configuração do Socket.IO
+let socket = null;
+
+function initializeSocketIO() {
+    try {
+        console.log('Inicializando Socket.IO...');
+        
+        socket = io({
+            transports: ['websocket', 'polling'],
+            timeout: 20000,
+            reconnection: true,
+            reconnectionDelay: 1000,
+            reconnectionAttempts: 5,
+            maxReconnectionAttempts: 10
+        });
+
+        socket.on('connect', function() {
+            console.log('Socket.IO conectado com sucesso!');
+            updateSocketStatus('Conectado', 'success');
+            
+            // Enviar ping para manter conexão ativa
+            setInterval(() => {
+                if (socket.connected) {
+                    socket.emit('ping');
+                }
+            }, 25000);
+        });
+
+        socket.on('disconnect', function(reason) {
+            console.log('Socket.IO desconectado:', reason);
+            updateSocketStatus('Desconectado', 'danger');
+        });
+
+        socket.on('connect_error', function(error) {
+            console.error('Erro de conexão Socket.IO:', error);
+            updateSocketStatus('Erro de Conexão', 'warning');
+        });
+
+        socket.on('reconnect', function(attemptNumber) {
+            console.log('Socket.IO reconectado após', attemptNumber, 'tentativas');
+            updateSocketStatus('Reconectado', 'success');
+        });
+
+        socket.on('reconnect_error', function(error) {
+            console.error('Erro ao reconectar Socket.IO:', error);
+            updateSocketStatus('Erro ao Reconectar', 'danger');
+        });
+
+        socket.on('reconnect_failed', function() {
+            console.error('Falha ao reconectar Socket.IO');
+            updateSocketStatus('Falha na Reconexão', 'danger');
+        });
+
+        // Event listeners para notificações
+        socket.on('notification_test', function(data) {
+            console.log('Teste de notificação recebido:', data);
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showInfo('Teste Socket.IO', data.message);
+            }
+        });
+
+        socket.on('status_atualizado', function(data) {
+            console.log('Status de chamado atualizado:', data);
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showInfo(
+                    'Status Atualizado',
+                    `Chamado ${data.codigo} alterado para ${data.novo_status}`
+                );
+            }
+            // Recarregar dados se necessário
+            if (document.getElementById('gerenciar-chamados').classList.contains('active')) {
+                loadChamados();
+            }
+        });
+
+        socket.on('chamado_deletado', function(data) {
+            console.log('Chamado deletado:', data);
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showWarning(
+                    'Chamado Excluído',
+                    `Chamado ${data.codigo} foi excluído`
+                );
+            }
+            // Recarregar dados se necessário
+            if (document.getElementById('gerenciar-chamados').classList.contains('active')) {
+                loadChamados();
+            }
+        });
+
+        socket.on('usuario_criado', function(data) {
+            console.log('Usuário criado:', data);
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showSuccess(
+                    'Novo Usuário',
+                    `Usuário ${data.nome} ${data.sobrenome} foi criado`
+                );
+            }
+        });
+
+        socket.on('pong', function(data) {
+            console.log('Pong recebido:', data.timestamp);
+        });
+
+        // Disponibilizar socket globalmente
+        window.socket = socket;
+        
+        console.log('Socket.IO inicializado com sucesso');
+        
+    } catch (error) {
+        console.error('Erro ao inicializar Socket.IO:', error);
+        updateSocketStatus('Erro de Inicialização', 'danger');
+    }
+}
+
+function updateSocketStatus(status, type) {
+    const socketStatus = document.getElementById('socketStatus');
+    const socketConnectionStatus = document.getElementById('socketConnectionStatus');
+    
+    const classMap = {
+        'success': 'bg-success',
+        'danger': 'bg-danger',
+        'warning': 'bg-warning'
+    };
+    
+    if (socketStatus) {
+        socketStatus.textContent = status;
+        socketStatus.className = `ms-2 badge ${classMap[type] || 'bg-secondary'}`;
+    }
+    
+    if (socketConnectionStatus) {
+        socketConnectionStatus.textContent = status;
+        socketConnectionStatus.className = `badge ${classMap[type] || 'bg-secondary'}`;
+    }
+}
+
+// Inicializar Socket.IO quando o DOM estiver carregado
+document.addEventListener('DOMContentLoaded', function() {
+    // Aguardar um pouco para garantir que tudo esteja carregado
+    setTimeout(() => {
+        initializeSocketIO();
+    }, 1000);
+    
+    // Botão para reconectar Socket.IO
+    document.getElementById('btnReconectarSocket')?.addEventListener('click', function() {
+        console.log('Tentando reconectar Socket.IO...');
+        updateSocketStatus('Reconectando...', 'warning');
+        
+        if (socket) {
+            socket.disconnect();
+            setTimeout(() => {
+                socket.connect();
+            }, 1000);
+        } else {
+            initializeSocketIO();
+        }
+    });
+});
