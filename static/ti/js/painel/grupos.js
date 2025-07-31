@@ -91,12 +91,14 @@ function configurarEventListenersGrupos() {
 // Carregar grupos
 async function carregarGrupos() {
     try {
+        console.log('Carregando grupos...');
         const response = await fetch('/ti/painel/api/grupos');
         if (!response.ok) throw new Error('Erro ao carregar grupos');
-        
+
         gruposData = await response.json();
+        console.log('Grupos carregados:', gruposData);
         renderizarGrupos();
-        
+
     } catch (error) {
         console.error('Erro ao carregar grupos:', error);
         if (window.advancedNotificationSystem) {
