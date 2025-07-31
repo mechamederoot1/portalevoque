@@ -1283,8 +1283,8 @@ def criar_usuario():
         for field in required_fields:
             if not data.get(field):
                 return error_response(f'Campo {field} é obrigatório', 400)
-        
-        niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor']
+
+        niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor', 'Agente de suporte']
         if data['nivel_acesso'] not in niveis_validos:
             return error_response('Nível de acesso inválido', 400)
 
@@ -1520,7 +1520,7 @@ def atualizar_usuario(user_id):
                 return error_response('Email já está em uso por outro usuário', 400)
             usuario.email = data['email']
         if 'nivel_acesso' in data:
-            niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor']
+            niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor', 'Agente de suporte']
             if data['nivel_acesso'] not in niveis_validos:
                 return error_response('Nível de acesso inválido', 400)
             usuario.nivel_acesso = data['nivel_acesso']
