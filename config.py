@@ -29,28 +29,46 @@ class Config:
     # Codifica a senha para uso na URL
     DB_PASSWORD_ENCODED = quote_plus(DB_PASSWORD)
     
-    # URI de conexão MySQL com SSL para Azure
-    SQLALCHEMY_DATABASE_URI = (
-        f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-        '?charset=utf8mb4'
-        '&ssl_ca=DigiCertGlobalRootCA.crt.pem'
-        '&ssl_verify_cert=true'
-    )
-    
-    # Configurações do SQLAlchemy
-    SQLALCHEMY_TRACK_MODIFICATIONS = False
-    SQLALCHEMY_ENGINE_OPTIONS = {
-        'pool_pre_ping': True,
-        'pool_recycle': 300,
-        'pool_timeout': 30,
-        'max_overflow': 5,
-        'pool_size': 10,
-        'connect_args': {
-            'ssl': {
-                'ssl_ca': 'DigiCertGlobalRootCA.crt.pem'
+    # URI de conexão MySQL
+    # Verificar se é desenvolvimento local ou produção Azure
+    if DB_HOST == 'localhost' or '127.0.0.1' in DB_HOST:
+        # Desenvolvimento local - sem SSL
+        SQLALCHEMY_DATABASE_URI = (
+            f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+            '?charset=utf8mb4'
+        )
+        # Configurações do SQLAlchemy para desenvolvimento
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            'pool_timeout': 30,
+            'max_overflow': 5,
+            'pool_size': 10
+        }
+    else:
+        # Produção Azure - com SSL
+        SQLALCHEMY_DATABASE_URI = (
+            f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+            '?charset=utf8mb4'
+            '&ssl_ca=DigiCertGlobalRootCA.crt.pem'
+            '&ssl_verify_cert=true'
+        )
+        # Configurações do SQLAlchemy para produção
+        SQLALCHEMY_ENGINE_OPTIONS = {
+            'pool_pre_ping': True,
+            'pool_recycle': 300,
+            'pool_timeout': 30,
+            'max_overflow': 5,
+            'pool_size': 10,
+            'connect_args': {
+                'ssl': {
+                    'ssl_ca': 'DigiCertGlobalRootCA.crt.pem'
+                }
             }
         }
-    }
+
+    # Configurações do SQLAlchemy
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Configurações do Microsoft Graph API
     CLIENT_ID = os.environ.get('CLIENT_ID')
