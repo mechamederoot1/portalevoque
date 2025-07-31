@@ -2890,7 +2890,7 @@ function inicializarModalGrupos() {
         btnSalvarGrupo.addEventListener('click', criarGrupo);
     }
 
-    // Adicionar botões de sele��ão de unidades
+    // Adicionar botões de seleção de unidades
     adicionarBotoesSelecaoUnidades();
 }
 
@@ -3120,7 +3120,36 @@ function renderizarGrupos(grupos) {
 
 // ==================== CARREGAR AGENTES ====================
 
-function atualizarEstatisticasAgentes(agentes) {
+async function carregarEstatisticasAgentes() {
+    try {
+        const response = await fetch('/ti/painel/api/agentes/estatisticas');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar estatísticas dos agentes');
+        }
+        const estatisticas = await response.json();
+        atualizarEstatisticasAgentes(estatisticas);
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas dos agentes:', error);
+        // Tentar usar dados locais se disponíveis
+        if (agentesData && agentesData.length > 0) {
+            atualizarEstatisticasAgentesLocal(agentesData);
+        }
+    }
+}
+
+function atualizarEstatisticasAgentes(estatisticas) {
+    const totalAgentes = document.getElementById('totalAgentes');
+    const agentesAtivos = document.getElementById('agentesAtivos');
+    const chamadosAtribuidos = document.getElementById('chamadosAtribuidos');
+    const agentesDisponiveis = document.getElementById('agentesDisponiveis');
+
+    if (totalAgentes) totalAgentes.textContent = estatisticas.total_agentes || 0;
+    if (agentesAtivos) agentesAtivos.textContent = estatisticas.agentes_ativos || 0;
+    if (chamadosAtribuidos) chamadosAtribuidos.textContent = estatisticas.chamados_atribuidos || 0;
+    if (agentesDisponiveis) agentesDisponiveis.textContent = estatisticas.agentes_disponiveis || 0;
+}
+
+function atualizarEstatisticasAgentesLocal(agentes) {
     const totalAgentes = document.getElementById('totalAgentes');
     const agentesAtivos = document.getElementById('agentesAtivos');
     const chamadosAtribuidos = document.getElementById('chamadosAtribuidos');
