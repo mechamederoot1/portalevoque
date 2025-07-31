@@ -551,21 +551,29 @@ modalSendTicketBtn.addEventListener('click', () => {
 function gerarNomeUsuario() {
     const nome = document.getElementById('nomeUsuario').value.trim().toLowerCase();
     const sobrenome = document.getElementById('sobrenomeUsuario').value.trim().toLowerCase();
-    
+
     if (nome && sobrenome) {
         // Remove acentos e caracteres especiais
         const nomeNormalizado = nome.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
         const sobrenomeNormalizado = sobrenome.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-        
+
         // Gera o nome de usuário
         const usuario = `${nomeNormalizado.split(' ')[0]}.${sobrenomeNormalizado.split(' ')[0]}`;
         document.getElementById('usuarioLogin').value = usuario;
     }
 }
 
-// Event listeners para campos de nome e sobrenome
-document.getElementById('nomeUsuario')?.addEventListener('input', gerarNomeUsuario);
-document.getElementById('sobrenomeUsuario')?.addEventListener('input', gerarNomeUsuario);
+// Event listener para botão de gerar usuário automaticamente
+document.getElementById('btnGerarUsuario')?.addEventListener('click', function() {
+    gerarNomeUsuario();
+    if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Nome de usuário gerado', 'Nome de usuário gerado automaticamente baseado no nome e sobrenome.');
+    }
+});
+
+// Não gerar automaticamente mais - só quando clicar no botão
+// document.getElementById('nomeUsuario')?.addEventListener('input', gerarNomeUsuario);
+// document.getElementById('sobrenomeUsuario')?.addEventListener('input', gerarNomeUsuario);
 
 // Prevenir comportamento padrão dos selects
 document.getElementById('nivelAcesso')?.addEventListener('click', function(e) {
