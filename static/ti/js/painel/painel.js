@@ -91,9 +91,12 @@ async function loadChamados() {
         }
         chamadosData = await response.json();
         renderChamadosPage(currentPage);
-        
+
         // Atualizar contadores da visão geral
         atualizarContadoresVisaoGeral();
+
+        // Popular filtros dinâmicos
+        popularFiltrosDinamicos();
     } catch (error) {
         console.error('Erro ao carregar chamados:', error);
         chamadosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar chamados. Tente novamente mais tarde.</p>';
@@ -101,6 +104,54 @@ async function loadChamados() {
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar chamados');
         }
+    }
+}
+
+// Função para popular filtros com dados dinâmicos
+function popularFiltrosDinamicos() {
+    // Popular filtro de unidades
+    const filtroUnidade = document.getElementById('filtroUnidade');
+    if (filtroUnidade && chamadosData.length > 0) {
+        const unidades = [...new Set(chamadosData.map(c => c.unidade))].sort();
+
+        // Limpar opções existentes (exceto a primeira)
+        while (filtroUnidade.children.length > 1) {
+            filtroUnidade.removeChild(filtroUnidade.lastChild);
+        }
+
+        unidades.forEach(unidade => {
+            const option = document.createElement('option');
+            option.value = unidade;
+            option.textContent = unidade;
+            filtroUnidade.appendChild(option);
+        });
+    }
+
+    // Popular filtro de agentes responsáveis
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    if (filtroAgenteResponsavel && chamadosData.length > 0) {
+        const agentes = chamadosData
+            .filter(c => c.agente)
+            .map(c => ({id: c.agente.id, nome: c.agente.nome}))
+            .reduce((acc, agente) => {
+                if (!acc.find(a => a.id === agente.id)) {
+                    acc.push(agente);
+                }
+                return acc;
+            }, [])
+            .sort((a, b) => a.nome.localeCompare(b.nome));
+
+        // Limpar opções existentes (exceto a primeira)
+        while (filtroAgenteResponsavel.children.length > 1) {
+            filtroAgenteResponsavel.removeChild(filtroAgenteResponsavel.lastChild);
+        }
+
+        agentes.forEach(agente => {
+            const option = document.createElement('option');
+            option.value = agente.id;
+            option.textContent = agente.nome;
+            filtroAgenteResponsavel.appendChild(option);
+        });
     }
 }
 
@@ -757,7 +808,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             alterar_senha_primeiro_acesso: document.getElementById('alterarSenhaPrimeiroAcesso').checked
         };
 
-        // Validaç��o
+        // Validaç����o
         const errosValidacao = validarDadosUsuario(usuarioData);
         if (errosValidacao.length > 0) {
             throw new Error(errosValidacao.join('<br>'));
