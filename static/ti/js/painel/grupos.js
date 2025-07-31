@@ -6,14 +6,19 @@ let emailsHistoricoData = [];
 // Inicialização da seção de grupos
 function inicializarGrupos() {
     console.log('Inicializando seção de grupos...');
-    
+
     // Carregar dados iniciais
     carregarGrupos();
     carregarEmailsHistorico();
-    
+
     // Configurar event listeners
     configurarEventListenersGrupos();
 }
+
+// Auto-inicializar quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado - grupos.js inicializado');
+});
 
 function configurarEventListenersGrupos() {
     // Modal de criação de grupo
