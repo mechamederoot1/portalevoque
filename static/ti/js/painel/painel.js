@@ -1481,7 +1481,7 @@ document.getElementById('btnSalvarUsuario').addEventListener('click', async () =
         document.getElementById('modalEditarUsuario').classList.remove('active');
         await loadUsuarios();
     } catch (error) {
-        console.error('Erro ao atualizar usuário:', error);
+        console.error('Erro ao atualizar usu��rio:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
         }
@@ -2693,12 +2693,23 @@ function inicializarFiltroPermissoes() {
     const filtroInput = document.getElementById('filtroPermissoes');
     const btnFiltrar = document.getElementById('btnFiltrarPermissoes');
 
-    if (!filtroInput || !btnFiltrar) return;
+    if (!filtroInput || !btnFiltrar) {
+        console.log('Elementos de filtro não encontrados. Tentando novamente...');
+        setTimeout(inicializarFiltroPermissoes, 200);
+        return;
+    }
 
     // Função para filtrar usuários
     const filtrarUsuarios = () => {
         const termoBusca = filtroInput.value.toLowerCase().trim();
         filtrarListaUsuarios(termoBusca);
+
+        // Feedback visual
+        if (termoBusca) {
+            filtroInput.style.backgroundColor = '#e8f4fd';
+        } else {
+            filtroInput.style.backgroundColor = '';
+        }
     };
 
     // Event listeners para busca em tempo real
@@ -2712,6 +2723,11 @@ function inicializarFiltroPermissoes() {
             filtrarUsuarios();
         }
     });
+
+    // Adicionar placeholder mais descritivo
+    filtroInput.placeholder = 'Buscar por nome, email ou unidade...';
+
+    console.log('Filtro de permissões inicializado com sucesso!');
 }
 
 function filtrarListaUsuarios(termoBusca) {
@@ -3284,7 +3300,7 @@ async function carregarLogsAcesso() {
             // Simular logs de acesso
             const logs = [
                 { usuario: 'Admin', dataLogin: '31/01/2025 10:30:00', dataLogout: '31/01/2025 12:15:00', duracao: '1h 45m', ip: '192.168.1.100', status: 'Ativo' },
-                { usuario: 'Jo��o Silva', dataLogin: '31/01/2025 10:25:00', dataLogout: '31/01/2025 11:30:00', duracao: '1h 05m', ip: '192.168.1.101', status: 'Finalizado' },
+                { usuario: 'João Silva', dataLogin: '31/01/2025 10:25:00', dataLogout: '31/01/2025 11:30:00', duracao: '1h 05m', ip: '192.168.1.101', status: 'Finalizado' },
                 { usuario: 'Maria Santos', dataLogin: '31/01/2025 10:20:00', dataLogout: '-', duracao: '-', ip: '192.168.1.102', status: 'Bloqueado' }
             ];
 
