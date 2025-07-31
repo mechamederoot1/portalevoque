@@ -2700,7 +2700,7 @@ function inicializarFiltroPermissoes() {
     };
 
     // Event listeners para busca em tempo real
-    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 300));
+    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 150));
     btnFiltrar.addEventListener('click', filtrarUsuarios);
 
     // Filtrar ao pressionar Enter
@@ -3267,7 +3267,7 @@ async function carregarBackupManutencao() {
             btnCriarBackup.addEventListener('click', criarBackup);
         }
 
-        console.log('Seç��o backup/manutenção carregada');
+        console.log('Seção backup/manutenção carregada');
     } catch (error) {
         console.error('Erro ao carregar backup/manutenção:', error);
     }
