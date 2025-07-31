@@ -236,7 +236,7 @@ class Configuracao(db.Model):
 class LogAcesso(db.Model):
     """Tabela para registrar acessos dos usuários"""
     __tablename__ = 'logs_acesso'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     data_acesso = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
@@ -249,6 +249,16 @@ class LogAcesso(db.Model):
     navegador = db.Column(db.String(100), nullable=True)
     sistema_operacional = db.Column(db.String(100), nullable=True)
     dispositivo = db.Column(db.String(50), nullable=True)  # desktop, mobile, tablet
+
+    # Informações de localização e contexto
+    pais = db.Column(db.String(100), nullable=True)
+    cidade = db.Column(db.String(100), nullable=True)
+    provedor_internet = db.Column(db.String(200), nullable=True)
+    mac_address = db.Column(db.String(17), nullable=True)
+    resolucao_tela = db.Column(db.String(20), nullable=True)
+    timezone = db.Column(db.String(50), nullable=True)
+    latitude = db.Column(db.Numeric(10, 8), nullable=True)
+    longitude = db.Column(db.Numeric(11, 8), nullable=True)
 
     def get_data_acesso_brazil(self):
         """Retorna data de acesso no timezone do Brasil"""
@@ -768,6 +778,39 @@ class EmailMassaDestinatario(db.Model):
 
     def __repr__(self):
         return f'<EmailMassaDestinatario {self.email_destinatario} - {self.status_envio}>'
+
+class SessaoAtiva(db.Model):
+    """Tabela para sessões ativas dos usuários"""
+    __tablename__ = 'sessoes_ativas'
+
+    id = db.Column(db.Integer, primary_key=True)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    session_id = db.Column(db.String(255), nullable=False)
+    ip_address = db.Column(db.String(45), nullable=True)
+    user_agent = db.Column(db.Text, nullable=True)
+    data_inicio = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    ultima_atividade = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    ativo = db.Column(db.Boolean, default=True)
+
+    # Informações de localização
+    pais = db.Column(db.String(100), nullable=True)
+    cidade = db.Column(db.String(100), nullable=True)
+    navegador = db.Column(db.String(100), nullable=True)
+    sistema_operacional = db.Column(db.String(100), nullable=True)
+    dispositivo = db.Column(db.String(50), nullable=True)
+
+    # Relacionamentos
+    usuario = db.relationship('User', backref='sessoes_ativas')
+
+    def get_duracao_minutos(self):
+        """Calcula duração da sessão em minutos"""
+        if self.ultima_atividade and self.data_inicio:
+            delta = self.ultima_atividade - self.data_inicio
+            return int(delta.total_seconds() / 60)
+        return 0
+
+    def __repr__(self):
+        return f'<SessaoAtiva {self.usuario.nome} - {self.session_id}>'
 
 def init_app(app):
     db.init_app(app)

@@ -107,7 +107,7 @@ async function loadChamados() {
     }
 }
 
-// Função para popular filtros com dados dinâmicos
+// Funç��o para popular filtros com dados dinâmicos
 function popularFiltrosDinamicos() {
     // Popular filtro de unidades
     const filtroUnidade = document.getElementById('filtroUnidade');
@@ -200,7 +200,7 @@ function aplicarFiltrosAvancados(chamados) {
     if (filtroSolicitante && filtroSolicitante.value.trim()) {
         const termo = filtroSolicitante.value.trim().toLowerCase();
         filtrados = filtrados.filter(chamado =>
-            chamado.solicitante.toLowerCase().includes(termo)
+            chamado.solicitante && chamado.solicitante.toLowerCase().includes(termo)
         );
     }
 
@@ -209,7 +209,7 @@ function aplicarFiltrosAvancados(chamados) {
     if (filtroProblema && filtroProblema.value.trim()) {
         const termo = filtroProblema.value.trim().toLowerCase();
         filtrados = filtrados.filter(chamado =>
-            chamado.problema.toLowerCase().includes(termo)
+            chamado.problema && chamado.problema.toLowerCase().includes(termo)
         );
     }
 
@@ -225,9 +225,13 @@ function aplicarFiltrosAvancados(chamados) {
     const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
     if (filtroAgenteResponsavel && filtroAgenteResponsavel.value) {
         const agenteId = filtroAgenteResponsavel.value;
-        filtrados = filtrados.filter(chamado =>
-            chamado.agente_id && chamado.agente_id.toString() === agenteId
-        );
+        if (agenteId === 'sem_agente') {
+            filtrados = filtrados.filter(chamado => !chamado.agente_id);
+        } else {
+            filtrados = filtrados.filter(chamado =>
+                chamado.agente_id && chamado.agente_id.toString() === agenteId
+            );
+        }
     }
 
     // Filtro por unidade
@@ -244,8 +248,20 @@ function aplicarFiltrosAvancados(chamados) {
         const dataInicio = new Date(filtroDataInicio.value);
         filtrados = filtrados.filter(chamado => {
             if (!chamado.data_abertura) return false;
-            const dataChamado = new Date(chamado.data_abertura.split(' ')[0].split('/').reverse().join('-'));
-            return dataChamado >= dataInicio;
+            try {
+                let dataChamado;
+                if (chamado.data_abertura.includes('/')) {
+                    const [data, hora] = chamado.data_abertura.split(' ');
+                    const [dia, mes, ano] = data.split('/');
+                    dataChamado = new Date(ano, mes - 1, dia);
+                } else {
+                    dataChamado = new Date(chamado.data_abertura);
+                }
+                return dataChamado >= dataInicio;
+            } catch (error) {
+                console.error('Erro ao converter data:', error, chamado.data_abertura);
+                return false;
+            }
         });
     }
 
@@ -253,10 +269,23 @@ function aplicarFiltrosAvancados(chamados) {
     const filtroDataFim = document.getElementById('filtroDataFim');
     if (filtroDataFim && filtroDataFim.value) {
         const dataFim = new Date(filtroDataFim.value);
+        dataFim.setHours(23, 59, 59, 999); // Incluir todo o dia final
         filtrados = filtrados.filter(chamado => {
             if (!chamado.data_abertura) return false;
-            const dataChamado = new Date(chamado.data_abertura.split(' ')[0].split('/').reverse().join('-'));
-            return dataChamado <= dataFim;
+            try {
+                let dataChamado;
+                if (chamado.data_abertura.includes('/')) {
+                    const [data, hora] = chamado.data_abertura.split(' ');
+                    const [dia, mes, ano] = data.split('/');
+                    dataChamado = new Date(ano, mes - 1, dia);
+                } else {
+                    dataChamado = new Date(chamado.data_abertura);
+                }
+                return dataChamado <= dataFim;
+            } catch (error) {
+                console.error('Erro ao converter data:', error, chamado.data_abertura);
+                return false;
+            }
         });
     }
 
@@ -331,6 +360,9 @@ function renderChamadosPage(page) {
                 </div>
                 <h4>Nenhum chamado encontrado</h4>
                 <p>Não há chamados com os filtros selecionados</p>
+                <button class="btn btn-outline-secondary" onclick="limparTodosFiltros()">
+                    <i class="fas fa-times me-1"></i>Limpar Filtros
+                </button>
             </div>
         `;
         pagination.innerHTML = '';
@@ -429,7 +461,7 @@ function formatarData(dataString) {
     return `${dia}/${mes}/${ano}`;
 }
 
-// Função para renderizar a paginação
+// Funç��o para renderizar a paginação
 function renderPagination(totalItems) {
     pagination.innerHTML = '';
     const totalPages = Math.ceil(totalItems / chamadosPerPage);
@@ -483,12 +515,12 @@ function renderPagination(totalItems) {
 
 // Função para anexar event listeners aos cards de chamados
 function attachCardEventListeners() {
-    // Listener para mudança no select
-    document.querySelectorAll('.card select').forEach(select => {
+    // Listener para mudança no select de status dos chamados (apenas selects de status específicos)
+    document.querySelectorAll('select[id^="status-"]:not(#filtroPrioridade):not(#filtroAgenteResponsavel):not(#filtroUnidade)').forEach(select => {
         select.addEventListener('click', function(e) {
             e.stopPropagation();
         });
-        
+
         select.addEventListener('change', async function(e) {
             e.stopPropagation();
             const chamadoId = this.id.replace('status-', '');
@@ -718,9 +750,17 @@ document.getElementById('btnGerarUsuario')?.addEventListener('click', function()
 // document.getElementById('nomeUsuario')?.addEventListener('input', gerarNomeUsuario);
 // document.getElementById('sobrenomeUsuario')?.addEventListener('input', gerarNomeUsuario);
 
-// Prevenir comportamento padrão dos selects
+// Prevenir comportamento padrão dos selects e detectar Agente de Suporte
 document.getElementById('nivelAcesso')?.addEventListener('click', function(e) {
     e.stopPropagation();
+});
+
+// Detectar quando usuário seleciona "Agente de Suporte"
+document.getElementById('nivelAcesso')?.addEventListener('change', function(e) {
+    if (this.value === 'Agente de Suporte') {
+        // Automaticamente criar agente de suporte após criar o usuário
+        console.log('Nível "Agente de Suporte" selecionado - agente será criado automaticamente');
+    }
 });
 
 document.getElementById('setorUsuario')?.addEventListener('click', function(e) {
@@ -760,7 +800,7 @@ document.getElementById('btnGerarSenha')?.addEventListener('click', function(e) 
 function validarDadosUsuario(dados) {
     const erros = [];
     
-    if (!dados.nome) erros.push('Nome é obrigatório');
+    if (!dados.nome) erros.push('Nome é obrigat��rio');
     if (!dados.sobrenome) erros.push('Sobrenome é obrigatório');
     if (!dados.email) erros.push('E-mail é obrigatório');
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
@@ -829,26 +869,65 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             throw new Error(data.error || 'Erro ao criar usuário');
         }
 
-        // Usar sistema de notificações avançado
-        if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showSuccess('Usuário Criado', `Usuário ${data.nome} criado com sucesso!`);
+        // Se foi selecionado "Agente de Suporte", criar automaticamente o agente
+        if (usuarioData.nivel_acesso === 'Agente de Suporte') {
+            try {
+                const agenteResponse = await fetch('/ti/painel/api/agentes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: data.id,
+                        ativo: true,
+                        nivel_experiencia: 'junior',
+                        max_chamados_simultaneos: 10,
+                        especialidades: []
+                    })
+                });
+
+                if (agenteResponse.ok) {
+                    if (window.advancedNotificationSystem) {
+                        window.advancedNotificationSystem.showSuccess('Usuário e Agente Criados', `Usuário ${data.nome} criado e registrado como agente de suporte!`);
+                    }
+                } else {
+                    if (window.advancedNotificationSystem) {
+                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usuário ${data.nome} criado, mas houve erro ao registrar como agente.`);
+                    }
+                }
+            } catch (agenteError) {
+                console.error('Erro ao criar agente:', agenteError);
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showWarning('Usuário Criado', `Usuário ${data.nome} criado, mas houve erro ao registrar como agente.`);
+                }
+            }
+        } else {
+            // Usar sistema de notificações avançado para usuário normal
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showSuccess('Usuário Criado', `Usuário ${data.nome} criado com sucesso!`);
+            }
         }
-        
+
         // Mostrar credenciais no modal
         document.getElementById('credenciaisNome').textContent = `${data.nome} ${data.sobrenome}`;
         document.getElementById('credenciaisUsuario').textContent = data.usuario;
         document.getElementById('credenciaisSenha').textContent = usuarioData.senha;
-        
+
         // Abrir modal de credenciais
         document.getElementById('modalCredenciais').classList.add('active');
-        
+
         // Limpar formulário
         this.reset();
         document.getElementById('senhaGeradaContainer').style.display = 'none';
-        
+
         // Atualizar lista de usuários se estiver visível
         if (document.getElementById('permissoes').classList.contains('active')) {
             await loadUsuarios();
+        }
+
+        // Atualizar lista de agentes se estiver visível
+        if (document.getElementById('agentes-suporte').classList.contains('active')) {
+            await carregarAgentes();
         }
         
     } catch (error) {
@@ -1449,7 +1528,7 @@ document.getElementById('btnSalvarUsuario').addEventListener('click', async () =
         document.getElementById('modalEditarUsuario').classList.remove('active');
         await loadUsuarios();
     } catch (error) {
-        console.error('Erro ao atualizar usuário:', error);
+        console.error('Erro ao atualizar usu��rio:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
         }
@@ -1580,8 +1659,10 @@ function loadSectionContent(sectionId) {
             break;
         case 'permissoes':
             loadUsuarios();
-            // Inicializar filtro de permissões
-            inicializarFiltroPermissoes();
+            // Inicializar filtro de permissões após carregar usuários
+            setTimeout(() => {
+                inicializarFiltroPermissoes();
+            }, 100);
             break;
         case 'bloqueios':
             loadUsuariosBloqueados();
@@ -2184,7 +2265,7 @@ async function criarAgente() {
         document.getElementById('modalCriarAgente').classList.remove('active');
         document.getElementById('formCriarAgente').reset();
 
-        // Recarregar lista de agentes se estiver na seção
+        // Recarregar lista de agentes se estiver na seç��o
         if (document.getElementById('agentes-suporte').classList.contains('active')) {
             await carregarAgentes();
         }
@@ -2205,7 +2286,7 @@ async function carregarAgentes() {
             throw new Error('Erro ao carregar agentes');
         }
         agentesData = await response.json();
-        renderizarAgentes();
+        renderizarAgentes(agentesData);
     } catch (error) {
         console.error('Erro ao carregar agentes:', error);
         if (window.advancedNotificationSystem) {
@@ -2215,18 +2296,21 @@ async function carregarAgentes() {
 }
 
 // Renderizar lista de agentes
-function renderizarAgentes() {
-    const container = document.querySelector('#agentes-suporte .cards-grid');
+function renderizarAgentes(agentes = null) {
+    // Usar dados passados como parâmetro ou dados globais
+    const dadosAgentes = agentes || agentesData;
+
+    const container = document.querySelector('#agentes-suporte .cards-grid') || document.getElementById('agentesGrid');
     if (!container) return;
 
     container.innerHTML = '';
 
-    if (agentesData.length === 0) {
+    if (!dadosAgentes || dadosAgentes.length === 0) {
         container.innerHTML = '<p class="text-center py-4">Nenhum agente cadastrado.</p>';
         return;
     }
 
-    agentesData.forEach(agente => {
+    dadosAgentes.forEach(agente => {
         const card = document.createElement('div');
         card.className = 'card';
 
@@ -2541,6 +2625,20 @@ function loadSectionContentEnhanced(sectionId) {
                 }
             }, 100);
             break;
+        case 'auditoria-logs':
+            setTimeout(() => {
+                if (typeof inicializarAuditoria === 'function') {
+                    inicializarAuditoria();
+                }
+            }, 100);
+            break;
+        case 'grupos-usuarios':
+            setTimeout(() => {
+                if (typeof inicializarGrupos === 'function') {
+                    inicializarGrupos();
+                }
+            }, 100);
+            break;
         case 'grupos-usuarios':
             setTimeout(() => {
                 if (typeof carregarGrupos === 'function') {
@@ -2659,16 +2757,27 @@ function inicializarFiltroPermissoes() {
     const filtroInput = document.getElementById('filtroPermissoes');
     const btnFiltrar = document.getElementById('btnFiltrarPermissoes');
 
-    if (!filtroInput || !btnFiltrar) return;
+    if (!filtroInput || !btnFiltrar) {
+        console.log('Elementos de filtro não encontrados. Tentando novamente...');
+        setTimeout(inicializarFiltroPermissoes, 200);
+        return;
+    }
 
     // Função para filtrar usuários
     const filtrarUsuarios = () => {
         const termoBusca = filtroInput.value.toLowerCase().trim();
         filtrarListaUsuarios(termoBusca);
+
+        // Feedback visual
+        if (termoBusca) {
+            filtroInput.style.backgroundColor = '#e8f4fd';
+        } else {
+            filtroInput.style.backgroundColor = '';
+        }
     };
 
-    // Event listeners
-    filtroInput.addEventListener('input', filtrarUsuarios);
+    // Event listeners para busca em tempo real
+    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 150));
     btnFiltrar.addEventListener('click', filtrarUsuarios);
 
     // Filtrar ao pressionar Enter
@@ -2678,47 +2787,70 @@ function inicializarFiltroPermissoes() {
             filtrarUsuarios();
         }
     });
+
+    // Adicionar placeholder mais descritivo
+    filtroInput.placeholder = 'Buscar por nome, email ou unidade...';
+
+    console.log('Filtro de permissões inicializado com sucesso!');
 }
 
 function filtrarListaUsuarios(termoBusca) {
     const usuariosGrid = document.getElementById('usuariosGrid');
     if (!usuariosGrid) return;
 
-    const cards = usuariosGrid.querySelectorAll('.user-card');
+    // Corrigir seletores para trabalhar com a estrutura HTML real
+    const cards = usuariosGrid.querySelectorAll('.usuario-card, .card');
     let usuariosVisiveis = 0;
 
     cards.forEach(card => {
-        const nome = card.querySelector('.user-name')?.textContent.toLowerCase() || '';
-        const email = card.querySelector('.user-email')?.textContent.toLowerCase() || '';
-        const usuario = card.querySelector('.user-username')?.textContent.toLowerCase() || '';
-        const unidade = card.querySelector('.user-unidade')?.textContent.toLowerCase() || '';
+        // Buscar o texto em todos os elementos da card, incluindo dados específicos
+        const cardText = card.textContent.toLowerCase();
 
-        const textoCompleto = `${nome} ${email} ${usuario} ${unidade}`;
+        // Também buscar em atributos data- que podem conter informações
+        const nomeUsuario = card.querySelector('.card-title, .usuario-nome, h5, h6, strong')?.textContent?.toLowerCase() || '';
+        const emailUsuario = card.querySelector('.card-text, .usuario-email, .text-muted')?.textContent?.toLowerCase() || '';
+        const unidadeUsuario = card.querySelector('[data-unidade]')?.getAttribute('data-unidade')?.toLowerCase() || '';
+
+        // Texto completo para busca
+        const textoCompleto = `${cardText} ${nomeUsuario} ${emailUsuario} ${unidadeUsuario}`;
 
         if (termoBusca === '' || textoCompleto.includes(termoBusca)) {
             card.style.display = '';
+            card.style.transition = 'opacity 0.2s ease';
+            card.style.opacity = '1';
             usuariosVisiveis++;
         } else {
             card.style.display = 'none';
+            card.style.opacity = '0';
         }
     });
 
     // Mostrar mensagem se nenhum usuário for encontrado
-    const mensagemVazia = document.getElementById('mensagemUsuariosVazia');
+    let mensagemVazia = usuariosGrid.querySelector('#mensagemUsuariosVazia');
     if (usuariosVisiveis === 0 && termoBusca !== '') {
         if (!mensagemVazia) {
             const mensagem = document.createElement('div');
             mensagem.id = 'mensagemUsuariosVazia';
             mensagem.className = 'text-center py-4';
+            mensagem.style.gridColumn = '1 / -1'; // Ocupar toda a largura do grid
             mensagem.innerHTML = `
-                <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Nenhum usuário encontrado</h5>
-                <p class="text-muted">Tente usar termos de busca diferentes</p>
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h4>Nenhum usuário encontrado</h4>
+                    <p>Tente usar termos de busca diferentes</p>
+                </div>
             `;
             usuariosGrid.appendChild(mensagem);
         }
     } else if (mensagemVazia) {
         mensagemVazia.remove();
+    }
+
+    // Mostrar contador de resultados
+    if (termoBusca) {
+        console.log(`Filtro aplicado: "${termoBusca}" - ${usuariosVisiveis} usuário(s) encontrado(s)`);
     }
 }
 
@@ -2984,84 +3116,6 @@ function renderizarGrupos(grupos) {
 
 // ==================== CARREGAR AGENTES ====================
 
-async function carregarAgentes() {
-    try {
-        const response = await fetch('/ti/painel/api/agentes');
-        if (!response.ok) {
-            throw new Error('Erro ao carregar agentes');
-        }
-
-        const agentes = await response.json();
-        renderizarAgentes(agentes);
-        atualizarEstatisticasAgentes(agentes);
-
-    } catch (error) {
-        console.error('Erro ao carregar agentes:', error);
-        if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes de suporte');
-        }
-    }
-}
-
-function renderizarAgentes(agentes) {
-    const container = document.getElementById('agentesGrid');
-    if (!container) return;
-
-    if (!agentes || agentes.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-headset fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Nenhum agente encontrado</h5>
-                <p class="text-muted">Crie o primeiro agente de suporte</p>
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = agentes.map(agente => `
-        <div class="card agent-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title agent-name">${agente.nome}</h5>
-                    <span class="badge ${agente.ativo ? 'bg-success' : 'bg-secondary'}">
-                        ${agente.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                </div>
-                <p class="card-text agent-email text-muted">${agente.email}</p>
-                <div class="agent-stats mb-3">
-                    <small class="text-muted">
-                        <i class="fas fa-star"></i> ${agente.nivel_experiencia} •
-                        <i class="fas fa-tasks"></i> ${agente.chamados_ativos}/${agente.max_chamados_simultaneos} chamados
-                    </small>
-                </div>
-                <div class="agent-specialties mb-2">
-                    ${agente.especialidades && agente.especialidades.map ?
-                        agente.especialidades.map(esp =>
-                            `<span class="badge bg-primary me-1">${esp}</span>`
-                        ).join('') : ''
-                    }
-                </div>
-                <div class="agent-info">
-                    <small class="text-muted">
-                        Criado: ${agente.data_criacao}
-                    </small>
-                </div>
-                <div class="card-actions mt-3">
-                    <button class="btn btn-sm btn-primary" onclick="editarAgente(${agente.id})">
-                        <i class="fas fa-edit"></i> Editar
-                    </button>
-                    <button class="btn btn-sm btn-info" onclick="verChamadosAgente(${agente.id})">
-                        <i class="fas fa-tasks"></i> Chamados
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="excluirAgente(${agente.id})">
-                        <i class="fas fa-trash"></i> Excluir
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
 function atualizarEstatisticasAgentes(agentes) {
     const totalAgentes = document.getElementById('totalAgentes');
     const agentesAtivos = document.getElementById('agentesAtivos');
@@ -3272,7 +3326,7 @@ async function carregarLogsAcoes() {
     try {
         const response = await fetch('/ti/painel/api/logs/acoes');
         if (!response.ok) {
-            throw new Error('Erro ao carregar logs de ações');
+            throw new Error('Erro ao carregar logs de aç��es');
         }
         const data = await response.json();
 
@@ -3807,6 +3861,44 @@ function debounce(func, wait) {
         clearTimeout(timeout);
         timeout = setTimeout(later, wait);
     };
+}
+
+// Função para limpar todos os filtros
+function limparTodosFiltros() {
+    // Filtros de chamados
+    const filtroSolicitante = document.getElementById('filtroSolicitante');
+    const filtroProblema = document.getElementById('filtroProblema');
+    const filtroPrioridade = document.getElementById('filtroPrioridade');
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    const filtroUnidade = document.getElementById('filtroUnidade');
+    const filtroDataInicio = document.getElementById('filtroDataInicio');
+    const filtroDataFim = document.getElementById('filtroDataFim');
+
+    if (filtroSolicitante) filtroSolicitante.value = '';
+    if (filtroProblema) filtroProblema.value = '';
+    if (filtroPrioridade) filtroPrioridade.value = '';
+    if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
+    if (filtroUnidade) filtroUnidade.value = '';
+    if (filtroDataInicio) filtroDataInicio.value = '';
+    if (filtroDataFim) filtroDataFim.value = '';
+
+    // Filtro de permissões
+    const filtroPermissoes = document.getElementById('filtroPermissoes');
+    if (filtroPermissoes) {
+        filtroPermissoes.value = '';
+        filtrarListaUsuarios('');
+    }
+
+    // Recarregar dados de chamados
+    if (typeof renderChamadosPage === 'function' && window.chamadosData) {
+        currentPage = 1;
+        renderChamadosPage(currentPage);
+    }
+
+    // Mostrar notificação
+    if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Filtros Limpos', 'Todos os filtros foram removidos');
+    }
 }
 
 // ==================== DASHBOARD AVANÇADO ====================
