@@ -1828,50 +1828,53 @@ resetInactivityTimer();
 
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
-    // Carregar chamados
-    loadChamados();
-    
-    // Se estiver na seção de listar unidades, carrega elas
-    if (window.location.hash === '#listar-unidades') {
-        renderListarUnidades();
-    }
-    
-    // Ativa a seção baseada no hash da URL
+    console.log('DOM carregado - inicializando painel.js');
+
+    // Ativa a seção baseada no hash da URL ou visão geral por padrão
     const hash = window.location.hash.substring(1);
-    if (hash) {
+    if (hash && document.getElementById(hash)) {
         activateSection(hash);
     } else {
         activateSection('visao-geral');
     }
 
-    // Forçar carregamento de agentes e grupos após inicialização
+    // Carregar dados iniciais após um pequeno delay para garantir que as funções estejam disponíveis
     setTimeout(() => {
-        console.log('Forçando carregamento inicial de agentes e grupos...');
+        console.log('Carregando dados iniciais...');
 
-        // Verificar e carregar agentes
+        // Carregar chamados para visão geral
+        if (typeof loadChamados === 'function') {
+            loadChamados();
+        } else {
+            console.log('Função loadChamados não disponível');
+        }
+
+        // Verificar e carregar agentes apenas se necessário
         if (typeof carregarAgentes === 'function') {
-            console.log('Carregando agentes na inicialização...');
-            // Só carregar se a seção de agentes existir
+            console.log('Função carregarAgentes disponível');
+            // Só carregar se a seção de agentes estiver ativa
             const agentesSection = document.getElementById('agentes-suporte');
-            if (agentesSection) {
+            if (agentesSection && agentesSection.classList.contains('active')) {
+                console.log('Carregando agentes porque a seção está ativa');
                 carregarAgentes();
             }
         } else {
             console.log('Função carregarAgentes não disponível na inicialização');
         }
 
-        // Verificar e carregar grupos
+        // Verificar e carregar grupos apenas se necessário
         if (typeof carregarGrupos === 'function') {
-            console.log('Carregando grupos na inicialização...');
-            // Só carregar se a seção de grupos existir
+            console.log('Função carregarGrupos disponível');
+            // Só carregar se a seção de grupos estiver ativa
             const gruposSection = document.getElementById('grupos-usuarios');
-            if (gruposSection) {
+            if (gruposSection && gruposSection.classList.contains('active')) {
+                console.log('Carregando grupos porque a seção está ativa');
                 carregarGrupos();
             }
         } else {
             console.log('Função carregarGrupos não disponível na inicialização');
         }
-    }, 1000);
+    }, 200);
 });
 
 // Adiciona event listeners para links de navegação do submenu
@@ -2200,7 +2203,7 @@ function initializeSocketIO() {
             if (window.advancedNotificationSystem) {
                 window.advancedNotificationSystem.showWarning(
                     'Chamado Excluído',
-                    `Chamado ${data.codigo} foi excluído`
+                    `Chamado ${data.codigo} foi exclu��do`
                 );
             }
             // Recarregar dados se necessário
@@ -3925,7 +3928,7 @@ async function atribuirAgente(chamadoId) {
         document.body.insertAdjacentHTML('beforeend', modalContent);
 
     } catch (error) {
-        console.error('Erro ao abrir modal de atribui��ão:', error);
+        console.error('Erro ao abrir modal de atribuição:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
         }
