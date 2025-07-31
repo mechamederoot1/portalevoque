@@ -427,10 +427,14 @@ async function excluirAgente(agenteId) {
 
 // Configurar event listeners
 function configurarEventListenersAgentes() {
+    console.log('Configurando event listeners dos agentes...');
     // Botão criar agente
     const btnCriarAgente = document.getElementById('btnCriarAgente');
     if (btnCriarAgente) {
         btnCriarAgente.addEventListener('click', criarAgente);
+        console.log('Event listener do botão criar agente configurado');
+    } else {
+        console.log('Botão criar agente não encontrado');
     }
 }
 
@@ -440,6 +444,11 @@ function inicializarAgentes() {
     configurarEventListenersAgentes();
     carregarAgentes();
 }
+
+// Auto-inicializar quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado - agentes.js inicializado');
+});
 
 // Editar usuário agente
 async function editarUsuarioAgente(usuarioId) {
