@@ -25,18 +25,17 @@ class Config:
     # Validar se as variáveis de banco estão configuradas
     if not all([DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
         raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME")
-    
+
     # Codifica a senha para uso na URL
     DB_PASSWORD_ENCODED = quote_plus(DB_PASSWORD)
-    
-    # URI de conexão MySQL com SSL para Azure
+
+    # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
     SQLALCHEMY_DATABASE_URI = (
         f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
         '?charset=utf8mb4'
-        '&ssl_ca=DigiCertGlobalRootCA.crt.pem'
-        '&ssl_verify_cert=true'
+        '&ssl_disabled=false'
     )
-    
+
     # Configurações do SQLAlchemy
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ENGINE_OPTIONS = {
@@ -44,12 +43,7 @@ class Config:
         'pool_recycle': 300,
         'pool_timeout': 30,
         'max_overflow': 5,
-        'pool_size': 10,
-        'connect_args': {
-            'ssl': {
-                'ssl_ca': 'DigiCertGlobalRootCA.crt.pem'
-            }
-        }
+        'pool_size': 10
     }
     
     # Configurações do Microsoft Graph API
@@ -101,15 +95,15 @@ class Config:
             'CLIENT_ID', 'CLIENT_SECRET', 'TENANT_ID', 'USER_ID',
             'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'
         ]
-        
+
         missing_vars = []
         for var in required_vars:
             if not os.environ.get(var):
                 missing_vars.append(var)
-        
+
         if missing_vars:
             raise ValueError(f"Variáveis de ambiente obrigatórias não configuradas: {', '.join(missing_vars)}")
-        
+
         return True
 
 class DevelopmentConfig(Config):

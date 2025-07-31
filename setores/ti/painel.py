@@ -689,19 +689,44 @@ def remover_unidade(id):
 def listar_chamados():
     try:
         logger.debug("Iniciando consulta de chamados...")
-        chamados = Chamado.query.order_by(Chamado.data_abertura.desc()).all()
+        from database import ChamadoAgente, AgenteSuporte, User
+
+        # Fazer join com agentes se existir
+        chamados = db.session.query(Chamado).outerjoin(
+            ChamadoAgente, (Chamado.id == ChamadoAgente.chamado_id) & (ChamadoAgente.ativo == True)
+        ).outerjoin(
+            AgenteSuporte, ChamadoAgente.agente_id == AgenteSuporte.id
+        ).outerjoin(
+            User, AgenteSuporte.usuario_id == User.id
+        ).order_by(Chamado.data_abertura.desc()).all()
+
         logger.debug(f"Total de chamados encontrados: {len(chamados)}")
-        
+
         chamados_list = []
         for c in chamados:
             try:
                 # Converter data de abertura para timezone do Brasil
                 data_abertura_brazil = c.get_data_abertura_brazil()
                 data_abertura_str = data_abertura_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_abertura_brazil else None
-                
+
                 # Converter data de visita se existir
                 data_visita_str = c.data_visita.strftime('%d/%m/%Y') if c.data_visita else None
-                
+
+                # Buscar agente atribuído
+                agente_info = None
+                chamado_agente = ChamadoAgente.query.filter_by(
+                    chamado_id=c.id,
+                    ativo=True
+                ).first()
+
+                if chamado_agente and chamado_agente.agente:
+                    agente_info = {
+                        'id': chamado_agente.agente.id,
+                        'nome': f"{chamado_agente.agente.usuario.nome} {chamado_agente.agente.usuario.sobrenome}",
+                        'usuario': chamado_agente.agente.usuario.usuario,
+                        'nivel_experiencia': chamado_agente.agente.nivel_experiencia
+                    }
+
                 chamado_data = {
                     'id': c.id,
                     'codigo': c.codigo if hasattr(c, 'codigo') else None,
@@ -718,14 +743,16 @@ def listar_chamados():
                     'data_abertura': data_abertura_str,
                     'status': c.status if hasattr(c, 'status') else 'Aberto',
                     'prioridade': c.prioridade if hasattr(c, 'prioridade') else 'Normal',
-                    'visita_tecnica': c.visita_tecnica if hasattr(c, 'visita_tecnica') else False
+                    'visita_tecnica': c.visita_tecnica if hasattr(c, 'visita_tecnica') else False,
+                    'agente': agente_info,
+                    'agente_id': agente_info['id'] if agente_info else None
                 }
                 chamados_list.append(chamado_data)
                 logger.debug(f"Chamado {c.id} formatado com sucesso")
             except Exception as e:
                 logger.error(f"Erro ao formatar chamado {c.id}: {str(e)}")
                 continue
-            
+
         logger.debug("Retornando lista de chamados")
         return json_response(chamados_list)
     except Exception as e:
@@ -1095,6 +1122,12 @@ def atualizar_usuario(user_id):
             usuario.nome = data['nome']
         if 'sobrenome' in data:
             usuario.sobrenome = data['sobrenome']
+        if 'usuario' in data:
+            # Verificar se nome de usuário não está em uso por outro usuário
+            existing_user = User.query.filter(User.usuario == data['usuario'], User.id != user_id).first()
+            if existing_user:
+                return error_response('Nome de usuário já está em uso por outro usuário', 400)
+            usuario.usuario = data['usuario']
         if 'email' in data:
             # Verificar se email não está em uso por outro usuário
             existing_user = User.query.filter(User.email == data['email'], User.id != user_id).first()
@@ -1118,6 +1151,7 @@ def atualizar_usuario(user_id):
             'id': usuario.id,
             'nome': usuario.nome,
             'sobrenome': usuario.sobrenome,
+            'usuario': usuario.usuario,
             'email': usuario.email,
             'nivel_acesso': usuario.nivel_acesso,
             'setores': usuario.setores,
