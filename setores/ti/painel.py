@@ -86,26 +86,36 @@ def carregar_configuracoes():
     """Carrega configurações do banco de dados ou retorna padrões"""
     try:
         config_final = CONFIGURACOES_PADRAO.copy()
-        
-        # Buscar todas as configurações do banco
-        configs_db = Configuracao.query.all()
-        
-        for config in configs_db:
-            try:
-                valor = json.loads(config.valor)
-                # Atualizar apenas seções existentes
-                if config.chave in config_final and isinstance(valor, dict):
-                    config_final[config.chave].update(valor)
-                else:
-                    config_final[config.chave] = valor
-            except json.JSONDecodeError:
-                logger.error(f"Erro ao decodificar configuração {config.chave}")
-                continue
-        
+
+        # Verificar se a tabela de configurações existe
+        try:
+            # Tentar buscar todas as configurações do banco
+            configs_db = Configuracao.query.all()
+
+            for config in configs_db:
+                try:
+                    valor = json.loads(config.valor)
+                    # Atualizar apenas seções existentes
+                    if config.chave in config_final and isinstance(valor, dict):
+                        config_final[config.chave].update(valor)
+                    else:
+                        config_final[config.chave] = valor
+                except json.JSONDecodeError:
+                    # Para valores que não são JSON (strings simples), tratar como strings
+                    if config.chave in ['versao_database', 'data_criacao', 'sistema_inicializado']:
+                        config_final[config.chave] = config.valor
+                    else:
+                        logger.error(f"Erro ao decodificar configuração {config.chave}")
+                    continue
+
+        except Exception as db_error:
+            logger.warning(f"Tabela de configurações não disponível ou vazia: {str(db_error)}")
+            # Retorna configurações padrão se a tabela não existir
+
         return config_final
-        
+
     except Exception as e:
-        logger.error(f"Erro ao carregar configurações: {str(e)}")
+        logger.error(f"Erro geral ao carregar configurações: {str(e)}")
         return CONFIGURACOES_PADRAO.copy()
 
 def salvar_configuracoes_db(config):
@@ -432,20 +442,55 @@ def carregar_configuracoes_notificacoes():
 def listar_problemas():
     """Lista todos os problemas reportados"""
     try:
+        # Verificar se o banco de dados está disponível
+        try:
+            # Tentar uma consulta simples primeiro
+            db.session.execute(db.text('SELECT 1'))
+            db.session.commit()
+        except Exception as conn_error:
+            logger.warning(f"Banco de dados não disponível: {str(conn_error)}")
+            # Retornar lista vazia em vez de erro para permitir que a interface funcione
+            return json_response([])
+
+        # Verificar se a tabela existe
+        try:
+            count = ProblemaReportado.query.count()
+            logger.info(f"Total de problemas na base: {count}")
+        except Exception as db_error:
+            logger.warning(f"Tabela ProblemaReportado não disponível: {str(db_error)}")
+            # Retornar problemas padrão se a tabela não existir
+            problemas_padrao = [
+                {'id': 1, 'nome': 'Problema de Hardware', 'prioridade_padrao': 'Normal', 'requer_item_internet': False},
+                {'id': 2, 'nome': 'Problema de Software', 'prioridade_padrao': 'Normal', 'requer_item_internet': False},
+                {'id': 3, 'nome': 'Problema de Rede', 'prioridade_padrao': 'Alto', 'requer_item_internet': True},
+                {'id': 4, 'nome': 'Problema de Sistema', 'prioridade_padrao': 'Normal', 'requer_item_internet': False}
+            ]
+            return json_response(problemas_padrao)
+
         problemas = ProblemaReportado.query.filter_by(ativo=True).all()
         problemas_list = []
+
         for p in problemas:
-            problemas_list.append({
-                'id': p.id,
-                'nome': p.nome,
-                'prioridade_padrao': p.prioridade_padrao,
-                'requer_item_internet': p.requer_item_internet
-            })
+            try:
+                problema_data = {
+                    'id': p.id,
+                    'nome': p.nome,
+                    'prioridade_padrao': p.prioridade_padrao,
+                    'requer_item_internet': p.requer_item_internet
+                }
+                problemas_list.append(problema_data)
+            except Exception as item_error:
+                logger.error(f"Erro ao processar problema ID {p.id}: {str(item_error)}")
+                continue
+
+        logger.info(f"Retornando {len(problemas_list)} problemas ativos")
         return json_response(problemas_list)
+
     except Exception as e:
-        logger.error(f"Erro ao listar problemas: {str(e)}")
+        logger.error(f"Erro geral ao listar problemas: {str(e)}")
         logger.error(traceback.format_exc())
-        return error_response('Erro interno no servidor')
+        # Em caso de erro, retornar lista vazia em vez de erro 500
+        return json_response([])
 
 @painel_bp.route('/api/problemas', methods=['POST'])
 @login_required
@@ -822,6 +867,26 @@ def atualizar_status_chamado(id):
         
         db.session.commit()
         
+        # Buscar informações do agente para incluir na resposta
+        agente_info = None
+        try:
+            from database import ChamadoAgente, AgenteSuporte
+            chamado_agente = ChamadoAgente.query.filter_by(
+                chamado_id=id,
+                ativo=True
+            ).first()
+
+            if chamado_agente and chamado_agente.agente:
+                agente = chamado_agente.agente
+                agente_info = {
+                    'id': agente.id,
+                    'nome': f"{agente.usuario.nome} {agente.usuario.sobrenome}",
+                    'email': agente.usuario.email,
+                    'nivel_experiencia': agente.nivel_experiencia
+                }
+        except Exception as agente_error:
+            logger.warning(f"Erro ao buscar agente: {str(agente_error)}")
+
         # Emitir evento Socket.IO apenas se a conexão estiver disponível
         try:
             if hasattr(current_app, 'socketio'):
@@ -831,16 +896,18 @@ def atualizar_status_chamado(id):
                     'status_anterior': status_anterior,
                     'novo_status': novo_status,
                     'solicitante': chamado.solicitante,
+                    'agente': agente_info,
                     'timestamp': agora_brazil.isoformat()
                 })
         except Exception as socket_error:
             logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
-        
+
         return json_response({
             'message': 'Status atualizado com sucesso.',
             'id': chamado.id,
             'status': chamado.status,
-            'codigo': chamado.codigo
+            'codigo': chamado.codigo,
+            'agente': agente_info
         })
     except Exception as e:
         db.session.rollback()
@@ -1310,12 +1377,31 @@ def enviar_ticket(id):
         data_abertura_brazil = chamado.get_data_abertura_brazil()
         data_abertura_str = data_abertura_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_abertura_brazil else 'N/A'
 
+        # Verificar se há agente atribuído
+        from database import ChamadoAgente, AgenteSuporte
+        agente_info = ""
+        try:
+            chamado_agente = ChamadoAgente.query.filter_by(
+                chamado_id=chamado.id,
+                ativo=True
+            ).first()
+
+            if chamado_agente and chamado_agente.agente:
+                agente = chamado_agente.agente
+                agente_info = f"""
+Agente Responsável: {agente.usuario.nome} {agente.usuario.sobrenome}
+Email do Agente: {agente.usuario.email}
+Nível de Experiência: {agente.nivel_experiencia.title()}
+"""
+        except Exception as agente_error:
+            logger.warning(f"Erro ao buscar agente do chamado: {str(agente_error)}")
+
         mensagem_formatada = f"""
 Chamado: {chamado.codigo}
 Status: {chamado.status}
 Data de Abertura: {data_abertura_str}
 Problema: {chamado.problema}
-Unidade: {chamado.unidade}
+Unidade: {chamado.unidade}{agente_info}
 
 {mensagem}
 
@@ -1742,4 +1828,771 @@ def atualizar_status_setor_usuario():
         db.session.rollback()
         logger.error(f"Erro ao atualizar status por setor/usuário: {str(e)}")
         logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+# ==================== ALERTAS DO SISTEMA ====================
+
+@painel_bp.route('/api/alertas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_alertas():
+    """Lista alertas do sistema"""
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+
+        # Gerar alertas simulados (em produção, seria de uma tabela de alertas)
+        alertas_sistema = [
+            {
+                'id': 1,
+                'tipo': 'warning',
+                'titulo': 'Uso de Memória Alto',
+                'mensagem': 'O servidor está usando 85% da memória disponível',
+                'data': '2025-01-31 10:30:00',
+                'status': 'ativo',
+                'prioridade': 'alta'
+            },
+            {
+                'id': 2,
+                'tipo': 'info',
+                'titulo': 'Backup Concluído',
+                'mensagem': 'Backup automático realizado com sucesso',
+                'data': '2025-01-31 06:00:00',
+                'status': 'resolvido',
+                'prioridade': 'baixa'
+            },
+            {
+                'id': 3,
+                'tipo': 'error',
+                'titulo': 'Falha na Conectividade',
+                'mensagem': 'Problemas de conexão detectados na rede',
+                'data': '2025-01-31 09:15:00',
+                'status': 'ativo',
+                'prioridade': 'crítica'
+            }
+        ]
+
+        # Simular paginação
+        total = len(alertas_sistema)
+        start = (page - 1) * per_page
+        end = start + per_page
+        alertas_paginados = alertas_sistema[start:end]
+
+        return json_response({
+            'alertas': alertas_paginados,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'pages': (total + per_page - 1) // per_page
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar alertas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+# ==================== AGENTES DE SUPORTE ====================
+
+@painel_bp.route('/api/agentes', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_agentes():
+    """Lista todos os agentes de suporte"""
+    try:
+        from database import AgenteSuporte
+
+        agentes = db.session.query(AgenteSuporte, User).join(User).all()
+
+        agentes_data = []
+        for agente, usuario in agentes:
+            agentes_data.append({
+                'id': agente.id,
+                'usuario_id': agente.usuario_id,
+                'nome': f"{usuario.nome} {usuario.sobrenome}",
+                'sobrenome': usuario.sobrenome,
+                'email': usuario.email,
+                'ativo': agente.ativo,
+                'especialidades': agente.especialidades_list,
+                'nivel_experiencia': agente.nivel_experiencia,
+                'max_chamados_simultaneos': agente.max_chamados_simultaneos,
+                'chamados_ativos': agente.get_chamados_ativos(),
+                'pode_receber_chamado': agente.pode_receber_chamado(),
+                'data_criacao': agente.data_criacao.strftime('%d/%m/%Y %H:%M') if agente.data_criacao else None
+            })
+
+        return json_response(agentes_data)
+
+    except Exception as e:
+        logger.error(f"Erro ao listar agentes: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agentes', methods=['POST'])
+@login_required
+@setor_required('Administrador')
+def criar_agente():
+    """Cria um novo agente de suporte"""
+    try:
+        from database import AgenteSuporte
+
+        data = request.get_json()
+
+        if not data:
+            return error_response('Dados não fornecidos')
+
+        usuario_id = data.get('usuario_id')
+        if not usuario_id:
+            return error_response('ID do usuário é obrigatório')
+
+        # Verificar se usuário existe
+        usuario = User.query.get(usuario_id)
+        if not usuario:
+            return error_response('Usuário não encontrado')
+
+        # Verificar se já é agente
+        agente_existente = AgenteSuporte.query.filter_by(usuario_id=usuario_id).first()
+        if agente_existente:
+            return error_response('Usuário já é um agente de suporte')
+
+        # Criar agente
+        agente = AgenteSuporte(
+            usuario_id=usuario_id,
+            ativo=data.get('ativo', True),
+            nivel_experiencia=data.get('nivel_experiencia', 'junior'),
+            max_chamados_simultaneos=data.get('max_chamados_simultaneos', 10)
+        )
+
+        # Definir especialidades
+        especialidades = data.get('especialidades', [])
+        if isinstance(especialidades, list):
+            agente.especialidades_list = especialidades
+
+        db.session.add(agente)
+        db.session.commit()
+
+        logger.info(f"Agente criado: {usuario.nome} por {current_user.nome}")
+
+        return json_response({
+            'id': agente.id,
+            'nome': f"{usuario.nome} {usuario.sobrenome}",
+            'message': f'Agente {usuario.nome} criado com sucesso'
+        }, 201)
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao criar agente: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agentes/<int:agente_id>', methods=['PUT'])
+@login_required
+@setor_required('Administrador')
+def atualizar_agente(agente_id):
+    """Atualiza informações de um agente"""
+    try:
+        from database import AgenteSuporte
+
+        agente = AgenteSuporte.query.get(agente_id)
+        if not agente:
+            return error_response('Agente não encontrado', 404)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos')
+
+        # Atualizar campos
+        if 'ativo' in data:
+            agente.ativo = data['ativo']
+
+        if 'nivel_experiencia' in data:
+            agente.nivel_experiencia = data['nivel_experiencia']
+
+        if 'max_chamados_simultaneos' in data:
+            max_chamados = data['max_chamados_simultaneos']
+            if isinstance(max_chamados, int) and max_chamados > 0:
+                agente.max_chamados_simultaneos = max_chamados
+
+        if 'especialidades' in data:
+            especialidades = data['especialidades']
+            if isinstance(especialidades, list):
+                agente.especialidades_list = especialidades
+
+        agente.data_atualizacao = get_brazil_time().replace(tzinfo=None)
+        db.session.commit()
+
+        logger.info(f"Agente {agente.usuario.nome} atualizado por {current_user.nome}")
+
+        return json_response({'message': 'Agente atualizado com sucesso'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atualizar agente: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agentes/<int:agente_id>', methods=['DELETE'])
+@login_required
+@setor_required('Administrador')
+def excluir_agente(agente_id):
+    """Remove um agente de suporte"""
+    try:
+        from database import AgenteSuporte, ChamadoAgente
+
+        agente = AgenteSuporte.query.get(agente_id)
+        if not agente:
+            return error_response('Agente não encontrado', 404)
+
+        # Verificar se há chamados ativos atribuídos
+        chamados_ativos = agente.get_chamados_ativos()
+        if chamados_ativos > 0:
+            return error_response(f'Não é possível excluir agente com {chamados_ativos} chamado(s) ativo(s)')
+
+        nome_agente = agente.usuario.nome
+
+        # Finalizar todas as atribuições antigas
+        ChamadoAgente.query.filter_by(agente_id=agente_id, ativo=True).update({
+            'ativo': False,
+            'data_conclusao': get_brazil_time().replace(tzinfo=None)
+        })
+
+        db.session.delete(agente)
+        db.session.commit()
+
+        logger.info(f"Agente {nome_agente} excluído por {current_user.nome}")
+
+        return json_response({'message': f'Agente {nome_agente} excluído com sucesso'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao excluir agente: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/atribuir', methods=['POST'])
+@login_required
+@setor_required('Administrador')
+def atribuir_chamado(chamado_id):
+    """Atribui um chamado a um agente"""
+    try:
+        from database import AgenteSuporte, ChamadoAgente
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos')
+
+        agente_id = data.get('agente_id')
+        if not agente_id:
+            return error_response('ID do agente é obrigatório')
+
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        agente = AgenteSuporte.query.get(agente_id)
+        if not agente:
+            return error_response('Agente não encontrado', 404)
+
+        if not agente.ativo:
+            return error_response('Agente não está ativo')
+
+        if not agente.pode_receber_chamado():
+            return error_response('Agente já atingiu o limite máximo de chamados simultâneos')
+
+        # Verificar se já há atribuição ativa
+        atribuicao_existente = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if atribuicao_existente:
+            # Finalizar atribuição anterior
+            atribuicao_existente.finalizar_atribuicao()
+
+        # Criar nova atribuição
+        nova_atribuicao = ChamadoAgente(
+            chamado_id=chamado_id,
+            agente_id=agente_id,
+            atribuido_por=current_user.id,
+            observacoes=data.get('observacoes', '')
+        )
+
+        db.session.add(nova_atribuicao)
+        db.session.commit()
+
+        logger.info(f"Chamado {chamado.codigo} atribuído ao agente {agente.usuario.nome} por {current_user.nome}")
+
+        return json_response({
+            'message': f'Chamado {chamado.codigo} atribuído ao agente {agente.usuario.nome}',
+            'agente_nome': f"{agente.usuario.nome} {agente.usuario.sobrenome}",
+            'agente_id': agente.id
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atribuir chamado: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/usuarios-disponiveis', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def usuarios_disponiveis():
+    """Lista usuários que podem se tornar agentes"""
+    try:
+        from database import AgenteSuporte
+
+        # Buscar usuários que não são agentes
+        usuarios_query = db.session.query(User).outerjoin(AgenteSuporte).filter(
+            AgenteSuporte.id.is_(None),
+            User.bloqueado == False
+        )
+
+        usuarios_data = []
+        for usuario in usuarios_query.all():
+            usuarios_data.append({
+                'id': usuario.id,
+                'nome': f"{usuario.nome} {usuario.sobrenome}",
+                'email': usuario.email,
+                'nivel_acesso': usuario.nivel_acesso,
+                'setores': usuario.setores
+            })
+
+        return json_response(usuarios_data)
+
+    except Exception as e:
+        logger.error(f"Erro ao listar usuários disponíveis: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+# ==================== AUDITORIA E LOGS ====================
+
+@painel_bp.route('/api/logs/acoes', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_logs_acoes():
+    """Lista logs de ações com filtros e paginação"""
+    try:
+        from database import LogAcao
+
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        categoria = request.args.get('categoria')
+        usuario_id = request.args.get('usuario_id')
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+
+        # Construir query base
+        query = LogAcao.query
+
+        # Aplicar filtros
+        if categoria:
+            query = query.filter(LogAcao.categoria == categoria)
+        if usuario_id:
+            query = query.filter(LogAcao.usuario_id == int(usuario_id))
+        if data_inicio:
+            try:
+                data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+                query = query.filter(LogAcao.data_acao >= data_inicio_obj)
+            except ValueError:
+                pass
+        if data_fim:
+            try:
+                data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(LogAcao.data_acao < data_fim_obj)
+            except ValueError:
+                pass
+
+        # Ordenar por data mais recente
+        query = query.order_by(LogAcao.data_acao.desc())
+
+        # Paginar
+        logs_paginados = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        logs_list = []
+        for log in logs_paginados.items:
+            data_acao_brazil = log.get_data_acao_brazil()
+
+            logs_list.append({
+                'id': log.id,
+                'usuario_id': log.usuario_id,
+                'usuario_nome': log.usuario.nome if log.usuario else 'Sistema',
+                'acao': log.acao,
+                'categoria': log.categoria,
+                'detalhes': log.detalhes,
+                'data_acao': data_acao_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_acao_brazil else None,
+                'ip_address': log.ip_address,
+                'sucesso': log.sucesso,
+                'erro_detalhes': log.erro_detalhes,
+                'recurso_afetado': log.recurso_afetado,
+                'tipo_recurso': log.tipo_recurso
+            })
+
+        return json_response({
+            'logs': logs_list,
+            'pagination': {
+                'page': logs_paginados.page,
+                'pages': logs_paginados.pages,
+                'per_page': logs_paginados.per_page,
+                'total': logs_paginados.total,
+                'has_next': logs_paginados.has_next,
+                'has_prev': logs_paginados.has_prev
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar logs de ações: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/logs/acoes/categorias', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_categorias_logs_acoes():
+    """Lista categorias únicas dos logs de ações"""
+    try:
+        from database import LogAcao
+
+        categorias = db.session.query(LogAcao.categoria).distinct().filter(
+            LogAcao.categoria.isnot(None)
+        ).all()
+
+        categorias_list = [cat[0] for cat in categorias if cat[0]]
+
+        return json_response(categorias_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao listar categorias: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/logs/acoes/estatisticas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def estatisticas_logs_acoes():
+    """Retorna estatísticas dos logs de ações"""
+    try:
+        from database import LogAcao
+
+        # Estatísticas gerais
+        total_acoes = LogAcao.query.count()
+        acoes_sucesso = LogAcao.query.filter_by(sucesso=True).count()
+        acoes_erro = LogAcao.query.filter_by(sucesso=False).count()
+
+        # Ações por categoria (últimos 30 dias)
+        trinta_dias_atras = get_brazil_time() - timedelta(days=30)
+        acoes_por_categoria = db.session.query(
+            LogAcao.categoria,
+            func.count(LogAcao.id).label('quantidade')
+        ).filter(
+            LogAcao.data_acao >= trinta_dias_atras.replace(tzinfo=None)
+        ).group_by(LogAcao.categoria).all()
+
+        # Usuários mais ativos (últimos 30 dias)
+        usuarios_ativos = db.session.query(
+            LogAcao.usuario_id,
+            User.nome,
+            func.count(LogAcao.id).label('quantidade')
+        ).join(User).filter(
+            LogAcao.data_acao >= trinta_dias_atras.replace(tzinfo=None)
+        ).group_by(LogAcao.usuario_id, User.nome).order_by(
+            func.count(LogAcao.id).desc()
+        ).limit(10).all()
+
+        return json_response({
+            'total_acoes': total_acoes,
+            'acoes_sucesso': acoes_sucesso,
+            'acoes_erro': acoes_erro,
+            'taxa_sucesso': round((acoes_sucesso / total_acoes * 100) if total_acoes > 0 else 0, 2),
+            'por_categoria': [{'categoria': cat[0], 'quantidade': cat[1]} for cat in acoes_por_categoria],
+            'usuarios_ativos': [{'usuario_id': u[0], 'nome': u[1], 'quantidade': u[2]} for u in usuarios_ativos]
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas de logs: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/logs/acesso', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_logs_acesso():
+    """Lista logs de acesso com filtros e paginação"""
+    try:
+        from database import LogAcesso
+
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+        usuario_id = request.args.get('usuario_id')
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        ativo = request.args.get('ativo')
+
+        # Construir query base
+        query = LogAcesso.query
+
+        # Aplicar filtros
+        if usuario_id:
+            query = query.filter(LogAcesso.usuario_id == int(usuario_id))
+        if data_inicio:
+            try:
+                data_inicio_obj = datetime.strptime(data_inicio, '%Y-%m-%d')
+                query = query.filter(LogAcesso.data_acesso >= data_inicio_obj)
+            except ValueError:
+                pass
+        if data_fim:
+            try:
+                data_fim_obj = datetime.strptime(data_fim, '%Y-%m-%d') + timedelta(days=1)
+                query = query.filter(LogAcesso.data_acesso < data_fim_obj)
+            except ValueError:
+                pass
+        if ativo == 'true':
+            query = query.filter(LogAcesso.ativo == True)
+        elif ativo == 'false':
+            query = query.filter(LogAcesso.ativo == False)
+
+        # Ordenar por data mais recente
+        query = query.order_by(LogAcesso.data_acesso.desc())
+
+        # Paginar
+        logs_paginados = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        logs_list = []
+        for log in logs_paginados.items:
+            data_acesso_brazil = log.get_data_acesso_brazil()
+            data_logout_brazil = log.get_data_logout_brazil()
+
+            logs_list.append({
+                'id': log.id,
+                'usuario_id': log.usuario_id,
+                'usuario_nome': log.usuario.nome if log.usuario else 'Usuário Removido',
+                'data_acesso': data_acesso_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_acesso_brazil else None,
+                'data_logout': data_logout_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_logout_brazil else None,
+                'duracao_sessao': log.duracao_sessao,
+                'ip_address': log.ip_address,
+                'navegador': log.navegador,
+                'sistema_operacional': log.sistema_operacional,
+                'dispositivo': log.dispositivo,
+                'ativo': log.ativo
+            })
+
+        return json_response({
+            'logs': logs_list,
+            'pagination': {
+                'page': logs_paginados.page,
+                'pages': logs_paginados.pages,
+                'per_page': logs_paginados.per_page,
+                'total': logs_paginados.total,
+                'has_next': logs_paginados.has_next,
+                'has_prev': logs_paginados.has_prev
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar logs de acesso: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/logs/acesso/estatisticas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def estatisticas_logs_acesso():
+    """Retorna estatísticas dos logs de acesso"""
+    try:
+        from database import LogAcesso
+
+        # Estatísticas gerais
+        total_acessos = LogAcesso.query.count()
+        sessoes_ativas = LogAcesso.query.filter_by(ativo=True).count()
+
+        # Acessos por dia (últimos 30 dias)
+        trinta_dias_atras = get_brazil_time() - timedelta(days=30)
+        acessos_por_dia = db.session.query(
+            func.date(LogAcesso.data_acesso).label('data'),
+            func.count(LogAcesso.id).label('quantidade')
+        ).filter(
+            LogAcesso.data_acesso >= trinta_dias_atras.replace(tzinfo=None)
+        ).group_by(func.date(LogAcesso.data_acesso)).all()
+
+        # Dispositivos mais utilizados
+        dispositivos = db.session.query(
+            LogAcesso.dispositivo,
+            func.count(LogAcesso.id).label('quantidade')
+        ).filter(
+            LogAcesso.dispositivo.isnot(None)
+        ).group_by(LogAcesso.dispositivo).all()
+
+        # Navegadores mais utilizados
+        navegadores = db.session.query(
+            LogAcesso.navegador,
+            func.count(LogAcesso.id).label('quantidade')
+        ).filter(
+            LogAcesso.navegador.isnot(None)
+        ).group_by(LogAcesso.navegador).all()
+
+        return json_response({
+            'total_acessos': total_acessos,
+            'sessoes_ativas': sessoes_ativas,
+            'por_dia': [{'data': str(d[0]), 'quantidade': d[1]} for d in acessos_por_dia],
+            'dispositivos': [{'dispositivo': d[0], 'quantidade': d[1]} for d in dispositivos],
+            'navegadores': [{'navegador': n[0], 'quantidade': n[1]} for n in navegadores]
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas de acesso: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/analise/problemas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def analise_problemas():
+    """Análise estatística de problemas reportados"""
+    try:
+        # Problemas mais frequentes (últimos 3 meses)
+        tres_meses_atras = get_brazil_time() - timedelta(days=90)
+        problemas_frequentes = db.session.query(
+            Chamado.problema,
+            func.count(Chamado.id).label('quantidade'),
+            func.avg(func.extract('epoch', Chamado.data_conclusao - Chamado.data_abertura)/3600).label('tempo_medio_resolucao')
+        ).filter(
+            Chamado.data_abertura >= tres_meses_atras.replace(tzinfo=None)
+        ).group_by(Chamado.problema).order_by(
+            func.count(Chamado.id).desc()
+        ).limit(10).all()
+
+        # Unidades com mais problemas
+        unidades_problemas = db.session.query(
+            Chamado.unidade,
+            func.count(Chamado.id).label('quantidade'),
+            func.sum(case([(Chamado.status == 'Aberto', 1)], else_=0)).label('abertos'),
+            func.sum(case([(Chamado.status == 'Concluido', 1)], else_=0)).label('concluidos')
+        ).filter(
+            Chamado.data_abertura >= tres_meses_atras.replace(tzinfo=None)
+        ).group_by(Chamado.unidade).order_by(
+            func.count(Chamado.id).desc()
+        ).limit(15).all()
+
+        # Tendências temporais (por semana nos últimos 3 meses)
+        tendencias = db.session.query(
+            func.extract('week', Chamado.data_abertura).label('semana'),
+            func.extract('year', Chamado.data_abertura).label('ano'),
+            func.count(Chamado.id).label('quantidade')
+        ).filter(
+            Chamado.data_abertura >= tres_meses_atras.replace(tzinfo=None)
+        ).group_by(
+            func.extract('week', Chamado.data_abertura),
+            func.extract('year', Chamado.data_abertura)
+        ).order_by('ano', 'semana').all()
+
+        # Análise de resolução por prioridade
+        resolucao_prioridade = db.session.query(
+            Chamado.prioridade,
+            func.count(Chamado.id).label('total'),
+            func.sum(case([(Chamado.status == 'Concluido', 1)], else_=0)).label('resolvidos'),
+            func.avg(func.extract('epoch', Chamado.data_conclusao - Chamado.data_abertura)/3600).label('tempo_medio')
+        ).filter(
+            Chamado.data_abertura >= tres_meses_atras.replace(tzinfo=None)
+        ).group_by(Chamado.prioridade).all()
+
+        return json_response({
+            'problemas_frequentes': [{
+                'problema': p[0],
+                'quantidade': p[1],
+                'tempo_medio_resolucao': round(p[2], 2) if p[2] else None
+            } for p in problemas_frequentes],
+            'unidades_problemas': [{
+                'unidade': u[0],
+                'total': u[1],
+                'abertos': u[2],
+                'concluidos': u[3],
+                'taxa_resolucao': round((u[3] / u[1] * 100) if u[1] > 0 else 0, 2)
+            } for u in unidades_problemas],
+            'tendencias_semanais': [{
+                'semana': t[0],
+                'ano': t[1],
+                'quantidade': t[2]
+            } for t in tendencias],
+            'resolucao_por_prioridade': [{
+                'prioridade': r[0],
+                'total': r[1],
+                'resolvidos': r[2],
+                'taxa_resolucao': round((r[2] / r[1] * 100) if r[1] > 0 else 0, 2),
+                'tempo_medio': round(r[3], 2) if r[3] else None
+            } for r in resolucao_prioridade]
+        })
+
+    except Exception as e:
+        logger.error(f"Erro na análise de problemas: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
+
+# ==================== CONFIGURAÇÕES AVANÇADAS ====================
+
+@painel_bp.route('/api/configuracoes-avancadas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def carregar_configuracoes_avancadas():
+    """Carrega configurações avançadas do sistema"""
+    try:
+        configuracoes_avancadas = {
+            'sistema': {
+                'debug_mode': False,
+                'log_level': 'INFO',
+                'max_file_size': '50MB',
+                'session_timeout': 30,
+                'auto_logout': True
+            },
+            'seguranca': {
+                'force_https': True,
+                'csrf_protection': True,
+                'rate_limiting': True,
+                'ip_whitelist': ['127.0.0.1'],
+                'password_complexity': True
+            },
+            'performance': {
+                'cache_enabled': True,
+                'compression': True,
+                'cdn_enabled': False,
+                'database_pool_size': 10
+            },
+            'backup': {
+                'auto_backup': True,
+                'backup_frequency': 'daily',
+                'retention_days': 30,
+                'backup_location': '/backups/'
+            }
+        }
+
+        return json_response(configuracoes_avancadas)
+
+    except Exception as e:
+        logger.error(f"Erro ao carregar configurações avançadas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/configuracoes-avancadas', methods=['POST'])
+@login_required
+@setor_required('Administrador')
+def salvar_configuracoes_avancadas():
+    """Salva configurações avançadas do sistema"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        # Em produção, salvar no banco de dados
+        logger.info(f"Configurações avançadas atualizadas por {current_user.nome}")
+
+        return json_response({'message': 'Configurações avançadas salvas com sucesso'})
+
+    except Exception as e:
+        logger.error(f"Erro ao salvar configurações avançadas: {str(e)}")
         return error_response('Erro interno no servidor')

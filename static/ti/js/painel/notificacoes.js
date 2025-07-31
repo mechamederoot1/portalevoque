@@ -639,8 +639,16 @@ class AdvancedNotificationSystem {
     }
 
     formatTime(timestamp) {
+        // Garantir que timestamp seja um objeto Date
+        const date = timestamp instanceof Date ? timestamp : new Date(timestamp);
+
+        // Verificar se a data é válida
+        if (isNaN(date.getTime())) {
+            return 'Data inválida';
+        }
+
         const now = new Date();
-        const diff = now - timestamp;
+        const diff = now - date;
         const minutes = Math.floor(diff / 60000);
         const hours = Math.floor(diff / 3600000);
         const days = Math.floor(diff / 86400000);
@@ -649,8 +657,8 @@ class AdvancedNotificationSystem {
         if (minutes < 60) return `${minutes}m atrás`;
         if (hours < 24) return `${hours}h atrás`;
         if (days < 7) return `${days}d atrás`;
-        
-        return timestamp.toLocaleDateString('pt-BR');
+
+        return date.toLocaleDateString('pt-BR');
     }
 
     generateId() {

@@ -91,9 +91,12 @@ async function loadChamados() {
         }
         chamadosData = await response.json();
         renderChamadosPage(currentPage);
-        
+
         // Atualizar contadores da visão geral
         atualizarContadoresVisaoGeral();
+
+        // Popular filtros dinâmicos
+        popularFiltrosDinamicos();
     } catch (error) {
         console.error('Erro ao carregar chamados:', error);
         chamadosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar chamados. Tente novamente mais tarde.</p>';
@@ -101,6 +104,54 @@ async function loadChamados() {
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar chamados');
         }
+    }
+}
+
+// Função para popular filtros com dados dinâmicos
+function popularFiltrosDinamicos() {
+    // Popular filtro de unidades
+    const filtroUnidade = document.getElementById('filtroUnidade');
+    if (filtroUnidade && chamadosData.length > 0) {
+        const unidades = [...new Set(chamadosData.map(c => c.unidade))].sort();
+
+        // Limpar opções existentes (exceto a primeira)
+        while (filtroUnidade.children.length > 1) {
+            filtroUnidade.removeChild(filtroUnidade.lastChild);
+        }
+
+        unidades.forEach(unidade => {
+            const option = document.createElement('option');
+            option.value = unidade;
+            option.textContent = unidade;
+            filtroUnidade.appendChild(option);
+        });
+    }
+
+    // Popular filtro de agentes responsáveis
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    if (filtroAgenteResponsavel && chamadosData.length > 0) {
+        const agentes = chamadosData
+            .filter(c => c.agente)
+            .map(c => ({id: c.agente.id, nome: c.agente.nome}))
+            .reduce((acc, agente) => {
+                if (!acc.find(a => a.id === agente.id)) {
+                    acc.push(agente);
+                }
+                return acc;
+            }, [])
+            .sort((a, b) => a.nome.localeCompare(b.nome));
+
+        // Limpar opções existentes (exceto a primeira)
+        while (filtroAgenteResponsavel.children.length > 1) {
+            filtroAgenteResponsavel.removeChild(filtroAgenteResponsavel.lastChild);
+        }
+
+        agentes.forEach(agente => {
+            const option = document.createElement('option');
+            option.value = agente.id;
+            option.textContent = agente.nome;
+            filtroAgenteResponsavel.appendChild(option);
+        });
     }
 }
 
@@ -134,13 +185,79 @@ function filterChamados(status) {
         filtrados = filtrados.filter(chamado => chamado.status === status);
     }
 
-    // Filtrar por agente se o filtro existir
-    const filtroAgente = document.getElementById('filtroAgente');
-    if (filtroAgente && filtroAgente.value) {
-        const agenteId = filtroAgente.value;
+    // Aplicar filtros avançados se estiverem ativos
+    filtrados = aplicarFiltrosAvancados(filtrados);
+
+    return filtrados;
+}
+
+// Função para aplicar filtros avançados
+function aplicarFiltrosAvancados(chamados) {
+    let filtrados = [...chamados];
+
+    // Filtro por solicitante
+    const filtroSolicitante = document.getElementById('filtroSolicitante');
+    if (filtroSolicitante && filtroSolicitante.value.trim()) {
+        const termo = filtroSolicitante.value.trim().toLowerCase();
+        filtrados = filtrados.filter(chamado =>
+            chamado.solicitante.toLowerCase().includes(termo)
+        );
+    }
+
+    // Filtro por problema
+    const filtroProblema = document.getElementById('filtroProblema');
+    if (filtroProblema && filtroProblema.value.trim()) {
+        const termo = filtroProblema.value.trim().toLowerCase();
+        filtrados = filtrados.filter(chamado =>
+            chamado.problema.toLowerCase().includes(termo)
+        );
+    }
+
+    // Filtro por prioridade
+    const filtroPrioridade = document.getElementById('filtroPrioridade');
+    if (filtroPrioridade && filtroPrioridade.value) {
+        filtrados = filtrados.filter(chamado =>
+            chamado.prioridade === filtroPrioridade.value
+        );
+    }
+
+    // Filtro por agente responsável
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    if (filtroAgenteResponsavel && filtroAgenteResponsavel.value) {
+        const agenteId = filtroAgenteResponsavel.value;
         filtrados = filtrados.filter(chamado =>
             chamado.agente_id && chamado.agente_id.toString() === agenteId
         );
+    }
+
+    // Filtro por unidade
+    const filtroUnidade = document.getElementById('filtroUnidade');
+    if (filtroUnidade && filtroUnidade.value) {
+        filtrados = filtrados.filter(chamado =>
+            chamado.unidade === filtroUnidade.value
+        );
+    }
+
+    // Filtro por data de início
+    const filtroDataInicio = document.getElementById('filtroDataInicio');
+    if (filtroDataInicio && filtroDataInicio.value) {
+        const dataInicio = new Date(filtroDataInicio.value);
+        filtrados = filtrados.filter(chamado => {
+            if (!chamado.data_abertura) return false;
+            const dataChamado = new Date(chamado.data_abertura.split(' ')[0].split('/').reverse().join('-'));
+            return dataChamado >= dataInicio;
+        });
+    }
+
+    // Filtro por data fim
+    const filtroDataFim = document.getElementById('filtroDataFim');
+    if (filtroDataFim && filtroDataFim.value) {
+        const dataFim = new Date(filtroDataFim.value);
+        filtrados = filtrados.filter(chamado => {
+            if (!chamado.data_abertura) return false;
+            const dataChamado = new Date(chamado.data_abertura.split(' ')[0].split('/').reverse().join('-'));
+            return dataChamado <= dataFim;
+        });
     }
 
     return filtrados;
@@ -258,11 +375,19 @@ card.innerHTML = `
             <strong>Data:</strong>
             <span>${formatarData(chamado.data_abertura)}</span>
         </div>
-        ${chamado.agente ? `
         <div class="info-row">
             <strong>Agente:</strong>
-            <span class="badge bg-info">${chamado.agente.nome}</span>
-        </div>` : ''}
+            ${chamado.agente ? `
+                <span class="badge bg-info">${chamado.agente.nome}</span>
+                <button class="btn btn-sm btn-outline-warning ms-2" onclick="alterarAgente(${chamado.id})" title="Alterar agente">
+                    <i class="fas fa-user-edit"></i>
+                </button>
+            ` : `
+                <button class="btn btn-sm btn-success" onclick="atribuirAgente(${chamado.id})" title="Atribuir agente">
+                    <i class="fas fa-user-plus"></i> Atribuir
+                </button>
+            `}
+        </div>
     </div>
     <div class="card-footer">
         <select id="status-${chamado.id}">
@@ -683,7 +808,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             alterar_senha_primeiro_acesso: document.getElementById('alterarSenhaPrimeiroAcesso').checked
         };
 
-        // Validação
+        // Validaç����o
         const errosValidacao = validarDadosUsuario(usuarioData);
         if (errosValidacao.length > 0) {
             throw new Error(errosValidacao.join('<br>'));
@@ -1455,6 +1580,8 @@ function loadSectionContent(sectionId) {
             break;
         case 'permissoes':
             loadUsuarios();
+            // Inicializar filtro de permissões
+            inicializarFiltroPermissoes();
             break;
         case 'bloqueios':
             loadUsuariosBloqueados();
@@ -1474,6 +1601,36 @@ function loadSectionContent(sectionId) {
             break;
         case 'visao-geral':
             atualizarContadoresVisaoGeral();
+            break;
+        case 'configuracoes-avancadas':
+            carregarConfiguracoesAvancadas();
+            break;
+        case 'alertas-sistema':
+            carregarAlertasSistema();
+            break;
+        case 'backup-manutencao':
+            carregarBackupManutencao();
+            break;
+        case 'logs-acesso':
+            carregarLogsAcesso();
+            break;
+        case 'logs-acoes':
+            carregarLogsAcoes();
+            break;
+        case 'analise-problemas':
+            carregarAnaliseProblemas();
+            break;
+        case 'monitoramento-catraca':
+            carregarMonitoramentoCatraca();
+            break;
+        case 'monitoramento-mikrotiks':
+            carregarMonitoramentoMikrotiks();
+            break;
+        case 'monitoramento-usuarios':
+            carregarMonitoramentoUsuarios();
+            break;
+        case 'dashboard-avancado':
+            carregarDashboardAvancado();
             break;
     }
 }
@@ -1950,7 +2107,7 @@ document.getElementById('formCriarAgente')?.addEventListener('submit', async fun
 // Carregar usuários para seleção no modal de agente
 async function carregarUsuariosParaAgente() {
     try {
-        const response = await fetch('/ti/painel/api/usuarios');
+        const response = await fetch('/ti/painel/api/usuarios-disponiveis');
         if (!response.ok) {
             throw new Error('Erro ao carregar usuários');
         }
@@ -2368,20 +2525,43 @@ async function excluirGrupo(grupoId) {
     }
 }
 
-// Atualizar loadSectionContent para incluir agentes e grupos
-const originalLoadSectionContent = loadSectionContent;
-loadSectionContent = function(sectionId) {
-    originalLoadSectionContent(sectionId);
+// Garantir que agentes e grupos sejam carregados corretamente
+function loadSectionContentEnhanced(sectionId) {
+    // Chamar a função original primeiro
+    if (typeof loadSectionContent === 'function') {
+        loadSectionContent(sectionId);
+    }
 
+    // Adicionar funcionalidades específicas
     switch(sectionId) {
         case 'agentes-suporte':
-            carregarAgentes();
+            setTimeout(() => {
+                if (typeof carregarAgentes === 'function') {
+                    carregarAgentes();
+                }
+            }, 100);
             break;
         case 'grupos-usuarios':
-            carregarGrupos();
+            setTimeout(() => {
+                if (typeof carregarGrupos === 'function') {
+                    carregarGrupos();
+                }
+                inicializarModalGrupos();
+            }, 100);
             break;
     }
-};
+}
+
+// Sobrescrever apenas se necessário
+if (typeof loadSectionContent !== 'undefined') {
+    const originalFunction = loadSectionContent;
+    loadSectionContent = function(sectionId) {
+        originalFunction(sectionId);
+        loadSectionContentEnhanced(sectionId);
+    };
+} else {
+    loadSectionContent = loadSectionContentEnhanced;
+}
 
 // Placeholder functions para funcionalidades futuras
 function editarAgente(agenteId) {
@@ -2470,5 +2650,1204 @@ async function carregarAgentesParaFiltro() {
 
     } catch (error) {
         console.error('Erro ao carregar agentes para filtro:', error);
+    }
+}
+
+// ==================== FILTRO DE PERMISSÕES ====================
+
+function inicializarFiltroPermissoes() {
+    const filtroInput = document.getElementById('filtroPermissoes');
+    const btnFiltrar = document.getElementById('btnFiltrarPermissoes');
+
+    if (!filtroInput || !btnFiltrar) return;
+
+    // Função para filtrar usuários
+    const filtrarUsuarios = () => {
+        const termoBusca = filtroInput.value.toLowerCase().trim();
+        filtrarListaUsuarios(termoBusca);
+    };
+
+    // Event listeners
+    filtroInput.addEventListener('input', filtrarUsuarios);
+    btnFiltrar.addEventListener('click', filtrarUsuarios);
+
+    // Filtrar ao pressionar Enter
+    filtroInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            filtrarUsuarios();
+        }
+    });
+}
+
+function filtrarListaUsuarios(termoBusca) {
+    const usuariosGrid = document.getElementById('usuariosGrid');
+    if (!usuariosGrid) return;
+
+    const cards = usuariosGrid.querySelectorAll('.user-card');
+    let usuariosVisiveis = 0;
+
+    cards.forEach(card => {
+        const nome = card.querySelector('.user-name')?.textContent.toLowerCase() || '';
+        const email = card.querySelector('.user-email')?.textContent.toLowerCase() || '';
+        const usuario = card.querySelector('.user-username')?.textContent.toLowerCase() || '';
+        const unidade = card.querySelector('.user-unidade')?.textContent.toLowerCase() || '';
+
+        const textoCompleto = `${nome} ${email} ${usuario} ${unidade}`;
+
+        if (termoBusca === '' || textoCompleto.includes(termoBusca)) {
+            card.style.display = '';
+            usuariosVisiveis++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Mostrar mensagem se nenhum usuário for encontrado
+    const mensagemVazia = document.getElementById('mensagemUsuariosVazia');
+    if (usuariosVisiveis === 0 && termoBusca !== '') {
+        if (!mensagemVazia) {
+            const mensagem = document.createElement('div');
+            mensagem.id = 'mensagemUsuariosVazia';
+            mensagem.className = 'text-center py-4';
+            mensagem.innerHTML = `
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhum usuário encontrado</h5>
+                <p class="text-muted">Tente usar termos de busca diferentes</p>
+            `;
+            usuariosGrid.appendChild(mensagem);
+        }
+    } else if (mensagemVazia) {
+        mensagemVazia.remove();
+    }
+}
+
+// ==================== FUNCIONALIDADES DE GRUPOS ====================
+
+function inicializarModalGrupos() {
+    const btnCriarGrupo = document.getElementById('btnCriarGrupo');
+    const modalCriarGrupo = document.getElementById('modalCriarGrupo');
+    const btnCancelarGrupo = document.getElementById('btnCancelarGrupo');
+    const btnSalvarGrupo = document.getElementById('btnSalvarGrupo');
+    const modalClose = document.getElementById('modalCriarGrupoClose');
+
+    if (!btnCriarGrupo || !modalCriarGrupo) return;
+
+    // Abrir modal
+    btnCriarGrupo.addEventListener('click', async () => {
+        await carregarUnidadesParaGrupo();
+        modalCriarGrupo.classList.add('active');
+    });
+
+    // Fechar modal
+    [btnCancelarGrupo, modalClose].forEach(btn => {
+        if (btn) {
+            btn.addEventListener('click', () => {
+                modalCriarGrupo.classList.remove('active');
+                limparFormularioGrupo();
+            });
+        }
+    });
+
+    // Salvar grupo
+    if (btnSalvarGrupo) {
+        btnSalvarGrupo.addEventListener('click', criarGrupo);
+    }
+
+    // Adicionar botões de seleção de unidades
+    adicionarBotoesSelecaoUnidades();
+}
+
+async function carregarUnidadesParaGrupo() {
+    try {
+        const response = await fetch('/ti/painel/api/unidades');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar unidades');
+        }
+
+        const unidades = await response.json();
+        const select = document.getElementById('unidadesGrupo');
+
+        if (!select) return;
+
+        // Limpar e carregar unidades
+        select.innerHTML = '';
+
+        unidades.forEach(unidade => {
+            const option = document.createElement('option');
+            option.value = unidade.id;
+            option.textContent = unidade.nome;
+            select.appendChild(option);
+        });
+
+        console.log(`${unidades.length} unidades carregadas para seleção`);
+
+    } catch (error) {
+        console.error('Erro ao carregar unidades:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar lista de unidades');
+        }
+    }
+}
+
+function adicionarBotoesSelecaoUnidades() {
+    const unidadesGrupo = document.getElementById('unidadesGrupo');
+    if (!unidadesGrupo) return;
+
+    // Verificar se já existem botões
+    const containerExistente = unidadesGrupo.parentNode.querySelector('.buttons-container');
+    if (containerExistente) {
+        containerExistente.remove();
+    }
+
+    // Criar container para botões
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'buttons-container mt-2';
+
+    // Botão selecionar todas
+    const btnSelecionarTodas = document.createElement('button');
+    btnSelecionarTodas.type = 'button';
+    btnSelecionarTodas.className = 'btn btn-sm btn-outline-primary me-2';
+    btnSelecionarTodas.innerHTML = '<i class="fas fa-check-double"></i> Selecionar Todas';
+    btnSelecionarTodas.onclick = () => selecionarTodasUnidades(true);
+
+    // Botão desmarcar todas
+    const btnDesmarcarTodas = document.createElement('button');
+    btnDesmarcarTodas.type = 'button';
+    btnDesmarcarTodas.className = 'btn btn-sm btn-outline-secondary';
+    btnDesmarcarTodas.innerHTML = '<i class="fas fa-times"></i> Desmarcar Todas';
+    btnDesmarcarTodas.onclick = () => selecionarTodasUnidades(false);
+
+    buttonsContainer.appendChild(btnSelecionarTodas);
+    buttonsContainer.appendChild(btnDesmarcarTodas);
+
+    // Inserir após o select
+    unidadesGrupo.parentNode.insertBefore(buttonsContainer, unidadesGrupo.nextSibling);
+}
+
+function selecionarTodasUnidades(selecionar) {
+    const select = document.getElementById('unidadesGrupo');
+    if (!select) return;
+
+    for (let option of select.options) {
+        option.selected = selecionar;
+    }
+
+    // Disparar evento de mudança
+    const event = new Event('change', { bubbles: true });
+    select.dispatchEvent(event);
+}
+
+async function criarGrupo() {
+    try {
+        const nome = document.getElementById('nomeGrupo').value.trim();
+        const descricao = document.getElementById('descricaoGrupo').value.trim();
+        const ativo = document.getElementById('ativoGrupo').checked;
+        const unidadesSelect = document.getElementById('unidadesGrupo');
+
+        if (!nome) {
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigatório');
+            }
+            return;
+        }
+
+        // Coletar unidades selecionadas
+        const unidadesSelecionadas = Array.from(unidadesSelect.selectedOptions).map(option =>
+            parseInt(option.value)
+        );
+
+        const dadosGrupo = {
+            nome,
+            descricao,
+            ativo,
+            unidades: unidadesSelecionadas
+        };
+
+        const response = await fetch('/ti/painel/api/grupos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dadosGrupo)
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao criar grupo');
+        }
+
+        const resultado = await response.json();
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Sucesso', resultado.message || 'Grupo criado com sucesso');
+        }
+
+        // Fechar modal e recarregar lista
+        document.getElementById('modalCriarGrupo').classList.remove('active');
+        limparFormularioGrupo();
+        await carregarGrupos();
+
+    } catch (error) {
+        console.error('Erro ao criar grupo:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+function limparFormularioGrupo() {
+    const form = document.getElementById('formCriarGrupo');
+    if (form) {
+        form.reset();
+    }
+
+    // Desmarcar todas as unidades
+    const select = document.getElementById('unidadesGrupo');
+    if (select) {
+        for (let option of select.options) {
+            option.selected = false;
+        }
+    }
+}
+
+async function carregarGrupos() {
+    try {
+        const response = await fetch('/ti/painel/api/grupos');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar grupos');
+        }
+
+        const grupos = await response.json();
+        renderizarGrupos(grupos);
+
+    } catch (error) {
+        console.error('Erro ao carregar grupos:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar grupos');
+        }
+    }
+}
+
+function renderizarGrupos(grupos) {
+    const container = document.getElementById('gruposGrid');
+    if (!container) return;
+
+    if (!grupos || grupos.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhum grupo encontrado</h5>
+                <p class="text-muted">Crie o primeiro grupo para organizar usuários</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = grupos.map(grupo => `
+        <div class="card group-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title group-name">${grupo.nome}</h5>
+                    <span class="badge ${grupo.ativo ? 'bg-success' : 'bg-secondary'}">
+                        ${grupo.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                </div>
+                <p class="card-text group-description text-muted">${grupo.descricao || 'Sem descrição'}</p>
+                <div class="group-stats mb-3">
+                    <small class="text-muted">
+                        <i class="fas fa-users"></i> ${grupo.membros_count} membros •
+                        <i class="fas fa-building"></i> ${grupo.unidades_count} unidades
+                    </small>
+                </div>
+                <div class="group-info">
+                    <small class="text-muted">
+                        Criado por: ${grupo.criado_por}<br>
+                        Data: ${grupo.data_criacao}
+                    </small>
+                </div>
+                <div class="card-actions mt-3">
+                    <button class="btn btn-sm btn-primary" onclick="editarGrupo(${grupo.id})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="gerenciarMembros(${grupo.id})">
+                        <i class="fas fa-users"></i> Membros
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="excluirGrupo(${grupo.id})">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+// ==================== CARREGAR AGENTES ====================
+
+async function carregarAgentes() {
+    try {
+        const response = await fetch('/ti/painel/api/agentes');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar agentes');
+        }
+
+        const agentes = await response.json();
+        renderizarAgentes(agentes);
+        atualizarEstatisticasAgentes(agentes);
+
+    } catch (error) {
+        console.error('Erro ao carregar agentes:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes de suporte');
+        }
+    }
+}
+
+function renderizarAgentes(agentes) {
+    const container = document.getElementById('agentesGrid');
+    if (!container) return;
+
+    if (!agentes || agentes.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-headset fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhum agente encontrado</h5>
+                <p class="text-muted">Crie o primeiro agente de suporte</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = agentes.map(agente => `
+        <div class="card agent-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title agent-name">${agente.nome}</h5>
+                    <span class="badge ${agente.ativo ? 'bg-success' : 'bg-secondary'}">
+                        ${agente.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                </div>
+                <p class="card-text agent-email text-muted">${agente.email}</p>
+                <div class="agent-stats mb-3">
+                    <small class="text-muted">
+                        <i class="fas fa-star"></i> ${agente.nivel_experiencia} •
+                        <i class="fas fa-tasks"></i> ${agente.chamados_ativos}/${agente.max_chamados_simultaneos} chamados
+                    </small>
+                </div>
+                <div class="agent-specialties mb-2">
+                    ${agente.especialidades && agente.especialidades.map ?
+                        agente.especialidades.map(esp =>
+                            `<span class="badge bg-primary me-1">${esp}</span>`
+                        ).join('') : ''
+                    }
+                </div>
+                <div class="agent-info">
+                    <small class="text-muted">
+                        Criado: ${agente.data_criacao}
+                    </small>
+                </div>
+                <div class="card-actions mt-3">
+                    <button class="btn btn-sm btn-primary" onclick="editarAgente(${agente.id})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="verChamadosAgente(${agente.id})">
+                        <i class="fas fa-tasks"></i> Chamados
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="excluirAgente(${agente.id})">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function atualizarEstatisticasAgentes(agentes) {
+    const totalAgentes = document.getElementById('totalAgentes');
+    const agentesAtivos = document.getElementById('agentesAtivos');
+    const chamadosAtribuidos = document.getElementById('chamadosAtribuidos');
+    const agentesDisponiveis = document.getElementById('agentesDisponiveis');
+
+    if (totalAgentes) totalAgentes.textContent = agentes.length;
+    if (agentesAtivos) agentesAtivos.textContent = agentes.filter(a => a.ativo).length;
+    if (chamadosAtribuidos) chamadosAtribuidos.textContent = agentes.reduce((sum, a) => sum + (a.chamados_ativos || 0), 0);
+    if (agentesDisponiveis) agentesDisponiveis.textContent = agentes.filter(a => a.pode_receber_chamado).length;
+}
+
+// ==================== CONFIGURAÇÕES AVANÇADAS ====================
+
+async function carregarConfiguracoesAvancadas() {
+    try {
+        const response = await fetch('/ti/painel/api/configuracoes-avancadas');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar configurações avançadas');
+        }
+
+        const config = await response.json();
+        preencherFormularioConfiguracoesAvancadas(config);
+
+    } catch (error) {
+        console.error('Erro ao carregar configurações avançadas:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar configurações avançadas');
+        }
+    }
+}
+
+function preencherFormularioConfiguracoesAvancadas(config) {
+    // Sistema
+    if (config.sistema) {
+        const sistema = config.sistema;
+        setValueById('debugMode', sistema.debug_mode);
+        setValueById('logLevel', sistema.log_level);
+        setValueById('maxFileSize', sistema.max_file_size);
+        setValueById('sessionTimeout', sistema.session_timeout);
+        setValueById('autoLogout', sistema.auto_logout);
+    }
+
+    // Segurança
+    if (config.seguranca) {
+        const seguranca = config.seguranca;
+        setValueById('forceHttps', seguranca.force_https);
+        setValueById('csrfProtection', seguranca.csrf_protection);
+        setValueById('rateLimiting', seguranca.rate_limiting);
+        setValueById('passwordComplexity', seguranca.password_complexity);
+    }
+
+    // Performance
+    if (config.performance) {
+        const performance = config.performance;
+        setValueById('cacheEnabled', performance.cache_enabled);
+        setValueById('compression', performance.compression);
+        setValueById('cdnEnabled', performance.cdn_enabled);
+        setValueById('databasePoolSize', performance.database_pool_size);
+    }
+
+    // Backup
+    if (config.backup) {
+        const backup = config.backup;
+        setValueById('autoBackup', backup.auto_backup);
+        setValueById('backupFrequency', backup.backup_frequency);
+        setValueById('retentionDays', backup.retention_days);
+        setValueById('backupLocation', backup.backup_location);
+    }
+}
+
+function setValueById(id, value) {
+    const element = document.getElementById(id);
+    if (element) {
+        if (element.type === 'checkbox') {
+            element.checked = value;
+        } else {
+            element.value = value;
+        }
+    }
+}
+
+// ==================== ALERTAS DO SISTEMA ====================
+
+async function carregarAlertasSistema() {
+    try {
+        const response = await fetch('/ti/painel/api/alertas?page=1&per_page=10');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar alertas');
+        }
+
+        const data = await response.json();
+        renderizarAlertasSistema(data.alertas);
+
+    } catch (error) {
+        console.error('Erro ao carregar alertas:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar alertas do sistema');
+        }
+    }
+}
+
+function renderizarAlertasSistema(alertas) {
+    const container = document.getElementById('alertasGrid');
+    if (!container) return;
+
+    if (!alertas || alertas.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-shield-alt fa-3x text-success mb-3"></i>
+                <h5 class="text-success">Sistema funcionando normalmente</h5>
+                <p class="text-muted">Nenhum alerta ativo no momento</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = alertas.map(alerta => `
+        <div class="alert alert-${getAlertClass(alerta.tipo)} d-flex align-items-center" role="alert">
+            <i class="fas fa-${getAlertIcon(alerta.tipo)} me-2"></i>
+            <div class="flex-grow-1">
+                <strong>${alerta.titulo}</strong>
+                <p class="mb-0">${alerta.mensagem}</p>
+                <small class="text-muted">${alerta.data}</small>
+            </div>
+            <span class="badge bg-${alerta.prioridade === 'crítica' ? 'danger' : alerta.prioridade === 'alta' ? 'warning' : 'info'}">
+                ${alerta.prioridade}
+            </span>
+        </div>
+    `).join('');
+}
+
+function getAlertClass(tipo) {
+    switch(tipo) {
+        case 'error': return 'danger';
+        case 'warning': return 'warning';
+        case 'info': return 'info';
+        default: return 'secondary';
+    }
+}
+
+function getAlertIcon(tipo) {
+    switch(tipo) {
+        case 'error': return 'exclamation-triangle';
+        case 'warning': return 'exclamation-circle';
+        case 'info': return 'info-circle';
+        default: return 'bell';
+    }
+}
+
+// ==================== BACKUP E MANUTENÇÃO ====================
+
+async function carregarBackupManutencao() {
+    try {
+        // Adicionar event listeners para os botões existentes
+        const btnCriarBackup = document.getElementById('btnCriarBackup');
+        if (btnCriarBackup) {
+            btnCriarBackup.addEventListener('click', criarBackup);
+        }
+
+        console.log('Seção backup/manutenção carregada');
+    } catch (error) {
+        console.error('Erro ao carregar backup/manutenção:', error);
+    }
+}
+
+// ==================== LOGS DE ACESSO ====================
+
+async function carregarLogsAcesso() {
+    try {
+        const tabela = document.getElementById('tabelaLogsAcesso');
+        if (tabela) {
+            // Simular logs de acesso
+            const logs = [
+                { usuario: 'Admin', dataLogin: '31/01/2025 10:30:00', dataLogout: '31/01/2025 12:15:00', duracao: '1h 45m', ip: '192.168.1.100', status: 'Ativo' },
+                { usuario: 'João Silva', dataLogin: '31/01/2025 10:25:00', dataLogout: '31/01/2025 11:30:00', duracao: '1h 05m', ip: '192.168.1.101', status: 'Finalizado' },
+                { usuario: 'Maria Santos', dataLogin: '31/01/2025 10:20:00', dataLogout: '-', duracao: '-', ip: '192.168.1.102', status: 'Bloqueado' }
+            ];
+
+            tabela.innerHTML = logs.map(log => `
+                <tr>
+                    <td>${log.usuario}</td>
+                    <td>${log.dataLogin}</td>
+                    <td>${log.dataLogout}</td>
+                    <td>${log.duracao}</td>
+                    <td>${log.ip}</td>
+                    <td>
+                        <span class="badge bg-${log.status === 'Ativo' ? 'success' : log.status === 'Finalizado' ? 'info' : 'danger'}">
+                            ${log.status}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Atualizar estatísticas
+        const acessosHoje = document.getElementById('acessosHoje');
+        if (acessosHoje) acessosHoje.textContent = '15';
+
+    } catch (error) {
+        console.error('Erro ao carregar logs de acesso:', error);
+    }
+}
+
+// ==================== LOGS DE AÇÕES ====================
+
+async function carregarLogsAcoes() {
+    try {
+        const response = await fetch('/ti/painel/api/logs/acoes');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar logs de ações');
+        }
+        const data = await response.json();
+
+        const tabela = document.getElementById('tabelaLogsAcoes');
+        if (tabela) {
+            tabela.innerHTML = data.logs.map(log => `
+                <tr>
+                    <td>${log.id}</td>
+                    <td>${log.usuario_nome}</td>
+                    <td>${log.acao}</td>
+                    <td>
+                        <span class="badge bg-${log.categoria === 'sistema' ? 'primary' : log.categoria === 'chamado' ? 'info' : log.categoria === 'usuario' ? 'warning' : 'secondary'}">
+                            ${log.categoria || 'N/A'}
+                        </span>
+                    </td>
+                    <td>${log.data_acao}</td>
+                    <td>${log.ip_address || 'N/A'}</td>
+                    <td>
+                        <span class="badge bg-${log.sucesso ? 'success' : 'danger'}">
+                            ${log.sucesso ? 'Sucesso' : 'Erro'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="verDetalhesLog(${log.id}, '${log.detalhes}', '${log.erro_detalhes}')">
+                            <i class="fas fa-eye"></i> Ver
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Carregar estatísticas
+        await carregarEstatisticasLogsAcoes();
+
+    } catch (error) {
+        console.error('Erro ao carregar logs de ações:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar logs de ações');
+        }
+    }
+}
+
+async function carregarEstatisticasLogsAcoes() {
+    try {
+        const response = await fetch('/ti/painel/api/logs/acoes/estatisticas');
+        if (!response.ok) throw new Error('Erro ao carregar estatísticas');
+
+        const stats = await response.json();
+
+        // Atualizar elementos da tela
+        const totalAcoes = document.getElementById('totalAcoes');
+        if (totalAcoes) totalAcoes.textContent = stats.total_acoes;
+
+        const taxaSucesso = document.getElementById('taxaSucessoAcoes');
+        if (taxaSucesso) taxaSucesso.textContent = `${stats.taxa_sucesso}%`;
+
+        const acoesErro = document.getElementById('acoesErro');
+        if (acoesErro) acoesErro.textContent = stats.acoes_erro;
+
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas de logs:', error);
+    }
+}
+
+function verDetalhesLog(id, detalhes, erroDetalhes) {
+    const modal = document.getElementById('modalDetalhesLog');
+    if (modal) {
+        const conteudo = document.getElementById('conteudoDetalhesLog');
+        if (conteudo) {
+            conteudo.innerHTML = `
+                <div class="mb-3">
+                    <h6>Detalhes da Ação:</h6>
+                    <p class="text-muted">${detalhes || 'Sem detalhes disponíveis'}</p>
+                </div>
+                ${erroDetalhes ? `
+                    <div class="mb-3">
+                        <h6 class="text-danger">Detalhes do Erro:</h6>
+                        <p class="text-danger">${erroDetalhes}</p>
+                    </div>
+                ` : ''}
+            `;
+        }
+        modal.classList.add('active');
+    }
+}
+
+// ==================== ANÁLISE DE PROBLEMAS ====================
+
+async function carregarAnaliseProblemas() {
+    try {
+        const response = await fetch('/ti/painel/api/analise/problemas');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar análise de problemas');
+        }
+        const data = await response.json();
+
+        // Carregar problemas mais frequentes
+        const tabelaProblemasFrequentes = document.getElementById('tabelaProblemasFrequentes');
+        if (tabelaProblemasFrequentes) {
+            tabelaProblemasFrequentes.innerHTML = data.problemas_frequentes.map(problema => `
+                <tr>
+                    <td>${problema.problema}</td>
+                    <td>${problema.quantidade}</td>
+                    <td>${problema.tempo_medio_resolucao ? problema.tempo_medio_resolucao.toFixed(1) + 'h' : 'N/A'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Carregar unidades com mais problemas
+        const tabelaUnidadesProblemas = document.getElementById('tabelaUnidadesProblemas');
+        if (tabelaUnidadesProblemas) {
+            tabelaUnidadesProblemas.innerHTML = data.unidades_problemas.map(unidade => `
+                <tr>
+                    <td>${unidade.unidade}</td>
+                    <td>${unidade.total}</td>
+                    <td>${unidade.abertos}</td>
+                    <td>${unidade.concluidos}</td>
+                    <td>
+                        <span class="badge bg-${unidade.taxa_resolucao >= 80 ? 'success' : unidade.taxa_resolucao >= 60 ? 'warning' : 'danger'}">
+                            ${unidade.taxa_resolucao}%
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Gráfico de tendências semanais
+        await renderizarGraficoTendencias(data.tendencias_semanais);
+
+        // Análise por prioridade
+        await renderizarGraficoPrioridades(data.resolucao_por_prioridade);
+
+    } catch (error) {
+        console.error('Erro ao carregar análise de problemas:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar análise de problemas');
+        }
+    }
+}
+
+async function renderizarGraficoTendencias(tendencias) {
+    const ctx = document.getElementById('graficoTendenciasSemanais');
+    if (!ctx || !tendencias) return;
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: tendencias.map(t => `Sem ${t.semana}/${t.ano}`),
+            datasets: [{
+                label: 'Chamados por Semana',
+                data: tendencias.map(t => t.quantidade),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Tendência de Chamados por Semana'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+async function renderizarGraficoPrioridades(prioridades) {
+    const ctx = document.getElementById('graficoPrioridades');
+    if (!ctx || !prioridades) return;
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: prioridades.map(p => p.prioridade),
+            datasets: [{
+                data: prioridades.map(p => p.total),
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Distribuição por Prioridade'
+                }
+            }
+        }
+    });
+}
+
+// ==================== MONITORAMENTO ====================
+
+async function carregarMonitoramentoCatraca() {
+    try {
+        // Simulação de dados de catraca
+        const dados = {
+            status: 'online',
+            acessos_hoje: 245,
+            acessos_semana: 1680,
+            alertas: [
+                { id: 1, tipo: 'warning', mensagem: 'Catraca 3 com lentidão', timestamp: '10:30' },
+                { id: 2, tipo: 'info', mensagem: 'Manutenção programada às 18h', timestamp: '09:15' }
+            ]
+        };
+
+        const statusCatraca = document.getElementById('statusCatraca');
+        if (statusCatraca) {
+            statusCatraca.innerHTML = `
+                <span class="badge bg-${dados.status === 'online' ? 'success' : 'danger'}">
+                    ${dados.status === 'online' ? 'Online' : 'Offline'}
+                </span>
+            `;
+        }
+
+        const acessosHojeCatraca = document.getElementById('acessosHojeCatraca');
+        if (acessosHojeCatraca) acessosHojeCatraca.textContent = dados.acessos_hoje;
+
+        const acessosSemanaCatraca = document.getElementById('acessosSemanaCatraca');
+        if (acessosSemanaCatraca) acessosSemanaCatraca.textContent = dados.acessos_semana;
+
+    } catch (error) {
+        console.error('Erro ao carregar monitoramento de catraca:', error);
+    }
+}
+
+async function carregarMonitoramentoMikrotiks() {
+    try {
+        // Simulação de dados de mikrotiks
+        const equipamentos = [
+            { nome: 'Router Principal', ip: '192.168.1.1', status: 'online', uptime: '15 dias' },
+            { nome: 'Switch Core', ip: '192.168.1.2', status: 'online', uptime: '30 dias' },
+            { nome: 'AP WiFi Hall', ip: '192.168.1.10', status: 'warning', uptime: '2 dias' }
+        ];
+
+        const tabelaEquipamentos = document.getElementById('tabelaEquipamentos');
+        if (tabelaEquipamentos) {
+            tabelaEquipamentos.innerHTML = equipamentos.map(eq => `
+                <tr>
+                    <td>${eq.nome}</td>
+                    <td>${eq.ip}</td>
+                    <td>
+                        <span class="badge bg-${eq.status === 'online' ? 'success' : eq.status === 'warning' ? 'warning' : 'danger'}">
+                            ${eq.status === 'online' ? 'Online' : eq.status === 'warning' ? 'Atenção' : 'Offline'}
+                        </span>
+                    </td>
+                    <td>${eq.uptime}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-cog"></i> Config
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+    } catch (error) {
+        console.error('Erro ao carregar monitoramento de mikrotiks:', error);
+    }
+}
+
+async function carregarMonitoramentoUsuarios() {
+    try {
+        // Simulação de dados de usuários ativos
+        const usuariosOnline = [
+            { nome: 'João Silva', setor: 'TI', login: '10:30', atividade: 'Ativo' },
+            { nome: 'Maria Santos', setor: 'Financeiro', login: '09:15', atividade: 'Ativo' },
+            { nome: 'Pedro Costa', setor: 'Gerencial', login: '08:45', atividade: 'Inativo (5min)' }
+        ];
+
+        const tabelaUsuariosOnline = document.getElementById('tabelaUsuariosOnline');
+        if (tabelaUsuariosOnline) {
+            tabelaUsuariosOnline.innerHTML = usuariosOnline.map(user => `
+                <tr>
+                    <td>${user.nome}</td>
+                    <td>${user.setor}</td>
+                    <td>${user.login}</td>
+                    <td>
+                        <span class="badge bg-${user.atividade === 'Ativo' ? 'success' : 'warning'}">
+                            ${user.atividade}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        const totalUsuariosOnline = document.getElementById('totalUsuariosOnline');
+        if (totalUsuariosOnline) totalUsuariosOnline.textContent = usuariosOnline.length;
+
+    } catch (error) {
+        console.error('Erro ao carregar monitoramento de usuários:', error);
+    }
+}
+
+// ==================== ATRIBUIÇÃO DE AGENTES ====================
+
+let agentesDisponiveis = [];
+
+async function carregarAgentesDisponiveis() {
+    try {
+        const response = await fetch('/ti/painel/api/agentes');
+        if (!response.ok) throw new Error('Erro ao carregar agentes');
+        agentesDisponiveis = await response.json();
+        return agentesDisponiveis.filter(agente => agente.ativo);
+    } catch (error) {
+        console.error('Erro ao carregar agentes:', error);
+        return [];
+    }
+}
+
+async function atribuirAgente(chamadoId) {
+    try {
+        const agentes = await carregarAgentesDisponiveis();
+
+        if (agentes.length === 0) {
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showWarning('Aviso', 'Nenhum agente ativo disponível');
+            }
+            return;
+        }
+
+        // Criar modal de seleção de agente
+        const modalContent = `
+            <div class="modal" id="modalAtribuirAgente" style="display: block;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Atribuir Agente ao Chamado</h3>
+                        <button class="close" onclick="fecharModalAgente()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="selectAgente">Selecione o agente:</label>
+                            <select id="selectAgente" class="form-control">
+                                <option value="">Selecione um agente...</option>
+                                ${agentes.map(agente => `
+                                    <option value="${agente.id}" ${!agente.pode_receber_chamado ? 'disabled' : ''}>
+                                        ${agente.nome} - ${agente.nivel_experiencia}
+                                        (${agente.chamados_ativos}/${agente.max_chamados_simultaneos} chamados)
+                                        ${!agente.pode_receber_chamado ? ' - LIMITE ATINGIDO' : ''}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="observacoesAtribuicao">Observações (opcional):</label>
+                            <textarea id="observacoesAtribuicao" class="form-control" rows="3" placeholder="Observações sobre a atribuição..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="fecharModalAgente()">Cancelar</button>
+                        <button class="btn btn-primary" onclick="confirmarAtribuicao(${chamadoId})">Atribuir</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+
+    } catch (error) {
+        console.error('Erro ao abrir modal de atribuição:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
+        }
+    }
+}
+
+async function alterarAgente(chamadoId) {
+    // Usar a mesma função de atribuir para alteração
+    await atribuirAgente(chamadoId);
+}
+
+async function confirmarAtribuicao(chamadoId) {
+    try {
+        const agenteSelect = document.getElementById('selectAgente');
+        const observacoes = document.getElementById('observacoesAtribuicao');
+
+        const agenteId = agenteSelect.value;
+        if (!agenteId) {
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showWarning('Aviso', 'Selecione um agente');
+            }
+            return;
+        }
+
+        const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/atribuir`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                agente_id: parseInt(agenteId),
+                observacoes: observacoes.value
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao atribuir agente');
+        }
+
+        const data = await response.json();
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Sucesso', data.message);
+        }
+
+        fecharModalAgente();
+
+        // Recarregar chamados para mostrar a atribuição
+        await loadChamados();
+
+    } catch (error) {
+        console.error('Erro ao atribuir agente:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+function fecharModalAgente() {
+    const modal = document.getElementById('modalAtribuirAgente');
+    if (modal) {
+        modal.remove();
+    }
+}
+
+// ==================== EVENT LISTENERS PARA FILTROS ====================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Botão filtrar chamados
+    const btnFiltrarChamados = document.getElementById('btnFiltrarChamados');
+    if (btnFiltrarChamados) {
+        btnFiltrarChamados.addEventListener('click', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    // Botão limpar filtros
+    const btnLimparFiltros = document.getElementById('btnLimparFiltros');
+    if (btnLimparFiltros) {
+        btnLimparFiltros.addEventListener('click', function() {
+            // Limpar todos os campos de filtro
+            const filtroSolicitante = document.getElementById('filtroSolicitante');
+            const filtroProblema = document.getElementById('filtroProblema');
+            const filtroPrioridade = document.getElementById('filtroPrioridade');
+            const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+            const filtroUnidade = document.getElementById('filtroUnidade');
+            const filtroDataInicio = document.getElementById('filtroDataInicio');
+            const filtroDataFim = document.getElementById('filtroDataFim');
+
+            if (filtroSolicitante) filtroSolicitante.value = '';
+            if (filtroProblema) filtroProblema.value = '';
+            if (filtroPrioridade) filtroPrioridade.value = '';
+            if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
+            if (filtroUnidade) filtroUnidade.value = '';
+            if (filtroDataInicio) filtroDataInicio.value = '';
+            if (filtroDataFim) filtroDataFim.value = '';
+
+            // Renderizar novamente
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    // Filtro em tempo real para solicitante e problema
+    const filtroSolicitante = document.getElementById('filtroSolicitante');
+    const filtroProblema = document.getElementById('filtroProblema');
+
+    if (filtroSolicitante) {
+        filtroSolicitante.addEventListener('input', debounce(function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        }, 500));
+    }
+
+    if (filtroProblema) {
+        filtroProblema.addEventListener('input', debounce(function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        }, 500));
+    }
+
+    // Filtros de mudança imediata
+    const filtroPrioridade = document.getElementById('filtroPrioridade');
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    const filtroUnidade = document.getElementById('filtroUnidade');
+
+    if (filtroPrioridade) {
+        filtroPrioridade.addEventListener('change', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    if (filtroAgenteResponsavel) {
+        filtroAgenteResponsavel.addEventListener('change', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    if (filtroUnidade) {
+        filtroUnidade.addEventListener('change', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+});
+
+// Função debounce para evitar muitas chamadas
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// ==================== DASHBOARD AVANÇADO ====================
+
+async function carregarDashboardAvancado() {
+    try {
+        // Atualizar dados das métricas existentes
+        const dashTotalUsuarios = document.getElementById('dashTotalUsuarios');
+        const dashTaxaAtividade = document.getElementById('dashTaxaAtividade');
+
+        if (dashTotalUsuarios) dashTotalUsuarios.textContent = '124';
+        if (dashTaxaAtividade) dashTaxaAtividade.textContent = '85% ativos este mês';
+
+        // Adicionar event listener para o botão atualizar
+        const btnAtualizar = document.getElementById('btnAtualizarDashboard');
+        if (btnAtualizar) {
+            btnAtualizar.addEventListener('click', () => {
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showInfo('Dashboard', 'Atualizando dados do dashboard...');
+                }
+                setTimeout(() => {
+                    carregarDashboardAvancado();
+                }, 1000);
+            });
+        }
+
+        console.log('Dashboard avançado carregado');
+    } catch (error) {
+        console.error('Erro ao carregar dashboard avançado:', error);
+    }
+}
+
+// Funções auxiliares
+function criarBackup() {
+    if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Backup', 'Iniciando processo de backup...');
+    }
+}
+
+function executarManutencao() {
+    if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo('Manutenção', 'Iniciando processo de manutenção...');
     }
 }

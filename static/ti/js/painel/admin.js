@@ -16,7 +16,7 @@ async function carregarLogsAcesso(page = 1, filtros = {}) {
             ...filtros
         });
 
-        const response = await fetch(`/ti/admin/api/logs/acessos?${params}`);
+        const response = await fetch(`/ti/painel/api/logs/acesso?${params}`);
         if (!response.ok) {
             throw new Error('Erro ao carregar logs de acesso');
         }
@@ -89,7 +89,7 @@ function renderizarPaginacaoLogsAcesso(pagination) {
 
 async function carregarEstatisticasAcessos() {
     try {
-        const response = await fetch('/ti/admin/api/logs/acessos/estatisticas');
+        const response = await fetch('/ti/painel/api/logs/acesso/estatisticas');
         if (!response.ok) {
             throw new Error('Erro ao carregar estatísticas');
         }
@@ -116,7 +116,7 @@ async function carregarLogsAcoes(page = 1, filtros = {}) {
             ...filtros
         });
 
-        const response = await fetch(`/ti/admin/api/logs/acoes?${params}`);
+        const response = await fetch(`/ti/painel/api/logs/acoes?${params}`);
         if (!response.ok) {
             throw new Error('Erro ao carregar logs de ações');
         }
@@ -440,7 +440,7 @@ async function carregarAlertasSistema(page = 1, filtros = {}) {
             ...filtros
         });
 
-        const response = await fetch(`/ti/admin/api/alertas?${params}`);
+        const response = await fetch(`/ti/painel/api/alertas?${params}`);
         if (!response.ok) {
             throw new Error('Erro ao carregar alertas');
         }
@@ -677,7 +677,7 @@ async function criarBackup() {
 
 async function carregarConfiguracoesAvancadas() {
     try {
-        const response = await fetch('/ti/admin/api/configuracoes-avancadas');
+        const response = await fetch('/ti/painel/api/configuracoes-avancadas');
         if (!response.ok) {
             throw new Error('Erro ao carregar configurações avançadas');
         }
@@ -772,7 +772,7 @@ async function salvarConfiguracoesAvancadas() {
             }
         };
 
-        const response = await fetch('/ti/admin/api/configuracoes-avancadas', {
+        const response = await fetch('/ti/painel/api/configuracoes-avancadas', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
