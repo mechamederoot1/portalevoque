@@ -119,19 +119,19 @@ class Config:
     @staticmethod
     def validate_required_env_vars():
         """Valida se todas as variáveis de ambiente obrigatórias estão configuradas"""
+        # Apenas variáveis essenciais para o banco de dados
         required_vars = [
-            'CLIENT_ID', 'CLIENT_SECRET', 'TENANT_ID', 'USER_ID',
-            'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'
+            'DB_HOST', 'DB_USER', 'DB_NAME'
         ]
-        
+
         missing_vars = []
         for var in required_vars:
             if not os.environ.get(var):
                 missing_vars.append(var)
-        
+
         if missing_vars:
             raise ValueError(f"Variáveis de ambiente obrigatórias não configuradas: {', '.join(missing_vars)}")
-        
+
         return True
 
 class DevelopmentConfig(Config):
