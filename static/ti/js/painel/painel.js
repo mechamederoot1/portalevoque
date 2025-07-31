@@ -1448,6 +1448,10 @@ function loadSectionContent(sectionId) {
             break;
         case 'gerenciar-chamados':
             loadChamados();
+            // Adicionar filtro de agente após carregar chamados
+            setTimeout(() => {
+                adicionarFiltroAgente();
+            }, 500);
             break;
         case 'permissoes':
             loadUsuarios();
