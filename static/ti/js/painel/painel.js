@@ -691,7 +691,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             alterar_senha_primeiro_acesso: document.getElementById('alterarSenhaPrimeiroAcesso').checked
         };
 
-        // Validação
+        // Validaç��o
         const errosValidacao = validarDadosUsuario(usuarioData);
         if (errosValidacao.length > 0) {
             throw new Error(errosValidacao.join('<br>'));
@@ -3460,6 +3460,138 @@ async function carregarMonitoramentoUsuarios() {
 
     } catch (error) {
         console.error('Erro ao carregar monitoramento de usuários:', error);
+    }
+}
+
+// ==================== ATRIBUIÇÃO DE AGENTES ====================
+
+let agentesDisponiveis = [];
+
+async function carregarAgentesDisponiveis() {
+    try {
+        const response = await fetch('/ti/painel/api/agentes');
+        if (!response.ok) throw new Error('Erro ao carregar agentes');
+        agentesDisponiveis = await response.json();
+        return agentesDisponiveis.filter(agente => agente.ativo);
+    } catch (error) {
+        console.error('Erro ao carregar agentes:', error);
+        return [];
+    }
+}
+
+async function atribuirAgente(chamadoId) {
+    try {
+        const agentes = await carregarAgentesDisponiveis();
+
+        if (agentes.length === 0) {
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showWarning('Aviso', 'Nenhum agente ativo disponível');
+            }
+            return;
+        }
+
+        // Criar modal de seleção de agente
+        const modalContent = `
+            <div class="modal" id="modalAtribuirAgente" style="display: block;">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h3>Atribuir Agente ao Chamado</h3>
+                        <button class="close" onclick="fecharModalAgente()">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label for="selectAgente">Selecione o agente:</label>
+                            <select id="selectAgente" class="form-control">
+                                <option value="">Selecione um agente...</option>
+                                ${agentes.map(agente => `
+                                    <option value="${agente.id}" ${!agente.pode_receber_chamado ? 'disabled' : ''}>
+                                        ${agente.nome} - ${agente.nivel_experiencia}
+                                        (${agente.chamados_ativos}/${agente.max_chamados_simultaneos} chamados)
+                                        ${!agente.pode_receber_chamado ? ' - LIMITE ATINGIDO' : ''}
+                                    </option>
+                                `).join('')}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="observacoesAtribuicao">Observações (opcional):</label>
+                            <textarea id="observacoesAtribuicao" class="form-control" rows="3" placeholder="Observações sobre a atribuição..."></textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-secondary" onclick="fecharModalAgente()">Cancelar</button>
+                        <button class="btn btn-primary" onclick="confirmarAtribuicao(${chamadoId})">Atribuir</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.insertAdjacentHTML('beforeend', modalContent);
+
+    } catch (error) {
+        console.error('Erro ao abrir modal de atribuição:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
+        }
+    }
+}
+
+async function alterarAgente(chamadoId) {
+    // Usar a mesma função de atribuir para alteração
+    await atribuirAgente(chamadoId);
+}
+
+async function confirmarAtribuicao(chamadoId) {
+    try {
+        const agenteSelect = document.getElementById('selectAgente');
+        const observacoes = document.getElementById('observacoesAtribuicao');
+
+        const agenteId = agenteSelect.value;
+        if (!agenteId) {
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showWarning('Aviso', 'Selecione um agente');
+            }
+            return;
+        }
+
+        const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/atribuir`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                agente_id: parseInt(agenteId),
+                observacoes: observacoes.value
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao atribuir agente');
+        }
+
+        const data = await response.json();
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Sucesso', data.message);
+        }
+
+        fecharModalAgente();
+
+        // Recarregar chamados para mostrar a atribuição
+        await loadChamados();
+
+    } catch (error) {
+        console.error('Erro ao atribuir agente:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+function fecharModalAgente() {
+    const modal = document.getElementById('modalAtribuirAgente');
+    if (modal) {
+        modal.remove();
     }
 }
 
