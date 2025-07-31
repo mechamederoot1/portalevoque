@@ -200,7 +200,7 @@ function aplicarFiltrosAvancados(chamados) {
     if (filtroSolicitante && filtroSolicitante.value.trim()) {
         const termo = filtroSolicitante.value.trim().toLowerCase();
         filtrados = filtrados.filter(chamado =>
-            chamado.solicitante.toLowerCase().includes(termo)
+            chamado.solicitante && chamado.solicitante.toLowerCase().includes(termo)
         );
     }
 
@@ -209,7 +209,7 @@ function aplicarFiltrosAvancados(chamados) {
     if (filtroProblema && filtroProblema.value.trim()) {
         const termo = filtroProblema.value.trim().toLowerCase();
         filtrados = filtrados.filter(chamado =>
-            chamado.problema.toLowerCase().includes(termo)
+            chamado.problema && chamado.problema.toLowerCase().includes(termo)
         );
     }
 
@@ -225,9 +225,13 @@ function aplicarFiltrosAvancados(chamados) {
     const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
     if (filtroAgenteResponsavel && filtroAgenteResponsavel.value) {
         const agenteId = filtroAgenteResponsavel.value;
-        filtrados = filtrados.filter(chamado =>
-            chamado.agente_id && chamado.agente_id.toString() === agenteId
-        );
+        if (agenteId === 'sem_agente') {
+            filtrados = filtrados.filter(chamado => !chamado.agente_id);
+        } else {
+            filtrados = filtrados.filter(chamado =>
+                chamado.agente_id && chamado.agente_id.toString() === agenteId
+            );
+        }
     }
 
     // Filtro por unidade
@@ -244,8 +248,20 @@ function aplicarFiltrosAvancados(chamados) {
         const dataInicio = new Date(filtroDataInicio.value);
         filtrados = filtrados.filter(chamado => {
             if (!chamado.data_abertura) return false;
-            const dataChamado = new Date(chamado.data_abertura.split(' ')[0].split('/').reverse().join('-'));
-            return dataChamado >= dataInicio;
+            try {
+                let dataChamado;
+                if (chamado.data_abertura.includes('/')) {
+                    const [data, hora] = chamado.data_abertura.split(' ');
+                    const [dia, mes, ano] = data.split('/');
+                    dataChamado = new Date(ano, mes - 1, dia);
+                } else {
+                    dataChamado = new Date(chamado.data_abertura);
+                }
+                return dataChamado >= dataInicio;
+            } catch (error) {
+                console.error('Erro ao converter data:', error, chamado.data_abertura);
+                return false;
+            }
         });
     }
 
@@ -253,10 +269,23 @@ function aplicarFiltrosAvancados(chamados) {
     const filtroDataFim = document.getElementById('filtroDataFim');
     if (filtroDataFim && filtroDataFim.value) {
         const dataFim = new Date(filtroDataFim.value);
+        dataFim.setHours(23, 59, 59, 999); // Incluir todo o dia final
         filtrados = filtrados.filter(chamado => {
             if (!chamado.data_abertura) return false;
-            const dataChamado = new Date(chamado.data_abertura.split(' ')[0].split('/').reverse().join('-'));
-            return dataChamado <= dataFim;
+            try {
+                let dataChamado;
+                if (chamado.data_abertura.includes('/')) {
+                    const [data, hora] = chamado.data_abertura.split(' ');
+                    const [dia, mes, ano] = data.split('/');
+                    dataChamado = new Date(ano, mes - 1, dia);
+                } else {
+                    dataChamado = new Date(chamado.data_abertura);
+                }
+                return dataChamado <= dataFim;
+            } catch (error) {
+                console.error('Erro ao converter data:', error, chamado.data_abertura);
+                return false;
+            }
         });
     }
 
@@ -2667,8 +2696,8 @@ function inicializarFiltroPermissoes() {
         filtrarListaUsuarios(termoBusca);
     };
 
-    // Event listeners
-    filtroInput.addEventListener('input', filtrarUsuarios);
+    // Event listeners para busca em tempo real
+    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 300));
     btnFiltrar.addEventListener('click', filtrarUsuarios);
 
     // Filtrar ao pressionar Enter
@@ -2684,18 +2713,15 @@ function filtrarListaUsuarios(termoBusca) {
     const usuariosGrid = document.getElementById('usuariosGrid');
     if (!usuariosGrid) return;
 
-    const cards = usuariosGrid.querySelectorAll('.user-card');
+    // Corrigir seletores para trabalhar com a estrutura HTML real
+    const cards = usuariosGrid.querySelectorAll('.usuario-card, .card');
     let usuariosVisiveis = 0;
 
     cards.forEach(card => {
-        const nome = card.querySelector('.user-name')?.textContent.toLowerCase() || '';
-        const email = card.querySelector('.user-email')?.textContent.toLowerCase() || '';
-        const usuario = card.querySelector('.user-username')?.textContent.toLowerCase() || '';
-        const unidade = card.querySelector('.user-unidade')?.textContent.toLowerCase() || '';
+        // Buscar o texto em todos os elementos da card, não em classes específicas que não existem
+        const cardText = card.textContent.toLowerCase();
 
-        const textoCompleto = `${nome} ${email} ${usuario} ${unidade}`;
-
-        if (termoBusca === '' || textoCompleto.includes(termoBusca)) {
+        if (termoBusca === '' || cardText.includes(termoBusca)) {
             card.style.display = '';
             usuariosVisiveis++;
         } else {
@@ -2704,16 +2730,21 @@ function filtrarListaUsuarios(termoBusca) {
     });
 
     // Mostrar mensagem se nenhum usuário for encontrado
-    const mensagemVazia = document.getElementById('mensagemUsuariosVazia');
+    let mensagemVazia = usuariosGrid.querySelector('#mensagemUsuariosVazia');
     if (usuariosVisiveis === 0 && termoBusca !== '') {
         if (!mensagemVazia) {
             const mensagem = document.createElement('div');
             mensagem.id = 'mensagemUsuariosVazia';
             mensagem.className = 'text-center py-4';
+            mensagem.style.gridColumn = '1 / -1'; // Ocupar toda a largura do grid
             mensagem.innerHTML = `
-                <i class="fas fa-search fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Nenhum usuário encontrado</h5>
-                <p class="text-muted">Tente usar termos de busca diferentes</p>
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h4>Nenhum usuário encontrado</h4>
+                    <p>Tente usar termos de busca diferentes</p>
+                </div>
             `;
             usuariosGrid.appendChild(mensagem);
         }
