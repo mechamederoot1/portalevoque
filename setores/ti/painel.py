@@ -1351,12 +1351,31 @@ def enviar_ticket(id):
         data_abertura_brazil = chamado.get_data_abertura_brazil()
         data_abertura_str = data_abertura_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_abertura_brazil else 'N/A'
 
+        # Verificar se há agente atribuído
+        from database import ChamadoAgente, AgenteSuporte
+        agente_info = ""
+        try:
+            chamado_agente = ChamadoAgente.query.filter_by(
+                chamado_id=chamado.id,
+                ativo=True
+            ).first()
+
+            if chamado_agente and chamado_agente.agente:
+                agente = chamado_agente.agente
+                agente_info = f"""
+Agente Responsável: {agente.usuario.nome} {agente.usuario.sobrenome}
+Email do Agente: {agente.usuario.email}
+Nível de Experiência: {agente.nivel_experiencia.title()}
+"""
+        except Exception as agente_error:
+            logger.warning(f"Erro ao buscar agente do chamado: {str(agente_error)}")
+
         mensagem_formatada = f"""
 Chamado: {chamado.codigo}
 Status: {chamado.status}
 Data de Abertura: {data_abertura_str}
 Problema: {chamado.problema}
-Unidade: {chamado.unidade}
+Unidade: {chamado.unidade}{agente_info}
 
 {mensagem}
 
@@ -2534,7 +2553,7 @@ def carregar_configuracoes_avancadas():
 @login_required
 @setor_required('Administrador')
 def salvar_configuracoes_avancadas():
-    """Salva configura��ões avançadas do sistema"""
+    """Salva configurações avançadas do sistema"""
     try:
         if not request.is_json:
             return error_response('Content-Type deve ser application/json', 400)
