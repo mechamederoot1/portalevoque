@@ -2035,37 +2035,7 @@ function sectionExists(id) {
     return Array.from(sections).some(section => section.id === id);
 }
 
-// Verifica o hash inicial e redireciona se necessário
-window.addEventListener('load', function() {
-    const hash = window.location.hash.substring(1);
-    if (hash && sectionExists(hash)) {
-        activateSection(hash);
-        
-        // Atualiza a classe active nos links
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Encontra e ativa o link correspondente
-        const targetLink = document.querySelector(`.sidebar a[href="#${hash}"]`);
-        if (targetLink) {
-            targetLink.classList.add('active');
-            
-            // Se for um item de submenu, ativa também o link pai
-            const submenu = targetLink.closest('.submenu');
-            if (submenu) {
-                const parentLink = submenu.previousElementSibling;
-                if (parentLink) {
-                    parentLink.classList.add('active');
-                    parentLink.parentElement.classList.add('open');
-                }
-            }
-        }
-    } else {
-        // Se não houver hash ou a seção não existir, vai para a seção padrão
-        activateSection('visao-geral');
-    }
-});
+// Section initialization is now handled in inicializarSistemaPainel()
 
 // Função para abrir modal de ticket
 function openTicketModal(chamado) {
@@ -3217,7 +3187,7 @@ async function criarGrupo() {
 
         if (!nome) {
             if (window.advancedNotificationSystem) {
-                window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigatório');
+                window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigat��rio');
             }
             return;
         }
@@ -4162,7 +4132,7 @@ function limparTodosFiltros() {
         renderChamadosPage(currentPage);
     }
 
-    // Mostrar notificação
+    // Mostrar notificaç��o
     if (window.advancedNotificationSystem) {
         window.advancedNotificationSystem.showInfo('Filtros Limpos', 'Todos os filtros foram removidos');
     }
@@ -4335,7 +4305,7 @@ function debugSistemaPainel() {
         const problemas = [];
 
         if (!elementos.sidebar) problemas.push('Sidebar não encontrada');
-        if (!elementos.mainContent) problemas.push('Main content não encontrado');
+        if (!elementos.mainContent) problemas.push('Main content n��o encontrado');
         if (elementos.sections.length === 0) problemas.push('Nenhuma seção encontrada');
         if (typeof window.activateSection !== 'function') problemas.push('Função activateSection não disponível');
         if (typeof window.loadChamados !== 'function') problemas.push('Função loadChamados não disponível');
