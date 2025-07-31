@@ -858,7 +858,7 @@ function validarDadosUsuario(dados) {
     const erros = [];
     
     if (!dados.nome) erros.push('Nome é obrigat��rio');
-    if (!dados.sobrenome) erros.push('Sobrenome é obrigatório');
+    if (!dados.sobrenome) erros.push('Sobrenome é obrigat��rio');
     if (!dados.email) erros.push('E-mail é obrigatório');
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
     if (!dados.senha) erros.push('Senha é obrigatória. Clique em "Gerar Senha"');
@@ -3823,7 +3823,7 @@ async function renderizarGraficoPrioridades(prioridades) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Distribuição por Prioridade'
+                    text: 'Distribuiç��o por Prioridade'
                 }
             }
         }
@@ -4262,3 +4262,135 @@ window.editarAgente = editarAgente;
 window.editarGrupo = editarGrupo;
 window.gerenciarMembrosGrupo = gerenciarMembrosGrupo;
 window.adicionarFiltroAgente = adicionarFiltroAgente;
+
+// Função de debug compreensiva do sistema
+function debugSistemaPainel() {
+    console.log('=== DEBUG COMPLETO DO SISTEMA PAINEL ===');
+
+    try {
+        // 1. Verificar elementos DOM essenciais
+        const elementos = {
+            sidebar: document.getElementById('sidebar'),
+            mainContent: document.getElementById('mainContent'),
+            sections: document.querySelectorAll('section.content-section'),
+            visaoGeral: document.getElementById('visao-geral'),
+            agentesSuporte: document.getElementById('agentes-suporte'),
+            gruposUsuarios: document.getElementById('grupos-usuarios'),
+            gerenciarChamados: document.getElementById('gerenciar-chamados'),
+            permissoes: document.getElementById('permissoes')
+        };
+
+        console.log('--- ELEMENTOS DOM ---');
+        Object.entries(elementos).forEach(([nome, elemento]) => {
+            if (elemento) {
+                const isActive = elemento.classList?.contains('active');
+                console.log(`✓ ${nome}: encontrado${isActive ? ' (ATIVO)' : ''}`);
+            } else {
+                console.error(`✗ ${nome}: NÃO ENCONTRADO`);
+            }
+        });
+
+        // 2. Verificar funções críticas
+        const funcoesCriticas = [
+            'activateSection',
+            'loadSectionContent',
+            'loadChamados',
+            'carregarAgentes',
+            'carregarGrupos',
+            'atualizarContadoresVisaoGeral',
+            'inicializarFiltroPermissoes',
+            'filtrarListaUsuarios'
+        ];
+
+        console.log('--- FUNÇÕES CRÍTICAS ---');
+        funcoesCriticas.forEach(funcao => {
+            if (typeof window[funcao] === 'function') {
+                console.log(`✓ ${funcao}: disponível`);
+            } else {
+                console.error(`✗ ${funcao}: NÃO DISPONÍVEL`);
+            }
+        });
+
+        // 3. Verificar dados globais
+        console.log('--- DADOS GLOBAIS ---');
+        console.log('chamadosData:', window.chamadosData?.length || 0, 'itens');
+        console.log('usuariosData:', window.usuariosData?.length || 0, 'itens');
+        console.log('agentesData:', window.agentesData?.length || 0, 'itens');
+        console.log('gruposData:', window.gruposData?.length || 0, 'itens');
+
+        // 4. Verificar navegação
+        console.log('--- NAVEGAÇÃO ---');
+        const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+        console.log('Links de navegação encontrados:', navLinks.length);
+
+        const activeSection = document.querySelector('section.content-section.active');
+        if (activeSection) {
+            console.log('Seção ativa atual:', activeSection.id);
+        } else {
+            console.error('NENHUMA SEÇÃO ATIVA ENCONTRADA!');
+        }
+
+        // 5. Testar navegação básica
+        console.log('--- TESTE DE NAVEGAÇÃO ---');
+        try {
+            if (typeof activateSection === 'function') {
+                console.log('Testando ativação da seção visao-geral...');
+                activateSection('visao-geral');
+                console.log('✓ Navegação funcionando');
+            } else {
+                console.error('✗ Função activateSection não disponível');
+            }
+        } catch (error) {
+            console.error('✗ Erro ao testar navegação:', error);
+        }
+
+        // 6. Verificar contadores da visão geral
+        console.log('--- CONTADORES VISÃO GERAL ---');
+        const contadores = [
+            'countAbertos',
+            'countAguardando',
+            'countConcluidos',
+            'countCancelados'
+        ];
+
+        contadores.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                console.log(`✓ ${id}: ${elemento.textContent}`);
+            } else {
+                console.error(`✗ ${id}: elemento não encontrado`);
+            }
+        });
+
+        // 7. Resumo final
+        console.log('--- RESUMO ---');
+        const problemas = [];
+
+        if (!elementos.sidebar) problemas.push('Sidebar não encontrada');
+        if (!elementos.mainContent) problemas.push('Main content não encontrado');
+        if (elementos.sections.length === 0) problemas.push('Nenhuma seção encontrada');
+        if (typeof window.activateSection !== 'function') problemas.push('Função activateSection não disponível');
+        if (typeof window.loadChamados !== 'function') problemas.push('Função loadChamados não disponível');
+
+        if (problemas.length === 0) {
+            console.log('✅ SISTEMA FUNCIONANDO CORRETAMENTE');
+        } else {
+            console.error('❌ PROBLEMAS ENCONTRADOS:');
+            problemas.forEach(problema => console.error('- ' + problema));
+        }
+
+    } catch (error) {
+        console.error('ERRO no debug do sistema:', error);
+    }
+
+    console.log('=== FIM DEBUG SISTEMA PAINEL ===');
+}
+
+// Disponibilizar globalmente
+window.debugSistemaPainel = debugSistemaPainel;
+
+// Executar debug automaticamente em desenvolvimento
+setTimeout(() => {
+    console.log('Executando debug automático do sistema...');
+    debugSistemaPainel();
+}, 2000);
