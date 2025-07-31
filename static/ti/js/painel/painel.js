@@ -3102,65 +3102,6 @@ function renderizarGrupos(grupos) {
 
 // ==================== CARREGAR AGENTES ====================
 
-function renderizarAgentes(agentes) {
-    const container = document.getElementById('agentesGrid');
-    if (!container) return;
-
-    if (!agentes || agentes.length === 0) {
-        container.innerHTML = `
-            <div class="text-center py-4">
-                <i class="fas fa-headset fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Nenhum agente encontrado</h5>
-                <p class="text-muted">Crie o primeiro agente de suporte</p>
-            </div>
-        `;
-        return;
-    }
-
-    container.innerHTML = agentes.map(agente => `
-        <div class="card agent-card">
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h5 class="card-title agent-name">${agente.nome}</h5>
-                    <span class="badge ${agente.ativo ? 'bg-success' : 'bg-secondary'}">
-                        ${agente.ativo ? 'Ativo' : 'Inativo'}
-                    </span>
-                </div>
-                <p class="card-text agent-email text-muted">${agente.email}</p>
-                <div class="agent-stats mb-3">
-                    <small class="text-muted">
-                        <i class="fas fa-star"></i> ${agente.nivel_experiencia} •
-                        <i class="fas fa-tasks"></i> ${agente.chamados_ativos}/${agente.max_chamados_simultaneos} chamados
-                    </small>
-                </div>
-                <div class="agent-specialties mb-2">
-                    ${agente.especialidades && agente.especialidades.map ?
-                        agente.especialidades.map(esp =>
-                            `<span class="badge bg-primary me-1">${esp}</span>`
-                        ).join('') : ''
-                    }
-                </div>
-                <div class="agent-info">
-                    <small class="text-muted">
-                        Criado: ${agente.data_criacao}
-                    </small>
-                </div>
-                <div class="card-actions mt-3">
-                    <button class="btn btn-sm btn-primary" onclick="editarAgente(${agente.id})">
-                        <i class="fas fa-edit"></i> Editar
-                    </button>
-                    <button class="btn btn-sm btn-info" onclick="verChamadosAgente(${agente.id})">
-                        <i class="fas fa-tasks"></i> Chamados
-                    </button>
-                    <button class="btn btn-sm btn-danger" onclick="excluirAgente(${agente.id})">
-                        <i class="fas fa-trash"></i> Excluir
-                    </button>
-                </div>
-            </div>
-        </div>
-    `).join('');
-}
-
 function atualizarEstatisticasAgentes(agentes) {
     const totalAgentes = document.getElementById('totalAgentes');
     const agentesAtivos = document.getElementById('agentesAtivos');
