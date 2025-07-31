@@ -467,11 +467,13 @@ def internal_error(error):
 from .painel import painel_bp
 ti_bp.register_blueprint(painel_bp, url_prefix='/painel')
 
-# Registrar blueprints de agentes e grupos
+# Registrar blueprints de agentes, grupos e rotas avançadas
 from .agentes import agentes_bp
 from .grupos import grupos_bp
+from .rotas import rotas_bp
 ti_bp.register_blueprint(agentes_bp, url_prefix='/painel')
 ti_bp.register_blueprint(grupos_bp, url_prefix='/painel')
+ti_bp.register_blueprint(rotas_bp, url_prefix='/painel')
 
 @ti_bp.route('/api/chamados/recentes')
 @login_required
