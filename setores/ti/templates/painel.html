@@ -1407,7 +1407,7 @@
         </div>
       </div>
 
-      <!-- Gr��ficos Avançados -->
+      <!-- Gráficos Avançados -->
       <div class="row mb-4">
         <div class="col-lg-8">
           <div class="card">
@@ -2251,6 +2251,49 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnCancelarGrupo">Cancelar</button>
         <button class="btn btn-primary" id="btnSalvarGrupo">Criar Grupo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Enviar Email para Grupo -->
+  <div class="modal" id="modalEnviarEmail" role="dialog" aria-modal="true" aria-labelledby="modalEnviarEmailTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalEnviarEmailTitle">Enviar Email para Grupo</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalEnviarEmailClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <p><strong>Grupo:</strong> <span id="emailGrupoNome"></span></p>
+          <p><strong>Membros:</strong> <span id="emailMembrosCount"></span> destinatários</p>
+        </div>
+        <form id="formEnviarEmail">
+          <input type="hidden" id="emailGrupoId">
+
+          <div class="form-group mb-3">
+            <label for="emailTipo">Tipo de Email</label>
+            <select class="form-control" id="emailTipo" required>
+              <option value="informativo">Informativo</option>
+              <option value="urgente">Urgente</option>
+              <option value="comunicado">Comunicado</option>
+              <option value="newsletter">Newsletter</option>
+            </select>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="emailAssunto">Assunto</label>
+            <input type="text" class="form-control" id="emailAssunto" required placeholder="Digite o assunto do email">
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="emailMensagem">Mensagem</label>
+            <textarea class="form-control" id="emailMensagem" rows="6" required placeholder="Digite a mensagem do email..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarEmail">Cancelar</button>
+        <button class="btn btn-primary" id="btnEnviarEmail">Enviar Email</button>
       </div>
     </div>
   </div>
