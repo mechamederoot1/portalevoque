@@ -859,7 +859,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             alterar_senha_primeiro_acesso: document.getElementById('alterarSenhaPrimeiroAcesso').checked
         };
 
-        // Validaç����o
+        // Validaç������o
         const errosValidacao = validarDadosUsuario(usuarioData);
         if (errosValidacao.length > 0) {
             throw new Error(errosValidacao.join('<br>'));
@@ -4172,3 +4172,23 @@ function executarManutencao() {
         window.advancedNotificationSystem.showInfo('Manutenção', 'Iniciando processo de manutenção...');
     }
 }
+
+// Garantir que as funções estejam disponíveis globalmente
+window.inicializarFiltroPermissoes = inicializarFiltroPermissoes;
+window.filtrarListaUsuarios = filtrarListaUsuarios;
+window.limparTodosFiltros = limparTodosFiltros;
+window.atribuirAgente = atribuirAgente;
+window.alterarAgente = alterarAgente;
+window.confirmarAtribuicao = confirmarAtribuicao;
+window.fecharModalAgente = fecharModalAgente;
+window.carregarAgentes = carregarAgentes;
+window.carregarGrupos = carregarGrupos;
+window.renderizarAgentes = renderizarAgentes;
+window.renderizarGrupos = renderizarGrupos;
+window.excluirAgente = excluirAgente;
+window.excluirGrupo = excluirGrupo;
+window.toggleAgenteStatus = toggleAgenteStatus;
+window.editarAgente = editarAgente;
+window.editarGrupo = editarGrupo;
+window.gerenciarMembrosGrupo = gerenciarMembrosGrupo;
+window.adicionarFiltroAgente = adicionarFiltroAgente;
