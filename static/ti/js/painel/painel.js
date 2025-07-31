@@ -3661,6 +3661,103 @@ function fecharModalAgente() {
     }
 }
 
+// ==================== EVENT LISTENERS PARA FILTROS ====================
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Botão filtrar chamados
+    const btnFiltrarChamados = document.getElementById('btnFiltrarChamados');
+    if (btnFiltrarChamados) {
+        btnFiltrarChamados.addEventListener('click', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    // Botão limpar filtros
+    const btnLimparFiltros = document.getElementById('btnLimparFiltros');
+    if (btnLimparFiltros) {
+        btnLimparFiltros.addEventListener('click', function() {
+            // Limpar todos os campos de filtro
+            const filtroSolicitante = document.getElementById('filtroSolicitante');
+            const filtroProblema = document.getElementById('filtroProblema');
+            const filtroPrioridade = document.getElementById('filtroPrioridade');
+            const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+            const filtroUnidade = document.getElementById('filtroUnidade');
+            const filtroDataInicio = document.getElementById('filtroDataInicio');
+            const filtroDataFim = document.getElementById('filtroDataFim');
+
+            if (filtroSolicitante) filtroSolicitante.value = '';
+            if (filtroProblema) filtroProblema.value = '';
+            if (filtroPrioridade) filtroPrioridade.value = '';
+            if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
+            if (filtroUnidade) filtroUnidade.value = '';
+            if (filtroDataInicio) filtroDataInicio.value = '';
+            if (filtroDataFim) filtroDataFim.value = '';
+
+            // Renderizar novamente
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    // Filtro em tempo real para solicitante e problema
+    const filtroSolicitante = document.getElementById('filtroSolicitante');
+    const filtroProblema = document.getElementById('filtroProblema');
+
+    if (filtroSolicitante) {
+        filtroSolicitante.addEventListener('input', debounce(function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        }, 500));
+    }
+
+    if (filtroProblema) {
+        filtroProblema.addEventListener('input', debounce(function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        }, 500));
+    }
+
+    // Filtros de mudança imediata
+    const filtroPrioridade = document.getElementById('filtroPrioridade');
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    const filtroUnidade = document.getElementById('filtroUnidade');
+
+    if (filtroPrioridade) {
+        filtroPrioridade.addEventListener('change', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    if (filtroAgenteResponsavel) {
+        filtroAgenteResponsavel.addEventListener('change', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    if (filtroUnidade) {
+        filtroUnidade.addEventListener('change', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+});
+
+// Função debounce para evitar muitas chamadas
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
 // ==================== DASHBOARD AVANÇADO ====================
 
 async function carregarDashboardAvancado() {
