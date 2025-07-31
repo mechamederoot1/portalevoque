@@ -3141,6 +3141,320 @@ async function carregarLogsAcesso() {
     }
 }
 
+// ==================== LOGS DE AÇÕES ====================
+
+async function carregarLogsAcoes() {
+    try {
+        const response = await fetch('/ti/painel/api/logs/acoes');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar logs de ações');
+        }
+        const data = await response.json();
+
+        const tabela = document.getElementById('tabelaLogsAcoes');
+        if (tabela) {
+            tabela.innerHTML = data.logs.map(log => `
+                <tr>
+                    <td>${log.id}</td>
+                    <td>${log.usuario_nome}</td>
+                    <td>${log.acao}</td>
+                    <td>
+                        <span class="badge bg-${log.categoria === 'sistema' ? 'primary' : log.categoria === 'chamado' ? 'info' : log.categoria === 'usuario' ? 'warning' : 'secondary'}">
+                            ${log.categoria || 'N/A'}
+                        </span>
+                    </td>
+                    <td>${log.data_acao}</td>
+                    <td>${log.ip_address || 'N/A'}</td>
+                    <td>
+                        <span class="badge bg-${log.sucesso ? 'success' : 'danger'}">
+                            ${log.sucesso ? 'Sucesso' : 'Erro'}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="verDetalhesLog(${log.id}, '${log.detalhes}', '${log.erro_detalhes}')">
+                            <i class="fas fa-eye"></i> Ver
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Carregar estatísticas
+        await carregarEstatisticasLogsAcoes();
+
+    } catch (error) {
+        console.error('Erro ao carregar logs de ações:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar logs de ações');
+        }
+    }
+}
+
+async function carregarEstatisticasLogsAcoes() {
+    try {
+        const response = await fetch('/ti/painel/api/logs/acoes/estatisticas');
+        if (!response.ok) throw new Error('Erro ao carregar estatísticas');
+
+        const stats = await response.json();
+
+        // Atualizar elementos da tela
+        const totalAcoes = document.getElementById('totalAcoes');
+        if (totalAcoes) totalAcoes.textContent = stats.total_acoes;
+
+        const taxaSucesso = document.getElementById('taxaSucessoAcoes');
+        if (taxaSucesso) taxaSucesso.textContent = `${stats.taxa_sucesso}%`;
+
+        const acoesErro = document.getElementById('acoesErro');
+        if (acoesErro) acoesErro.textContent = stats.acoes_erro;
+
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas de logs:', error);
+    }
+}
+
+function verDetalhesLog(id, detalhes, erroDetalhes) {
+    const modal = document.getElementById('modalDetalhesLog');
+    if (modal) {
+        const conteudo = document.getElementById('conteudoDetalhesLog');
+        if (conteudo) {
+            conteudo.innerHTML = `
+                <div class="mb-3">
+                    <h6>Detalhes da Ação:</h6>
+                    <p class="text-muted">${detalhes || 'Sem detalhes disponíveis'}</p>
+                </div>
+                ${erroDetalhes ? `
+                    <div class="mb-3">
+                        <h6 class="text-danger">Detalhes do Erro:</h6>
+                        <p class="text-danger">${erroDetalhes}</p>
+                    </div>
+                ` : ''}
+            `;
+        }
+        modal.classList.add('active');
+    }
+}
+
+// ==================== ANÁLISE DE PROBLEMAS ====================
+
+async function carregarAnaliseProblemas() {
+    try {
+        const response = await fetch('/ti/painel/api/analise/problemas');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar análise de problemas');
+        }
+        const data = await response.json();
+
+        // Carregar problemas mais frequentes
+        const tabelaProblemasFrequentes = document.getElementById('tabelaProblemasFrequentes');
+        if (tabelaProblemasFrequentes) {
+            tabelaProblemasFrequentes.innerHTML = data.problemas_frequentes.map(problema => `
+                <tr>
+                    <td>${problema.problema}</td>
+                    <td>${problema.quantidade}</td>
+                    <td>${problema.tempo_medio_resolucao ? problema.tempo_medio_resolucao.toFixed(1) + 'h' : 'N/A'}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Carregar unidades com mais problemas
+        const tabelaUnidadesProblemas = document.getElementById('tabelaUnidadesProblemas');
+        if (tabelaUnidadesProblemas) {
+            tabelaUnidadesProblemas.innerHTML = data.unidades_problemas.map(unidade => `
+                <tr>
+                    <td>${unidade.unidade}</td>
+                    <td>${unidade.total}</td>
+                    <td>${unidade.abertos}</td>
+                    <td>${unidade.concluidos}</td>
+                    <td>
+                        <span class="badge bg-${unidade.taxa_resolucao >= 80 ? 'success' : unidade.taxa_resolucao >= 60 ? 'warning' : 'danger'}">
+                            ${unidade.taxa_resolucao}%
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Gráfico de tendências semanais
+        await renderizarGraficoTendencias(data.tendencias_semanais);
+
+        // Análise por prioridade
+        await renderizarGraficoPrioridades(data.resolucao_por_prioridade);
+
+    } catch (error) {
+        console.error('Erro ao carregar análise de problemas:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar análise de problemas');
+        }
+    }
+}
+
+async function renderizarGraficoTendencias(tendencias) {
+    const ctx = document.getElementById('graficoTendenciasSemanais');
+    if (!ctx || !tendencias) return;
+
+    new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: tendencias.map(t => `Sem ${t.semana}/${t.ano}`),
+            datasets: [{
+                label: 'Chamados por Semana',
+                data: tendencias.map(t => t.quantidade),
+                borderColor: 'rgb(75, 192, 192)',
+                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                tension: 0.1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Tendência de Chamados por Semana'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+}
+
+async function renderizarGraficoPrioridades(prioridades) {
+    const ctx = document.getElementById('graficoPrioridades');
+    if (!ctx || !prioridades) return;
+
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: prioridades.map(p => p.prioridade),
+            datasets: [{
+                data: prioridades.map(p => p.total),
+                backgroundColor: [
+                    '#FF6384',
+                    '#36A2EB',
+                    '#FFCE56',
+                    '#4BC0C0',
+                    '#9966FF'
+                ]
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                title: {
+                    display: true,
+                    text: 'Distribuição por Prioridade'
+                }
+            }
+        }
+    });
+}
+
+// ==================== MONITORAMENTO ====================
+
+async function carregarMonitoramentoCatraca() {
+    try {
+        // Simulação de dados de catraca
+        const dados = {
+            status: 'online',
+            acessos_hoje: 245,
+            acessos_semana: 1680,
+            alertas: [
+                { id: 1, tipo: 'warning', mensagem: 'Catraca 3 com lentidão', timestamp: '10:30' },
+                { id: 2, tipo: 'info', mensagem: 'Manutenção programada às 18h', timestamp: '09:15' }
+            ]
+        };
+
+        const statusCatraca = document.getElementById('statusCatraca');
+        if (statusCatraca) {
+            statusCatraca.innerHTML = `
+                <span class="badge bg-${dados.status === 'online' ? 'success' : 'danger'}">
+                    ${dados.status === 'online' ? 'Online' : 'Offline'}
+                </span>
+            `;
+        }
+
+        const acessosHojeCatraca = document.getElementById('acessosHojeCatraca');
+        if (acessosHojeCatraca) acessosHojeCatraca.textContent = dados.acessos_hoje;
+
+        const acessosSemanaCatraca = document.getElementById('acessosSemanaCatraca');
+        if (acessosSemanaCatraca) acessosSemanaCatraca.textContent = dados.acessos_semana;
+
+    } catch (error) {
+        console.error('Erro ao carregar monitoramento de catraca:', error);
+    }
+}
+
+async function carregarMonitoramentoMikrotiks() {
+    try {
+        // Simulação de dados de mikrotiks
+        const equipamentos = [
+            { nome: 'Router Principal', ip: '192.168.1.1', status: 'online', uptime: '15 dias' },
+            { nome: 'Switch Core', ip: '192.168.1.2', status: 'online', uptime: '30 dias' },
+            { nome: 'AP WiFi Hall', ip: '192.168.1.10', status: 'warning', uptime: '2 dias' }
+        ];
+
+        const tabelaEquipamentos = document.getElementById('tabelaEquipamentos');
+        if (tabelaEquipamentos) {
+            tabelaEquipamentos.innerHTML = equipamentos.map(eq => `
+                <tr>
+                    <td>${eq.nome}</td>
+                    <td>${eq.ip}</td>
+                    <td>
+                        <span class="badge bg-${eq.status === 'online' ? 'success' : eq.status === 'warning' ? 'warning' : 'danger'}">
+                            ${eq.status === 'online' ? 'Online' : eq.status === 'warning' ? 'Atenção' : 'Offline'}
+                        </span>
+                    </td>
+                    <td>${eq.uptime}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary">
+                            <i class="fas fa-cog"></i> Config
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+    } catch (error) {
+        console.error('Erro ao carregar monitoramento de mikrotiks:', error);
+    }
+}
+
+async function carregarMonitoramentoUsuarios() {
+    try {
+        // Simulação de dados de usuários ativos
+        const usuariosOnline = [
+            { nome: 'João Silva', setor: 'TI', login: '10:30', atividade: 'Ativo' },
+            { nome: 'Maria Santos', setor: 'Financeiro', login: '09:15', atividade: 'Ativo' },
+            { nome: 'Pedro Costa', setor: 'Gerencial', login: '08:45', atividade: 'Inativo (5min)' }
+        ];
+
+        const tabelaUsuariosOnline = document.getElementById('tabelaUsuariosOnline');
+        if (tabelaUsuariosOnline) {
+            tabelaUsuariosOnline.innerHTML = usuariosOnline.map(user => `
+                <tr>
+                    <td>${user.nome}</td>
+                    <td>${user.setor}</td>
+                    <td>${user.login}</td>
+                    <td>
+                        <span class="badge bg-${user.atividade === 'Ativo' ? 'success' : 'warning'}">
+                            ${user.atividade}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        const totalUsuariosOnline = document.getElementById('totalUsuariosOnline');
+        if (totalUsuariosOnline) totalUsuariosOnline.textContent = usuariosOnline.length;
+
+    } catch (error) {
+        console.error('Erro ao carregar monitoramento de usuários:', error);
+    }
+}
+
 // ==================== DASHBOARD AVANÇADO ====================
 
 async function carregarDashboardAvancado() {
