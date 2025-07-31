@@ -2287,6 +2287,10 @@ async function carregarAgentes() {
         }
         agentesData = await response.json();
         renderizarAgentes(agentesData);
+
+        // Carregar estatísticas dos agentes
+        await carregarEstatisticasAgentes();
+
     } catch (error) {
         console.error('Erro ao carregar agentes:', error);
         if (window.advancedNotificationSystem) {
@@ -2886,7 +2890,7 @@ function inicializarModalGrupos() {
         btnSalvarGrupo.addEventListener('click', criarGrupo);
     }
 
-    // Adicionar botões de seleção de unidades
+    // Adicionar botões de sele��ão de unidades
     adicionarBotoesSelecaoUnidades();
 }
 
