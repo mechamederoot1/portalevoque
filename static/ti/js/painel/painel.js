@@ -63,15 +63,17 @@ function activateSection(id) {
 
 // Theme toggle
 const themeToggleBtn = document.getElementById('themeToggle');
-themeToggleBtn.addEventListener('click', () => {
-    if (document.body.getAttribute('data-theme') === 'dark') {
-        document.body.setAttribute('data-theme', 'light');
-        themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
-    } else {
-        document.body.setAttribute('data-theme', 'dark');
-        themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
-    }
-});
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+        if (document.body.getAttribute('data-theme') === 'dark') {
+            document.body.setAttribute('data-theme', 'light');
+            themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+            document.body.setAttribute('data-theme', 'dark');
+            themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
+        }
+    });
+}
 
 // Variáveis globais para chamados
 let chamadosData = [];
