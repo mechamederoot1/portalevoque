@@ -2482,37 +2482,6 @@ def atribuir_chamado(chamado_id):
         logger.error(traceback.format_exc())
         return error_response('Erro interno no servidor')
 
-@painel_bp.route('/api/usuarios-disponiveis', methods=['GET'])
-@login_required
-@setor_required('Administrador')
-def usuarios_disponiveis():
-    """Lista usuários que podem se tornar agentes"""
-    try:
-        from database import AgenteSuporte
-
-        # Buscar usuários que não são agentes
-        usuarios_query = db.session.query(User).outerjoin(AgenteSuporte).filter(
-            AgenteSuporte.id.is_(None),
-            User.bloqueado == False
-        )
-
-        usuarios_data = []
-        for usuario in usuarios_query.all():
-            usuarios_data.append({
-                'id': usuario.id,
-                'nome': f"{usuario.nome} {usuario.sobrenome}",
-                'email': usuario.email,
-                'nivel_acesso': usuario.nivel_acesso,
-                'setores': usuario.setores
-            })
-
-        return json_response(usuarios_data)
-
-    except Exception as e:
-        logger.error(f"Erro ao listar usuários disponíveis: {str(e)}")
-        logger.error(traceback.format_exc())
-        return error_response('Erro interno no servidor')
-
 # ==================== AUDITORIA E LOGS ====================
 
 @painel_bp.route('/api/logs/acoes', methods=['GET'])
