@@ -25,7 +25,9 @@ DB_CONFIG = {
 def conectar_banco():
     """Conecta ao banco de dados MySQL"""
     try:
-        connection_string = f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{DB_CONFIG['host']}:{DB_CONFIG['port']}/{DB_CONFIG['database']}?charset={DB_CONFIG['charset']}"
+        # Remover qualquer '@' extra do host
+        host = DB_CONFIG['host'].replace('@', '')
+        connection_string = f"mysql+pymysql://{DB_CONFIG['user']}:{DB_CONFIG['password']}@{host}:{DB_CONFIG['port']}/{DB_CONFIG['database']}?charset={DB_CONFIG['charset']}"
         engine = create_engine(connection_string)
         return engine
     except Exception as e:
