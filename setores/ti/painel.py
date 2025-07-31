@@ -347,7 +347,7 @@ def setup_database_endpoint():
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f'Erro ao inserir dados de demonstração: {str(e)}')
+        logger.error(f'Erro ao inserir dados de demonstra��ão: {str(e)}')
         traceback.print_exc()
         return error_response(f'Erro ao inserir dados: {str(e)}')
 
@@ -1308,7 +1308,24 @@ def criar_usuario():
 
         db.session.add(novo_usuario)
         db.session.commit()
-        
+
+        # Se o usuário foi criado como agente de suporte, criar automaticamente o registro de agente
+        if data['nivel_acesso'] == 'Agente de suporte':
+            try:
+                from database import AgenteSuporte
+                agente = AgenteSuporte(
+                    usuario_id=novo_usuario.id,
+                    ativo=True,
+                    nivel_experiencia='junior',
+                    max_chamados_simultaneos=10
+                )
+                db.session.add(agente)
+                db.session.commit()
+                logger.info(f"Agente de suporte criado automaticamente para usuário {novo_usuario.nome}")
+            except Exception as e:
+                logger.error(f"Erro ao criar agente automaticamente: {str(e)}")
+                # Não interromper o fluxo se der erro na criação do agente
+
         # Emitir evento Socket.IO apenas se a conexão estiver disponível
         try:
             if hasattr(current_app, 'socketio'):
