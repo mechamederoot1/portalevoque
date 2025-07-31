@@ -800,7 +800,7 @@ document.getElementById('btnGerarSenha')?.addEventListener('click', function(e) 
 function validarDadosUsuario(dados) {
     const erros = [];
     
-    if (!dados.nome) erros.push('Nome é obrigat��rio');
+    if (!dados.nome) erros.push('Nome �� obrigat��rio');
     if (!dados.sobrenome) erros.push('Sobrenome é obrigatório');
     if (!dados.email) erros.push('E-mail é obrigatório');
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
@@ -1679,6 +1679,21 @@ function loadSectionContent(sectionId) {
                 window.prioridadesManager.carregarProblemas();
             }
             atualizarContadoresVisaoGeral();
+            break;
+        case 'agentes-suporte':
+            // Carregar agentes de suporte
+            if (typeof carregarAgentes === 'function') {
+                carregarAgentes();
+            }
+            break;
+        case 'grupos-usuarios':
+            // Carregar grupos de usuários
+            if (typeof carregarGrupos === 'function') {
+                carregarGrupos();
+            }
+            if (typeof inicializarGrupos === 'function') {
+                inicializarGrupos();
+            }
             break;
         case 'visao-geral':
             atualizarContadoresVisaoGeral();
