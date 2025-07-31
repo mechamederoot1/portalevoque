@@ -31,6 +31,10 @@ else:
     print("⚠️  Email desabilitado: Variáveis de ambiente do Microsoft Graph não configuradas")
 
 def get_access_token():
+    if not EMAIL_ENABLED:
+        current_app.logger.warning("⚠️  Tentativa de obter token com email desabilitado")
+        return None
+
     try:
         app = ConfidentialClientApplication(
             client_id=CLIENT_ID,
@@ -38,7 +42,7 @@ def get_access_token():
             authority=f"https://login.microsoftonline.com/{TENANT_ID}"
         )
         result = app.acquire_token_for_client(scopes=SCOPES)
-        
+
         if "access_token" in result:
             current_app.logger.info("✅ Token obtido com sucesso!")
             return result["access_token"]
