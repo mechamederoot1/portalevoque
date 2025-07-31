@@ -869,26 +869,65 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             throw new Error(data.error || 'Erro ao criar usuário');
         }
 
-        // Usar sistema de notificações avançado
-        if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showSuccess('Usuário Criado', `Usuário ${data.nome} criado com sucesso!`);
+        // Se foi selecionado "Agente de Suporte", criar automaticamente o agente
+        if (usuarioData.nivel_acesso === 'Agente de Suporte') {
+            try {
+                const agenteResponse = await fetch('/ti/painel/api/agentes', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        usuario_id: data.id,
+                        ativo: true,
+                        nivel_experiencia: 'junior',
+                        max_chamados_simultaneos: 10,
+                        especialidades: []
+                    })
+                });
+
+                if (agenteResponse.ok) {
+                    if (window.advancedNotificationSystem) {
+                        window.advancedNotificationSystem.showSuccess('Usuário e Agente Criados', `Usuário ${data.nome} criado e registrado como agente de suporte!`);
+                    }
+                } else {
+                    if (window.advancedNotificationSystem) {
+                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usuário ${data.nome} criado, mas houve erro ao registrar como agente.`);
+                    }
+                }
+            } catch (agenteError) {
+                console.error('Erro ao criar agente:', agenteError);
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showWarning('Usuário Criado', `Usuário ${data.nome} criado, mas houve erro ao registrar como agente.`);
+                }
+            }
+        } else {
+            // Usar sistema de notificações avançado para usuário normal
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showSuccess('Usuário Criado', `Usuário ${data.nome} criado com sucesso!`);
+            }
         }
-        
+
         // Mostrar credenciais no modal
         document.getElementById('credenciaisNome').textContent = `${data.nome} ${data.sobrenome}`;
         document.getElementById('credenciaisUsuario').textContent = data.usuario;
         document.getElementById('credenciaisSenha').textContent = usuarioData.senha;
-        
+
         // Abrir modal de credenciais
         document.getElementById('modalCredenciais').classList.add('active');
-        
+
         // Limpar formulário
         this.reset();
         document.getElementById('senhaGeradaContainer').style.display = 'none';
-        
+
         // Atualizar lista de usuários se estiver visível
         if (document.getElementById('permissoes').classList.contains('active')) {
             await loadUsuarios();
+        }
+
+        // Atualizar lista de agentes se estiver visível
+        if (document.getElementById('agentes-suporte').classList.contains('active')) {
+            await carregarAgentes();
         }
         
     } catch (error) {
