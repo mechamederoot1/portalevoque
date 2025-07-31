@@ -120,21 +120,17 @@ function renderizarAgentes() {
         return;
     }
     
-    const html = agentesData.map(agente => {
-        const statusClass = agente.ativo ? 'status-concluido' : 'status-cancelado';
-        const statusText = agente.ativo ? 'Ativo' : 'Inativo';
-        const statusIcon = agente.ativo ? 'fa-check-circle' : 'fa-times-circle';
-        
-        const nivelBadgeClass = {
-            'junior': 'bg-info',
-            'pleno': 'bg-warning',
-            'senior': 'bg-success'
-        }[agente.nivel_experiencia] || 'bg-secondary';
-        
+    const html = agentesData.map(usuario => {
+        const statusClass = !usuario.bloqueado ? 'status-concluido' : 'status-cancelado';
+        const statusText = !usuario.bloqueado ? 'Ativo' : 'Bloqueado';
+        const statusIcon = !usuario.bloqueado ? 'fa-check-circle' : 'fa-times-circle';
+
+        const nomeCompleto = `${usuario.nome} ${usuario.sobrenome}`;
+
         return `
             <div class="card agente-card mb-3">
                 <div class="card-header">
-                    <h3>${agente.nome}</h3>
+                    <h3>${nomeCompleto}</h3>
                     <div class="status-badge ${statusClass}">
                         <i class="fas ${statusIcon}"></i>
                         ${statusText}
@@ -143,40 +139,40 @@ function renderizarAgentes() {
                 <div class="card-body">
                     <div class="info-row">
                         <strong>Usuário:</strong>
-                        <span>${agente.email || 'undefined'}</span>
+                        <span>${usuario.usuario}</span>
                     </div>
                     <div class="info-row">
-                        <strong>Nível:</strong>
-                        <span class="badge ${nivelBadgeClass}">${agente.nivel_experiencia}</span>
+                        <strong>Email:</strong>
+                        <span>${usuario.email}</span>
                     </div>
                     <div class="info-row">
-                        <strong>Máx. Chamados:</strong>
-                        <span>${agente.max_chamados_simultaneos}</span>
+                        <strong>Nível de Acesso:</strong>
+                        <span class="badge bg-primary">${usuario.nivel_acesso}</span>
                     </div>
                     <div class="info-row">
-                        <strong>Chamados Ativos:</strong>
-                        <span class="badge ${agente.chamados_ativos > 0 ? 'bg-warning' : 'bg-secondary'}">${agente.chamados_ativos}</span>
+                        <strong>Setores:</strong>
+                        <span>${Array.isArray(usuario.setores) ? usuario.setores.join(', ') : usuario.setor || 'Não informado'}</span>
                     </div>
                     <div class="info-row">
-                        <strong>Especialidades:</strong>
-                        <span>${agente.especialidades && agente.especialidades.length > 0 ? agente.especialidades.join(', ') : 'Não informado'}</span>
+                        <strong>Data de Criação:</strong>
+                        <span>${usuario.data_criacao || 'Não informado'}</span>
                     </div>
                 </div>
                 <div class="card-footer">
-                    <button class="btn btn-primary btn-sm" onclick="editarAgente(${agente.id})" title="Editar agente">
+                    <button class="btn btn-primary btn-sm" onclick="editarUsuarioAgente(${usuario.id})" title="Editar usuário">
                         <i class="fas fa-edit"></i> Editar
                     </button>
-                    <button class="btn btn-info btn-sm" onclick="verChamadosAgente(${agente.id})" title="Ver chamados">
+                    <button class="btn btn-info btn-sm" onclick="verChamadosUsuario(${usuario.id})" title="Ver chamados">
                         <i class="fas fa-ticket-alt"></i> Chamados
                     </button>
-                    <button class="btn ${agente.ativo ? 'btn-warning' : 'btn-success'} btn-sm" 
-                            onclick="toggleStatusAgente(${agente.id})" 
-                            title="${agente.ativo ? 'Desativar' : 'Ativar'} agente">
-                        <i class="fas ${agente.ativo ? 'fa-pause' : 'fa-play'}"></i>
-                        ${agente.ativo ? 'Desativar' : 'Ativar'}
+                    <button class="btn ${!usuario.bloqueado ? 'btn-warning' : 'btn-success'} btn-sm"
+                            onclick="toggleStatusUsuario(${usuario.id})"
+                            title="${!usuario.bloqueado ? 'Bloquear' : 'Desbloquear'} usuário">
+                        <i class="fas ${!usuario.bloqueado ? 'fa-lock' : 'fa-unlock'}"></i>
+                        ${!usuario.bloqueado ? 'Bloquear' : 'Desbloquear'}
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="excluirAgente(${agente.id})" title="Excluir agente">
-                        <i class="fas fa-trash"></i> Excluir
+                    <button class="btn btn-secondary btn-sm" onclick="gerarNovaSenhaAgente(${usuario.id})" title="Gerar nova senha">
+                        <i class="fas fa-key"></i> Nova Senha
                     </button>
                 </div>
             </div>
