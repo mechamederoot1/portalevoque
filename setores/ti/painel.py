@@ -921,11 +921,19 @@ def deletar_chamado(id):
         chamado = Chamado.query.get(id)
         if not chamado:
             return error_response('Chamado não encontrado.', 404)
-        
+
         codigo_chamado = chamado.codigo
+
+        # Remover atribuições de agentes antes de deletar o chamado
+        from database import ChamadoAgente
+        atribuicoes = ChamadoAgente.query.filter_by(chamado_id=id).all()
+        for atribuicao in atribuicoes:
+            db.session.delete(atribuicao)
+
+        # Agora deletar o chamado
         db.session.delete(chamado)
         db.session.commit()
-        
+
         # Emitir evento Socket.IO apenas se a conexão estiver disponível
         try:
             if hasattr(current_app, 'socketio'):
@@ -936,7 +944,7 @@ def deletar_chamado(id):
                 })
         except Exception as socket_error:
             logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
-        
+
         return json_response({
             'message': 'Chamado excluído com sucesso.',
             'codigo': codigo_chamado
@@ -1056,7 +1064,7 @@ def listar_usuarios():
         
         return json_response(usuarios_list)
     except Exception as e:
-        logger.error(f"Erro ao listar usuários: {str(e)}")
+        logger.error(f"Erro ao listar usu��rios: {str(e)}")
         logger.error(traceback.format_exc())
         return error_response(f'Erro ao listar usuários: {str(e)}')
 
