@@ -152,11 +152,17 @@ function renderizarGrupos() {
     if (!container) return;
     
     if (!gruposData || gruposData.length === 0) {
+        console.log('Nenhum grupo encontrado para renderização');
         container.innerHTML = `
             <div class="text-center py-4">
                 <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Nenhum grupo encontrado</h5>
-                <p class="text-muted">Crie o primeiro grupo de usuários</p>
+                <h5 class="text-muted">Nenhum grupo de usuários encontrado</h5>
+                <p class="text-muted">
+                    Clique em "Criar Grupo" para criar o primeiro grupo de usuários
+                </p>
+                <button class="btn btn-primary" onclick="window.debugVerificarGrupos()">
+                    <i class="fas fa-bug me-1"></i>Debug: Verificar Grupos
+                </button>
             </div>
         `;
         return;
