@@ -54,10 +54,10 @@ def listar_logs_acesso():
             logs_data.append({
                 'id': log.id,
                 'usuario': {
-                    'id': usuario.id,
-                    'nome': f"{usuario.nome} {usuario.sobrenome}",
-                    'email': usuario.email,
-                    'nivel_acesso': usuario.nivel_acesso
+                    'id': usuario.id if usuario else None,
+                    'nome': f"{usuario.nome} {usuario.sobrenome}" if usuario else 'Usuário removido',
+                    'email': usuario.email if usuario else 'N/A',
+                    'nivel_acesso': usuario.nivel_acesso if usuario else 'N/A'
                 },
                 'data_acesso': log.data_acesso.strftime('%d/%m/%Y %H:%M:%S') if log.data_acesso else None,
                 'data_logout': log.data_logout.strftime('%d/%m/%Y %H:%M:%S') if log.data_logout else None,
