@@ -2733,3 +2733,74 @@ function limparFormularioGrupo() {
         }
     }
 }
+
+async function carregarGrupos() {
+    try {
+        const response = await fetch('/ti/painel/api/grupos');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar grupos');
+        }
+
+        const grupos = await response.json();
+        renderizarGrupos(grupos);
+
+    } catch (error) {
+        console.error('Erro ao carregar grupos:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar grupos');
+        }
+    }
+}
+
+function renderizarGrupos(grupos) {
+    const container = document.getElementById('gruposGrid');
+    if (!container) return;
+
+    if (!grupos || grupos.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhum grupo encontrado</h5>
+                <p class="text-muted">Crie o primeiro grupo para organizar usuários</p>
+            </div>
+        `;
+        return;
+    }
+
+    container.innerHTML = grupos.map(grupo => `
+        <div class="card group-card">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h5 class="card-title group-name">${grupo.nome}</h5>
+                    <span class="badge ${grupo.ativo ? 'bg-success' : 'bg-secondary'}">
+                        ${grupo.ativo ? 'Ativo' : 'Inativo'}
+                    </span>
+                </div>
+                <p class="card-text group-description text-muted">${grupo.descricao || 'Sem descrição'}</p>
+                <div class="group-stats mb-3">
+                    <small class="text-muted">
+                        <i class="fas fa-users"></i> ${grupo.membros_count} membros •
+                        <i class="fas fa-building"></i> ${grupo.unidades_count} unidades
+                    </small>
+                </div>
+                <div class="group-info">
+                    <small class="text-muted">
+                        Criado por: ${grupo.criado_por}<br>
+                        Data: ${grupo.data_criacao}
+                    </small>
+                </div>
+                <div class="card-actions mt-3">
+                    <button class="btn btn-sm btn-primary" onclick="editarGrupo(${grupo.id})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    <button class="btn btn-sm btn-info" onclick="gerenciarMembros(${grupo.id})">
+                        <i class="fas fa-users"></i> Membros
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="excluirGrupo(${grupo.id})">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
+            </div>
+        </div>
+    `).join('');
+}
