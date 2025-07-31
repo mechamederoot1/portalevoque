@@ -23,8 +23,12 @@ class Config:
     DB_NAME = os.environ.get('DB_NAME')
     
     # Validar se as variáveis de banco estão configuradas
-    if not all([DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
-        raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME")
+    if not all([DB_HOST, DB_USER, DB_NAME]):
+        raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_NAME")
+
+    # DB_PASSWORD pode estar vazia em desenvolvimento local
+    if not DB_PASSWORD:
+        DB_PASSWORD = ""
     
     # Codifica a senha para uso na URL
     DB_PASSWORD_ENCODED = quote_plus(DB_PASSWORD)
