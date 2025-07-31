@@ -28,8 +28,8 @@ def listar_logs_acesso():
         # Data limite
         data_limite = get_brazil_time().replace(tzinfo=None) - timedelta(days=dias)
 
-        # Query base
-        query = db.session.query(LogAcesso, User).join(User)
+        # Query base - usar LEFT JOIN para incluir logs mesmo quando usuário foi deletado
+        query = db.session.query(LogAcesso, User).outerjoin(User, LogAcesso.usuario_id == User.id)
         query = query.filter(LogAcesso.data_acesso >= data_limite)
 
         # Aplicar filtros
