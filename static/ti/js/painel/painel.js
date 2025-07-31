@@ -2721,14 +2721,25 @@ function filtrarListaUsuarios(termoBusca) {
     let usuariosVisiveis = 0;
 
     cards.forEach(card => {
-        // Buscar o texto em todos os elementos da card, não em classes específicas que não existem
+        // Buscar o texto em todos os elementos da card, incluindo dados específicos
         const cardText = card.textContent.toLowerCase();
 
-        if (termoBusca === '' || cardText.includes(termoBusca)) {
+        // Também buscar em atributos data- que podem conter informações
+        const nomeUsuario = card.querySelector('.card-title, .usuario-nome, h5, h6, strong')?.textContent?.toLowerCase() || '';
+        const emailUsuario = card.querySelector('.card-text, .usuario-email, .text-muted')?.textContent?.toLowerCase() || '';
+        const unidadeUsuario = card.querySelector('[data-unidade]')?.getAttribute('data-unidade')?.toLowerCase() || '';
+
+        // Texto completo para busca
+        const textoCompleto = `${cardText} ${nomeUsuario} ${emailUsuario} ${unidadeUsuario}`;
+
+        if (termoBusca === '' || textoCompleto.includes(termoBusca)) {
             card.style.display = '';
+            card.style.transition = 'opacity 0.2s ease';
+            card.style.opacity = '1';
             usuariosVisiveis++;
         } else {
             card.style.display = 'none';
+            card.style.opacity = '0';
         }
     });
 
@@ -3256,7 +3267,7 @@ async function carregarBackupManutencao() {
             btnCriarBackup.addEventListener('click', criarBackup);
         }
 
-        console.log('Seção backup/manutenção carregada');
+        console.log('Seç��o backup/manutenção carregada');
     } catch (error) {
         console.error('Erro ao carregar backup/manutenção:', error);
     }
