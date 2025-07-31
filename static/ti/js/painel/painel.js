@@ -258,11 +258,19 @@ card.innerHTML = `
             <strong>Data:</strong>
             <span>${formatarData(chamado.data_abertura)}</span>
         </div>
-        ${chamado.agente ? `
         <div class="info-row">
             <strong>Agente:</strong>
-            <span class="badge bg-info">${chamado.agente.nome}</span>
-        </div>` : ''}
+            ${chamado.agente ? `
+                <span class="badge bg-info">${chamado.agente.nome}</span>
+                <button class="btn btn-sm btn-outline-warning ms-2" onclick="alterarAgente(${chamado.id})" title="Alterar agente">
+                    <i class="fas fa-user-edit"></i>
+                </button>
+            ` : `
+                <button class="btn btn-sm btn-success" onclick="atribuirAgente(${chamado.id})" title="Atribuir agente">
+                    <i class="fas fa-user-plus"></i> Atribuir
+                </button>
+            `}
+        </div>
     </div>
     <div class="card-footer">
         <select id="status-${chamado.id}">
