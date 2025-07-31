@@ -1802,6 +1802,35 @@ document.addEventListener('DOMContentLoaded', function() {
     } else {
         activateSection('visao-geral');
     }
+
+    // Forçar carregamento de agentes e grupos após inicialização
+    setTimeout(() => {
+        console.log('Forçando carregamento inicial de agentes e grupos...');
+
+        // Verificar e carregar agentes
+        if (typeof carregarAgentes === 'function') {
+            console.log('Carregando agentes na inicialização...');
+            // Só carregar se a seção de agentes existir
+            const agentesSection = document.getElementById('agentes-suporte');
+            if (agentesSection) {
+                carregarAgentes();
+            }
+        } else {
+            console.log('Função carregarAgentes não disponível na inicialização');
+        }
+
+        // Verificar e carregar grupos
+        if (typeof carregarGrupos === 'function') {
+            console.log('Carregando grupos na inicialização...');
+            // Só carregar se a seção de grupos existir
+            const gruposSection = document.getElementById('grupos-usuarios');
+            if (gruposSection) {
+                carregarGrupos();
+            }
+        } else {
+            console.log('Função carregarGrupos não disponível na inicialização');
+        }
+    }, 1000);
 });
 
 // Adiciona event listeners para links de navegação do submenu
