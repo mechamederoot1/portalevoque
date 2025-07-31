@@ -1124,6 +1124,7 @@ def atualizar_usuario(user_id):
             'id': usuario.id,
             'nome': usuario.nome,
             'sobrenome': usuario.sobrenome,
+            'usuario': usuario.usuario,
             'email': usuario.email,
             'nivel_acesso': usuario.nivel_acesso,
             'setores': usuario.setores,
