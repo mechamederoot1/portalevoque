@@ -2686,7 +2686,7 @@ if (typeof loadSectionContent !== 'undefined') {
 // Placeholder functions para funcionalidades futuras
 function editarAgente(agenteId) {
     console.log('Editar agente:', agenteId);
-    // TODO: Implementar modal de edição de agente
+    // TODO: Implementar modal de ediç��o de agente
 }
 
 function editarGrupo(grupoId) {
@@ -2818,25 +2818,37 @@ function inicializarFiltroPermissoes() {
 
 function filtrarListaUsuarios(termoBusca) {
     const usuariosGrid = document.getElementById('usuariosGrid');
-    if (!usuariosGrid) return;
+    if (!usuariosGrid) {
+        console.log('usuariosGrid não encontrado');
+        return;
+    }
 
-    // Corrigir seletores para trabalhar com a estrutura HTML real
+    // Buscar por cards específicas de usuários
     const cards = usuariosGrid.querySelectorAll('.usuario-card, .card');
     let usuariosVisiveis = 0;
 
+    console.log(`Filtrando ${cards.length} cards de usuários com termo: "${termoBusca}"`);
+
     cards.forEach(card => {
-        // Buscar o texto em todos os elementos da card, incluindo dados específicos
-        const cardText = card.textContent.toLowerCase();
+        // Buscar elementos específicos dentro da card
+        const nomeElement = card.querySelector('h3, .card-title');
+        const emailElement = card.querySelector('.info-row span:contains("@"), .card-text');
+        const nivelElement = card.querySelector('.badge, .status-badge');
 
-        // Também buscar em atributos data- que podem conter informações
-        const nomeUsuario = card.querySelector('.card-title, .usuario-nome, h5, h6, strong')?.textContent?.toLowerCase() || '';
-        const emailUsuario = card.querySelector('.card-text, .usuario-email, .text-muted')?.textContent?.toLowerCase() || '';
-        const unidadeUsuario = card.querySelector('[data-unidade]')?.getAttribute('data-unidade')?.toLowerCase() || '';
+        // Extrair textos
+        const nomeUsuario = nomeElement ? nomeElement.textContent.toLowerCase() : '';
+        const emailUsuario = emailElement ? emailElement.textContent.toLowerCase() : '';
+        const nivelUsuario = nivelElement ? nivelElement.textContent.toLowerCase() : '';
+        const textoCompleto = card.textContent.toLowerCase();
 
-        // Texto completo para busca
-        const textoCompleto = `${cardText} ${nomeUsuario} ${emailUsuario} ${unidadeUsuario}`;
+        // Verificar se algum texto contém o termo de busca
+        const encontrado = termoBusca === '' ||
+                          nomeUsuario.includes(termoBusca) ||
+                          emailUsuario.includes(termoBusca) ||
+                          nivelUsuario.includes(termoBusca) ||
+                          textoCompleto.includes(termoBusca);
 
-        if (termoBusca === '' || textoCompleto.includes(termoBusca)) {
+        if (encontrado) {
             card.style.display = '';
             card.style.transition = 'opacity 0.2s ease';
             card.style.opacity = '1';
