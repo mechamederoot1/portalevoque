@@ -2,7 +2,8 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_login import login_required, current_user
 from database import (db, GrupoUsuarios, GrupoMembro, GrupoUnidade, GrupoPermissao, 
                      User, Unidade, EmailMassa, EmailMassaDestinatario, get_brazil_time)
-from setores.ti.utils import setor_required, json_response, error_response
+from auth.auth_helpers import setor_required
+from setores.ti.painel import json_response, error_response
 from setores.ti.email_service import email_service
 import logging
 from jinja2 import Template
