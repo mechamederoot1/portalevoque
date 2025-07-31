@@ -351,6 +351,47 @@ def setup_database_endpoint():
         traceback.print_exc()
         return error_response(f'Erro ao inserir dados: {str(e)}')
 
+@painel_bp.route('/setup-demo')
+@login_required
+@setor_required('Administrador')
+def setup_demo_page():
+    """Página para configurar dados de demonstração"""
+    return '''
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Setup Demo Data</title>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body>
+        <div class="container mt-5">
+            <h1>Configurar Dados de Demonstração</h1>
+            <button class="btn btn-primary" onclick="setupDatabase()">Inserir Dados de Demo</button>
+            <div id="result" class="mt-3"></div>
+        </div>
+
+        <script>
+        async function setupDatabase() {
+            try {
+                const response = await fetch('/ti/painel/api/setup-database', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                document.getElementById('result').innerHTML = '<div class="alert alert-success"><pre>' + JSON.stringify(data, null, 2) + '</pre></div>';
+            } catch (error) {
+                document.getElementById('result').innerHTML = '<div class="alert alert-danger">Error: ' + error.message + '</div>';
+            }
+        }
+        </script>
+    </body>
+    </html>
+    '''
+
 def carregar_configuracoes():
     """Carrega configurações do banco de dados ou retorna padrões"""
     try:
@@ -1734,7 +1775,7 @@ Equipe de Suporte TI - Evoque Fitness
 @login_required
 @setor_required('Administrador')
 def notificacoes_recentes():
-    """Retorna chamados criados nos ��ltimos 5 minutos"""
+    """Retorna chamados criados nos últimos 5 minutos"""
     try:
         cinco_minutos_atras = get_brazil_time() - timedelta(minutes=5)
         
