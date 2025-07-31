@@ -351,43 +351,38 @@ async function verChamadosAgente(agenteId) {
     }
 }
 
-// Toggle status do agente
-async function toggleStatusAgente(agenteId) {
+// Toggle status do usuário (bloquear/desbloquear)
+async function toggleStatusUsuario(usuarioId) {
     try {
-        const agente = agentesData.find(a => a.id === agenteId);
-        if (!agente) {
-            throw new Error('Agente não encontrado');
+        const usuario = agentesData.find(u => u.id === usuarioId);
+        if (!usuario) {
+            throw new Error('Usuário não encontrado');
         }
-        
-        const novoStatus = !agente.ativo;
-        const action = novoStatus ? 'ativar' : 'desativar';
-        
-        if (!confirm(`Tem certeza que deseja ${action} este agente?`)) {
+
+        const action = !usuario.bloqueado ? 'bloquear' : 'desbloquear';
+
+        if (!confirm(`Tem certeza que deseja ${action} este usuário?`)) {
             return;
         }
-        
-        const response = await fetch(`/ti/painel/api/agentes/${agenteId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ ativo: novoStatus })
+
+        const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}/bloquear`, {
+            method: 'PUT'
         });
-        
+
         const result = await response.json();
-        
+
         if (!response.ok) {
-            throw new Error(result.error || `Erro ao ${action} agente`);
+            throw new Error(result.error || `Erro ao ${action} usuário`);
         }
-        
+
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showSuccess('Sucesso', result.message || `Agente ${novoStatus ? 'ativado' : 'desativado'} com sucesso`);
+            window.advancedNotificationSystem.showSuccess('Sucesso', result.message || `Usuário ${action}ado com sucesso`);
         }
-        
+
         carregarAgentes();
-        
+
     } catch (error) {
-        console.error('Erro ao alterar status do agente:', error);
+        console.error('Erro ao alterar status do usuário:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', error.message);
         }
