@@ -1477,6 +1477,21 @@ function loadSectionContent(sectionId) {
         case 'visao-geral':
             atualizarContadoresVisaoGeral();
             break;
+        case 'configuracoes-avancadas':
+            carregarConfiguracoesAvancadas();
+            break;
+        case 'alertas-sistema':
+            carregarAlertasSistema();
+            break;
+        case 'backup-manutencao':
+            carregarBackupManutencao();
+            break;
+        case 'logs-acesso':
+            carregarLogsAcesso();
+            break;
+        case 'dashboard-avancado':
+            carregarDashboardAvancado();
+            break;
     }
 }
 
