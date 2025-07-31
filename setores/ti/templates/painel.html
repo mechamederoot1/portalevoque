@@ -1473,7 +1473,7 @@
       </div>
     </section>
 
-    <!-- Nova Seção: Adicionar ao Banco -->
+    <!-- Nova Se��ão: Adicionar ao Banco -->
     <section id="adicionar-problema" class="content-section" tabindex="0" aria-label="Adicionar ao Banco">
       <h2>Adicionar ao Banco</h2>
       
@@ -2322,10 +2322,10 @@
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
-  <!-- Scripts do painel -->
-  <script src="/static/ti/js/painel/painel.js"></script>
+  <!-- Scripts do painel - ordem importa! -->
   <script src="/static/ti/js/painel/agentes.js"></script>
   <script src="/static/ti/js/painel/grupos.js"></script>
+  <script src="/static/ti/js/painel/painel.js"></script>
   <script src="/static/ti/js/painel/enviar_ticket.js"></script>
   <script src="/static/ti/js/painel/notificacoes.js"></script>
   <script src="/static/ti/js/painel/sla.js"></script>
@@ -2649,7 +2649,7 @@
         // Limpar formulário
         document.getElementById('formAdicionarProblema').reset();
 
-        // Mostrar notificação de sucesso
+        // Mostrar notificaç��o de sucesso
         if (window.advancedNotificationSystem) {
           window.advancedNotificationSystem.showSuccess(
             'Problema Adicionado',
