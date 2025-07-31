@@ -18,12 +18,17 @@ TENANT_ID = os.getenv('TENANT_ID')
 USER_ID = os.getenv('USER_ID')
 EMAIL_TI = os.getenv('EMAIL_TI', 'ti@academiaevoque.com.br')
 
-# Validação das variáveis de ambiente obrigatórias
-if not all([CLIENT_ID, CLIENT_SECRET, TENANT_ID, USER_ID]):
-    raise ValueError("Variáveis de ambiente obrigatórias não configuradas: CLIENT_ID, CLIENT_SECRET, TENANT_ID, USER_ID")
+# Verificar se as variáveis de ambiente estão configuradas (não obrigatórias para desenvolvimento)
+EMAIL_ENABLED = all([CLIENT_ID, CLIENT_SECRET, TENANT_ID, USER_ID])
 
-SCOPES = ["https://graph.microsoft.com/.default"]
-ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{USER_ID}/sendMail"
+if EMAIL_ENABLED:
+    SCOPES = ["https://graph.microsoft.com/.default"]
+    ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{USER_ID}/sendMail"
+    print("✅ Configurações de email Microsoft Graph carregadas")
+else:
+    SCOPES = []
+    ENDPOINT = None
+    print("⚠️  Email desabilitado: Variáveis de ambiente do Microsoft Graph não configuradas")
 
 def get_access_token():
     try:
