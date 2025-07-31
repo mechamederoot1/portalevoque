@@ -398,7 +398,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
             });
 
             if (!notificacaoResponse.ok) {
-                console.error('Erro ao enviar notificação:', await notificacaoResponse.text());
+                console.error('Erro ao enviar notifica��ão:', await notificacaoResponse.text());
                 throw new Error('Erro ao enviar notificação por e-mail');
             }
         }
@@ -1969,62 +1969,8 @@ document.addEventListener('DOMContentLoaded', function() {
     setTimeout(inicializarSistemaPainel, 100);
 });
 
-// Adiciona event listeners para links de navegação do submenu
-document.querySelectorAll('.submenu a').forEach(link => {
-    link.addEventListener('click', function(e) {
-        // Previne o comportamento padrão
-        e.preventDefault();
-        
-        // Obtém o ID da seção alvo
-        const targetId = this.getAttribute('href').substring(1);
-        
-        // Ativa a seção
-        activateSection(targetId);
-        
-        // Atualiza a classe active nos links
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        this.classList.add('active');
-        
-        // Adiciona active ao link pai do submenu
-        const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
-        if (parentSubmenuToggle) {
-            parentSubmenuToggle.classList.add('active');
-        }
-        
-        // Atualiza a URL com o hash
-        window.location.hash = targetId;
-    });
-});
-
-// Adiciona event listeners para links diretos (sem submenu)
-document.querySelectorAll('.sidebar nav > ul > li > a:not(.submenu-toggle)').forEach(link => {
-    link.addEventListener('click', function(e) {
-        // Previne o comportamento padrão
-        e.preventDefault();
-        
-        // Obtém o ID da seção alvo
-        const targetId = this.getAttribute('href').substring(1);
-        
-        // Ativa a seção
-        activateSection(targetId);
-        
-        // Atualiza a classe active nos links
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        this.classList.add('active');
-        
-        // Atualiza a URL com o hash
-        window.location.hash = targetId;
-        
-        // Em dispositivos móveis, fecha o sidebar após a navegação
-        if (window.innerWidth < 992) {
-            sidebar.classList.remove('active');
-        }
-    });
-});
+// Navigation event listeners are now handled in initializeNavigation() function
+// which is called after DOM is loaded
 
 // Função para lidar com mudanças de hash na URL
 window.addEventListener('hashchange', function() {
