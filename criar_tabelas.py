@@ -32,9 +32,14 @@ def create_database_migration():
     print("=" * 60)
     print("INICIANDO MIGRAÇÃO DO BANCO DE DADOS")
     print("=" * 60)
-    
+
     # Criar aplicação Flask
-    app = create_app()
+    app = Flask(__name__)
+    app.config.from_object(Config)
+
+    # Inicializar o banco de dados
+    from database import db
+    db.init_app(app)
     
     with app.app_context():
         try:
