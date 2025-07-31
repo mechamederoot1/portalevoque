@@ -91,9 +91,9 @@ class Config:
     @staticmethod
     def validate_required_env_vars():
         """Valida se todas as variáveis de ambiente obrigatórias estão configuradas"""
-        # Apenas variáveis essenciais para o banco de dados
         required_vars = [
-            'DB_HOST', 'DB_USER', 'DB_NAME'
+            'CLIENT_ID', 'CLIENT_SECRET', 'TENANT_ID', 'USER_ID',
+            'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME'
         ]
 
         missing_vars = []
