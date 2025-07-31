@@ -2474,3 +2474,72 @@ async function carregarAgentesParaFiltro() {
         console.error('Erro ao carregar agentes para filtro:', error);
     }
 }
+
+// ==================== FILTRO DE PERMISSÕES ====================
+
+function inicializarFiltroPermissoes() {
+    const filtroInput = document.getElementById('filtroPermissoes');
+    const btnFiltrar = document.getElementById('btnFiltrarPermissoes');
+
+    if (!filtroInput || !btnFiltrar) return;
+
+    // Função para filtrar usuários
+    const filtrarUsuarios = () => {
+        const termoBusca = filtroInput.value.toLowerCase().trim();
+        filtrarListaUsuarios(termoBusca);
+    };
+
+    // Event listeners
+    filtroInput.addEventListener('input', filtrarUsuarios);
+    btnFiltrar.addEventListener('click', filtrarUsuarios);
+
+    // Filtrar ao pressionar Enter
+    filtroInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            filtrarUsuarios();
+        }
+    });
+}
+
+function filtrarListaUsuarios(termoBusca) {
+    const usuariosGrid = document.getElementById('usuariosGrid');
+    if (!usuariosGrid) return;
+
+    const cards = usuariosGrid.querySelectorAll('.user-card');
+    let usuariosVisiveis = 0;
+
+    cards.forEach(card => {
+        const nome = card.querySelector('.user-name')?.textContent.toLowerCase() || '';
+        const email = card.querySelector('.user-email')?.textContent.toLowerCase() || '';
+        const usuario = card.querySelector('.user-username')?.textContent.toLowerCase() || '';
+        const unidade = card.querySelector('.user-unidade')?.textContent.toLowerCase() || '';
+
+        const textoCompleto = `${nome} ${email} ${usuario} ${unidade}`;
+
+        if (termoBusca === '' || textoCompleto.includes(termoBusca)) {
+            card.style.display = '';
+            usuariosVisiveis++;
+        } else {
+            card.style.display = 'none';
+        }
+    });
+
+    // Mostrar mensagem se nenhum usuário for encontrado
+    const mensagemVazia = document.getElementById('mensagemUsuariosVazia');
+    if (usuariosVisiveis === 0 && termoBusca !== '') {
+        if (!mensagemVazia) {
+            const mensagem = document.createElement('div');
+            mensagem.id = 'mensagemUsuariosVazia';
+            mensagem.className = 'text-center py-4';
+            mensagem.innerHTML = `
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">Nenhum usuário encontrado</h5>
+                <p class="text-muted">Tente usar termos de busca diferentes</p>
+            `;
+            usuariosGrid.appendChild(mensagem);
+        }
+    } else if (mensagemVazia) {
+        mensagemVazia.remove();
+    }
+}
