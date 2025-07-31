@@ -283,7 +283,7 @@ def forbidden_error(error):
 @login_required
 @setor_required('Administrador')
 def carregar_configuracoes_api():
-    """Carrega as configurações do sistema"""
+    """Carrega as configura��ões do sistema"""
     try:
         config = carregar_configuracoes()
         logger.info(f"Configurações carregadas com sucesso")
@@ -318,7 +318,7 @@ def salvar_configuracoes_api():
                     if not isinstance(sla_config[campo], (int, float)) or sla_config[campo] <= 0:
                         return error_response(f'Campo SLA {campo} deve ser um número positivo', 400)
         
-        # Validar configurações de notificações
+        # Validar configuraç��es de notificações
         if 'notificacoes' in data:
             notif_config = data['notificacoes']
             campos_bool = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
@@ -438,20 +438,37 @@ def carregar_configuracoes_notificacoes():
 def listar_problemas():
     """Lista todos os problemas reportados"""
     try:
+        # Verificar se a tabela existe tentando fazer uma consulta simples
+        try:
+            count = ProblemaReportado.query.count()
+            logger.info(f"Total de problemas na base: {count}")
+        except Exception as db_error:
+            logger.error(f"Erro ao acessar tabela ProblemaReportado: {str(db_error)}")
+            return error_response('Tabela de problemas não disponível', 400, str(db_error))
+
         problemas = ProblemaReportado.query.filter_by(ativo=True).all()
         problemas_list = []
+
         for p in problemas:
-            problemas_list.append({
-                'id': p.id,
-                'nome': p.nome,
-                'prioridade_padrao': p.prioridade_padrao,
-                'requer_item_internet': p.requer_item_internet
-            })
+            try:
+                problema_data = {
+                    'id': p.id,
+                    'nome': p.nome,
+                    'prioridade_padrao': p.prioridade_padrao,
+                    'requer_item_internet': p.requer_item_internet
+                }
+                problemas_list.append(problema_data)
+            except Exception as item_error:
+                logger.error(f"Erro ao processar problema ID {p.id}: {str(item_error)}")
+                continue
+
+        logger.info(f"Retornando {len(problemas_list)} problemas ativos")
         return json_response(problemas_list)
+
     except Exception as e:
-        logger.error(f"Erro ao listar problemas: {str(e)}")
+        logger.error(f"Erro geral ao listar problemas: {str(e)}")
         logger.error(traceback.format_exc())
-        return error_response('Erro interno no servidor')
+        return error_response('Erro interno no servidor', 500, str(e))
 
 @painel_bp.route('/api/problemas', methods=['POST'])
 @login_required
@@ -903,7 +920,7 @@ def criar_usuario():
         required_fields = ['nome', 'sobrenome', 'usuario', 'email', 'senha', 'nivel_acesso', 'setor']
         for field in required_fields:
             if not data.get(field):
-                return error_response(f'Campo {field} é obrigatório', 400)
+                return error_response(f'Campo {field} �� obrigatório', 400)
         
         niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor']
         if data['nivel_acesso'] not in niveis_validos:
