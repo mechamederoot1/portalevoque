@@ -1912,6 +1912,14 @@ document.getElementById('modalCriarAgenteClose')?.addEventListener('click', func
     document.getElementById('modalCriarAgente').classList.remove('active');
 });
 
+document.getElementById('btnCancelarAgente')?.addEventListener('click', function() {
+    document.getElementById('modalCriarAgente').classList.remove('active');
+});
+
+document.getElementById('btnSalvarAgente')?.addEventListener('click', async function() {
+    await criarAgente();
+});
+
 document.getElementById('formCriarAgente')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     await criarAgente();
