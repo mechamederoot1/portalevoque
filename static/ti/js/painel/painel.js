@@ -1656,26 +1656,36 @@ function attachBloqueadosEventListeners() {
 
 // Função para carregar conteúdo específico da seção quando ativada
 function loadSectionContent(sectionId) {
+    console.log('Carregando conteúdo da seção:', sectionId);
+
     switch(sectionId) {
         case 'listar-unidades':
-            renderListarUnidades();
+            if (typeof renderListarUnidades === 'function') {
+                renderListarUnidades();
+            }
             break;
         case 'gerenciar-chamados':
             loadChamados();
             // Adicionar filtro de agente após carregar chamados
             setTimeout(() => {
-                adicionarFiltroAgente();
+                if (typeof adicionarFiltroAgente === 'function') {
+                    adicionarFiltroAgente();
+                }
             }, 500);
             break;
         case 'permissoes':
             loadUsuarios();
             // Inicializar filtro de permissões após carregar usuários
             setTimeout(() => {
-                inicializarFiltroPermissoes();
+                if (typeof inicializarFiltroPermissoes === 'function') {
+                    inicializarFiltroPermissoes();
+                }
             }, 100);
             break;
         case 'bloqueios':
-            loadUsuariosBloqueados();
+            if (typeof loadUsuariosBloqueados === 'function') {
+                loadUsuariosBloqueados();
+            }
             break;
         case 'sla-dashboard':
             // Carregar dados SLA se a função existir
@@ -1685,7 +1695,7 @@ function loadSectionContent(sectionId) {
             break;
         case 'configuracoes':
             // Carregar configurações de prioridades
-            if (window.prioridadesManager) {
+            if (window.prioridadesManager && typeof window.prioridadesManager.carregarProblemas === 'function') {
                 window.prioridadesManager.carregarProblemas();
             }
             atualizarContadoresVisaoGeral();
@@ -1697,7 +1707,7 @@ function loadSectionContent(sectionId) {
                 console.log('Função carregarAgentes encontrada, executando...');
                 carregarAgentes();
             } else {
-                console.error('Função carregarAgentes não encontrada, tentando novamente em 500ms...');
+                console.log('Função carregarAgentes não encontrada, tentando novamente em 100ms...');
                 setTimeout(() => {
                     if (typeof carregarAgentes === 'function') {
                         console.log('Função carregarAgentes encontrada no retry, executando...');
@@ -1705,7 +1715,7 @@ function loadSectionContent(sectionId) {
                     } else {
                         console.error('Função carregarAgentes ainda não disponível. Verifique o carregamento dos scripts.');
                     }
-                }, 500);
+                }, 100);
             }
             break;
         case 'grupos-usuarios':
@@ -1718,7 +1728,7 @@ function loadSectionContent(sectionId) {
                 console.log('Função carregarGrupos encontrada, executando...');
                 carregarGrupos();
             } else {
-                console.error('Funções de grupos não encontradas, tentando novamente em 500ms...');
+                console.log('Funções de grupos não encontradas, tentando novamente em 100ms...');
                 setTimeout(() => {
                     if (typeof inicializarGrupos === 'function') {
                         console.log('Função inicializarGrupos encontrada no retry, executando...');
@@ -1729,41 +1739,61 @@ function loadSectionContent(sectionId) {
                     } else {
                         console.error('Funções de grupos ainda não disponíveis. Verifique o carregamento dos scripts.');
                     }
-                }, 500);
+                }, 100);
             }
             break;
         case 'visao-geral':
             atualizarContadoresVisaoGeral();
             break;
         case 'configuracoes-avancadas':
-            carregarConfiguracoesAvancadas();
+            if (typeof carregarConfiguracoesAvancadas === 'function') {
+                carregarConfiguracoesAvancadas();
+            }
             break;
         case 'alertas-sistema':
-            carregarAlertasSistema();
+            if (typeof carregarAlertasSistema === 'function') {
+                carregarAlertasSistema();
+            }
             break;
         case 'backup-manutencao':
-            carregarBackupManutencao();
+            if (typeof carregarBackupManutencao === 'function') {
+                carregarBackupManutencao();
+            }
             break;
         case 'logs-acesso':
-            carregarLogsAcesso();
+            if (typeof carregarLogsAcesso === 'function') {
+                carregarLogsAcesso();
+            }
             break;
         case 'logs-acoes':
-            carregarLogsAcoes();
+            if (typeof carregarLogsAcoes === 'function') {
+                carregarLogsAcoes();
+            }
             break;
         case 'analise-problemas':
-            carregarAnaliseProblemas();
+            if (typeof carregarAnaliseProblemas === 'function') {
+                carregarAnaliseProblemas();
+            }
             break;
         case 'monitoramento-catraca':
-            carregarMonitoramentoCatraca();
+            if (typeof carregarMonitoramentoCatraca === 'function') {
+                carregarMonitoramentoCatraca();
+            }
             break;
         case 'monitoramento-mikrotiks':
-            carregarMonitoramentoMikrotiks();
+            if (typeof carregarMonitoramentoMikrotiks === 'function') {
+                carregarMonitoramentoMikrotiks();
+            }
             break;
         case 'monitoramento-usuarios':
-            carregarMonitoramentoUsuarios();
+            if (typeof carregarMonitoramentoUsuarios === 'function') {
+                carregarMonitoramentoUsuarios();
+            }
             break;
         case 'dashboard-avancado':
-            carregarDashboardAvancado();
+            if (typeof carregarDashboardAvancado === 'function') {
+                carregarDashboardAvancado();
+            }
             break;
     }
 }
