@@ -10,14 +10,18 @@ from datetime import datetime
 import pymysql
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.exc import SQLAlchemyError
+from dotenv import load_dotenv
+
+# Carregar variáveis de ambiente
+load_dotenv()
 
 # Configurações do banco de dados do .env
 DB_CONFIG = {
-    'host': 'evoque-database.mysql.database.azure.com',
-    'user': 'infra',
-    'password': 'Evoque12@',
-    'database': 'infra',
-    'port': 3306,
+    'host': os.getenv('DB_HOST', 'evoque-database.mysql.database.azure.com'),
+    'user': os.getenv('DB_USER', 'infra'),
+    'password': os.getenv('DB_PASSWORD', 'Evoque12@'),
+    'database': os.getenv('DB_NAME', 'infra'),
+    'port': int(os.getenv('DB_PORT', 3306)),
     'charset': 'utf8mb4'
 }
 
