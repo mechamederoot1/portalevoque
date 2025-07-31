@@ -46,18 +46,38 @@ async function carregarAgentes() {
 async function carregarEstatisticasAgentes() {
     try {
         console.log('Carregando estatísticas dos agentes...');
-        
-        const response = await fetch('/ti/painel/api/agentes/estatisticas');
-        if (!response.ok) {
-            throw new Error('Erro ao carregar estatísticas');
+
+        // Calcular estatísticas baseado nos dados dos agentes
+        const totalAgentes = agentesData.length;
+        const agentesAtivos = agentesData.filter(agente => !agente.bloqueado).length;
+
+        // Buscar estatísticas de chamados se o endpoint existir
+        let chamadosAtribuidos = 0;
+        let agentesDisponiveis = agentesAtivos;
+
+        try {
+            const responseEstatisticas = await fetch('/ti/painel/api/agentes/estatisticas');
+            if (responseEstatisticas.ok) {
+                const estatisticas = await responseEstatisticas.json();
+                chamadosAtribuidos = estatisticas.chamados_atribuidos || 0;
+                agentesDisponiveis = estatisticas.agentes_disponiveis || agentesAtivos;
+            }
+        } catch (err) {
+            console.log('Endpoint de estatísticas não disponível, usando valores padrão');
         }
-        
-        agentesStatisticsData = await response.json();
-        console.log('Estatísticas carregadas:', agentesStatisticsData);
-        
+
+        agentesStatisticsData = {
+            total_agentes: totalAgentes,
+            agentes_ativos: agentesAtivos,
+            chamados_atribuidos: chamadosAtribuidos,
+            agentes_disponiveis: agentesDisponiveis
+        };
+
+        console.log('Estatísticas calculadas:', agentesStatisticsData);
+
         // Atualizar cards de estatísticas
         atualizarCardsEstatisticas();
-        
+
     } catch (error) {
         console.error('Erro ao carregar estatísticas dos agentes:', error);
         if (window.advancedNotificationSystem) {
