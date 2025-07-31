@@ -1590,7 +1590,7 @@ document.querySelectorAll('.sidebar nav > ul > li > a:not(.submenu-toggle)').for
     });
 });
 
-// Função para lidar com mudanças de hash na URL
+// Fun��ão para lidar com mudanças de hash na URL
 window.addEventListener('hashchange', function() {
     const hash = window.location.hash.substring(1);
     if (hash) {
@@ -3025,7 +3025,7 @@ async function carregarAlertasSistema() {
 }
 
 function renderizarAlertasSistema(alertas) {
-    const container = document.getElementById('alertasContainer');
+    const container = document.getElementById('alertasGrid');
     if (!container) return;
 
     if (!alertas || alertas.length === 0) {
