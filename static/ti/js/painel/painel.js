@@ -3099,25 +3099,6 @@ function renderizarGrupos(grupos) {
 
 // ==================== CARREGAR AGENTES ====================
 
-async function carregarAgentes() {
-    try {
-        const response = await fetch('/ti/painel/api/agentes');
-        if (!response.ok) {
-            throw new Error('Erro ao carregar agentes');
-        }
-
-        const agentes = await response.json();
-        renderizarAgentes(agentes);
-        atualizarEstatisticasAgentes(agentes);
-
-    } catch (error) {
-        console.error('Erro ao carregar agentes:', error);
-        if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes de suporte');
-        }
-    }
-}
-
 function renderizarAgentes(agentes) {
     const container = document.getElementById('agentesGrid');
     if (!container) return;
