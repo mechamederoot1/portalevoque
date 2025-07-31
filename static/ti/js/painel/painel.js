@@ -2001,34 +2001,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Hash change listener will be initialized in initializeNavigation()
 
-// Adiciona suporte a teclas de acessibilidade para o menu
-document.querySelectorAll('.sidebar nav ul li').forEach(item => {
-    item.addEventListener('keydown', function(e) {
-        // Enter ou espaço ativa o item
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            const link = this.querySelector('a');
-            if (link) link.click();
-        }
-    });
-});
-
-// Melhora a acessibilidade dos submenus
-document.querySelectorAll('.has-submenu').forEach(item => {
-    const toggle = item.querySelector('.submenu-toggle');
-    const submenu = item.querySelector('.submenu');
-    
-    if (toggle && submenu) {
-        toggle.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-                toggle.setAttribute('aria-expanded', !isExpanded);
-                item.classList.toggle('open');
-            }
-        });
-    }
-});
+// Accessibility features are now handled in initializeNavigation()
 
 // Função para verificar se uma seção existe
 function sectionExists(id) {
