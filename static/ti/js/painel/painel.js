@@ -750,9 +750,17 @@ document.getElementById('btnGerarUsuario')?.addEventListener('click', function()
 // document.getElementById('nomeUsuario')?.addEventListener('input', gerarNomeUsuario);
 // document.getElementById('sobrenomeUsuario')?.addEventListener('input', gerarNomeUsuario);
 
-// Prevenir comportamento padrão dos selects
+// Prevenir comportamento padrão dos selects e detectar Agente de Suporte
 document.getElementById('nivelAcesso')?.addEventListener('click', function(e) {
     e.stopPropagation();
+});
+
+// Detectar quando usuário seleciona "Agente de Suporte"
+document.getElementById('nivelAcesso')?.addEventListener('change', function(e) {
+    if (this.value === 'Agente de Suporte') {
+        // Automaticamente criar agente de suporte após criar o usuário
+        console.log('Nível "Agente de Suporte" selecionado - agente será criado automaticamente');
+    }
 });
 
 document.getElementById('setorUsuario')?.addEventListener('click', function(e) {
@@ -3340,7 +3348,7 @@ async function carregarLogsAcoes() {
     try {
         const response = await fetch('/ti/painel/api/logs/acoes');
         if (!response.ok) {
-            throw new Error('Erro ao carregar logs de ações');
+            throw new Error('Erro ao carregar logs de aç��es');
         }
         const data = await response.json();
 
@@ -3909,7 +3917,7 @@ function limparTodosFiltros() {
         renderChamadosPage(currentPage);
     }
 
-    // Mostrar notifica��ão
+    // Mostrar notificação
     if (window.advancedNotificationSystem) {
         window.advancedNotificationSystem.showInfo('Filtros Limpos', 'Todos os filtros foram removidos');
     }
