@@ -515,8 +515,8 @@ function renderPagination(totalItems) {
 
 // Função para anexar event listeners aos cards de chamados
 function attachCardEventListeners() {
-    // Listener para mudança no select de status dos chamados (apenas selects de status dentro de cards de chamados)
-    document.querySelectorAll('.chamado-card select[id^="status-"], .card select.status-select').forEach(select => {
+    // Listener para mudança no select de status dos chamados (apenas selects de status específicos)
+    document.querySelectorAll('select[id^="status-"]:not(#filtroPrioridade):not(#filtroAgenteResponsavel):not(#filtroUnidade)').forEach(select => {
         select.addEventListener('click', function(e) {
             e.stopPropagation();
         });
@@ -3909,7 +3909,7 @@ function limparTodosFiltros() {
         renderChamadosPage(currentPage);
     }
 
-    // Mostrar notificação
+    // Mostrar notifica��ão
     if (window.advancedNotificationSystem) {
         window.advancedNotificationSystem.showInfo('Filtros Limpos', 'Todos os filtros foram removidos');
     }
