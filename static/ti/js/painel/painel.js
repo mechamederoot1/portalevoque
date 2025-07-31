@@ -515,7 +515,7 @@ function renderPagination(totalItems) {
 
 // Função para anexar event listeners aos cards de chamados
 function attachCardEventListeners() {
-    // Listener para mudança no select de status dos chamados (apenas selects de status específicos)
+    // Listener para mudan��a no select de status dos chamados (apenas selects de status específicos)
     document.querySelectorAll('select[id^="status-"]:not(#filtroPrioridade):not(#filtroAgenteResponsavel):not(#filtroUnidade)').forEach(select => {
         select.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -1692,20 +1692,42 @@ function loadSectionContent(sectionId) {
             // Carregar agentes de suporte
             console.log('Carregando seção de agentes de suporte...');
             if (typeof carregarAgentes === 'function') {
+                console.log('Função carregarAgentes encontrada, executando...');
                 carregarAgentes();
             } else {
-                console.error('Função carregarAgentes não encontrada');
+                console.error('Função carregarAgentes não encontrada, tentando novamente em 500ms...');
+                setTimeout(() => {
+                    if (typeof carregarAgentes === 'function') {
+                        console.log('Função carregarAgentes encontrada no retry, executando...');
+                        carregarAgentes();
+                    } else {
+                        console.error('Função carregarAgentes ainda não disponível. Verifique o carregamento dos scripts.');
+                    }
+                }, 500);
             }
             break;
         case 'grupos-usuarios':
             // Carregar grupos de usuários
             console.log('Carregando seção de grupos de usuários...');
             if (typeof inicializarGrupos === 'function') {
+                console.log('Função inicializarGrupos encontrada, executando...');
                 inicializarGrupos();
             } else if (typeof carregarGrupos === 'function') {
+                console.log('Função carregarGrupos encontrada, executando...');
                 carregarGrupos();
             } else {
-                console.error('Funções de grupos não encontradas');
+                console.error('Funções de grupos não encontradas, tentando novamente em 500ms...');
+                setTimeout(() => {
+                    if (typeof inicializarGrupos === 'function') {
+                        console.log('Função inicializarGrupos encontrada no retry, executando...');
+                        inicializarGrupos();
+                    } else if (typeof carregarGrupos === 'function') {
+                        console.log('Função carregarGrupos encontrada no retry, executando...');
+                        carregarGrupos();
+                    } else {
+                        console.error('Funções de grupos ainda não disponíveis. Verifique o carregamento dos scripts.');
+                    }
+                }, 500);
             }
             break;
         case 'visao-geral':
