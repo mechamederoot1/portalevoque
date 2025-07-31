@@ -12,11 +12,11 @@ class RateLimiter:
         
         # Configurações de rate limiting por endpoint
         self.limits = {
-            'auth.login': {'requests': 5, 'window': 300},  # 5 tentativas em 5 minutos
-            'auth.first_login': {'requests': 3, 'window': 300},
-            'ti.abrir_chamado': {'requests': 10, 'window': 60},  # 10 chamados por minuto
-            'default': {'requests': 100, 'window': 60},  # 100 requests por minuto (padrão)
-            'api_endpoints': {'requests': 50, 'window': 60},  # APIs mais restritivas
+            'auth.login': {'requests': 10, 'window': 300},  # 10 tentativas em 5 minutos
+            'auth.first_login': {'requests': 5, 'window': 300},
+            'ti.abrir_chamado': {'requests': 20, 'window': 60},  # 20 chamados por minuto
+            'default': {'requests': 300, 'window': 60},  # 300 requests por minuto (padrão)
+            'api_endpoints': {'requests': 200, 'window': 60},  # APIs menos restritivas
         }
     
     def is_allowed(self, ip, endpoint):
