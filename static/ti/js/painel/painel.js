@@ -2826,7 +2826,40 @@ function inicializarFiltroPermissoes() {
     });
 
     // Adicionar placeholder mais descritivo
-    filtroInput.placeholder = 'Buscar por nome, email ou unidade...';
+    filtroInput.placeholder = 'Buscar por nome, email ou nível de acesso...';
+
+    // Funcionalidade para limpar filtro com Escape
+    filtroInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            filtroInput.value = '';
+            filtrarUsuarios();
+            filtroInput.blur();
+        }
+    });
+
+    // Mostrar/esconder ícone de limpeza
+    filtroInput.addEventListener('input', function() {
+        const parentGroup = filtroInput.closest('.input-group');
+        if (parentGroup) {
+            let clearBtn = parentGroup.querySelector('.btn-clear-filter');
+            if (filtroInput.value.trim() && !clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.className = 'btn btn-outline-secondary btn-clear-filter';
+                clearBtn.type = 'button';
+                clearBtn.innerHTML = '<i class="fas fa-times"></i>';
+                clearBtn.title = 'Limpar filtro';
+                clearBtn.onclick = function() {
+                    filtroInput.value = '';
+                    filtrarUsuarios();
+                    filtroInput.focus();
+                    clearBtn.remove();
+                };
+                parentGroup.appendChild(clearBtn);
+            } else if (!filtroInput.value.trim() && clearBtn) {
+                clearBtn.remove();
+            }
+        }
+    });
 
     console.log('Filtro de permissões inicializado com sucesso!');
 }
