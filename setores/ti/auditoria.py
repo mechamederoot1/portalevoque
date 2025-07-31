@@ -16,31 +16,35 @@ BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 @login_required
 @setor_required('Administrador')
 def listar_logs_acesso():
-    """Lista logs de acesso com filtros opcionais"""
+    """Lista logs de acesso com filtros opcionais e paginação"""
     try:
-        # Parâmetros de filtro
+        # Parâmetros de filtro e paginação
         dias = request.args.get('dias', 7, type=int)
         usuario_id = request.args.get('usuario_id', type=int)
         ip_address = request.args.get('ip')
-        
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 5, type=int)
+
         # Data limite
         data_limite = get_brazil_time().replace(tzinfo=None) - timedelta(days=dias)
-        
-        # Query base
-        query = db.session.query(LogAcesso, User).join(User)
+
+        # Query base - usar LEFT JOIN para incluir logs mesmo quando usuário foi deletado
+        query = db.session.query(LogAcesso, User).outerjoin(User, LogAcesso.usuario_id == User.id)
         query = query.filter(LogAcesso.data_acesso >= data_limite)
-        
+
         # Aplicar filtros
         if usuario_id:
             query = query.filter(LogAcesso.usuario_id == usuario_id)
         if ip_address:
             query = query.filter(LogAcesso.ip_address.like(f'%{ip_address}%'))
-        
-        # Ordenar por data mais recente
-        logs = query.order_by(LogAcesso.data_acesso.desc()).limit(100).all()
-        
+
+        # Ordenar por data mais recente e paginar
+        logs_paginated = query.order_by(LogAcesso.data_acesso.desc()).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
         logs_data = []
-        for log, usuario in logs:
+        for log, usuario in logs_paginated.items:
             # Calcular duração da sessão se ainda ativa
             duracao = log.duracao_sessao
             if log.ativo and not log.data_logout and log.data_acesso:
@@ -50,10 +54,10 @@ def listar_logs_acesso():
             logs_data.append({
                 'id': log.id,
                 'usuario': {
-                    'id': usuario.id,
-                    'nome': f"{usuario.nome} {usuario.sobrenome}",
-                    'email': usuario.email,
-                    'nivel_acesso': usuario.nivel_acesso
+                    'id': usuario.id if usuario else None,
+                    'nome': f"{usuario.nome} {usuario.sobrenome}" if usuario else 'Usuário removido',
+                    'email': usuario.email if usuario else 'N/A',
+                    'nivel_acesso': usuario.nivel_acesso if usuario else 'N/A'
                 },
                 'data_acesso': log.data_acesso.strftime('%d/%m/%Y %H:%M:%S') if log.data_acesso else None,
                 'data_logout': log.data_logout.strftime('%d/%m/%Y %H:%M:%S') if log.data_logout else None,
@@ -68,9 +72,19 @@ def listar_logs_acesso():
                 'ativo': log.ativo,
                 'session_id': log.session_id[:10] + '...' if log.session_id else None  # Truncar por segurança
             })
-        
-        return json_response(logs_data)
-        
+
+        return json_response({
+            'logs': logs_data,
+            'pagination': {
+                'page': logs_paginated.page,
+                'pages': logs_paginated.pages,
+                'per_page': logs_paginated.per_page,
+                'total': logs_paginated.total,
+                'has_next': logs_paginated.has_next,
+                'has_prev': logs_paginated.has_prev
+            }
+        })
+
     except Exception as e:
         logger.error(f"Erro ao listar logs de acesso: {str(e)}")
         return error_response('Erro interno do servidor')

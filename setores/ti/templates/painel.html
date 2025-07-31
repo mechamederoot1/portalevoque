@@ -223,7 +223,7 @@
     <!-- Nova Seção SLA & Métricas -->
     <section id="sla-dashboard" class="content-section" tabindex="0" aria-label="SLA & Métricas">
       <div class="d-flex justify-content-between align-items-center mb-4">
-        <h2><i class="fas fa-chart-line me-2"></i>SLA & Métricas de Desempenho</h2>
+        <h2><i class="fas fa-chart-line me-2"></i>SLA & M��tricas de Desempenho</h2>
         <button class="btn btn-primary" id="btnAtualizarSLA">
           <i class="fas fa-sync-alt me-1"></i>Atualizar
         </button>
@@ -602,7 +602,7 @@
                     <option value="Gerente">Gerente</option>
                     <option value="Gerente Regional">Gerente regional</option>
                     <option value="Gestor">Gestor</option>
-                    <option value="Agente de Suporte">Agente de Suporte</option>
+                    <option value="Agente de suporte">Agente de suporte</option>
                   </select>
                 </div>
               </div>
@@ -684,9 +684,14 @@
     <section id="agentes-suporte" class="content-section" tabindex="0" aria-label="Agentes de Suporte">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-headset me-2"></i>Agentes de Suporte</h2>
-        <button class="btn btn-primary" id="btnCriarAgente">
-          <i class="fas fa-plus me-1"></i>Criar Agente
-        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-info btn-sm" onclick="window.carregarAgentes ? window.carregarAgentes() : console.error('Função não disponível')" title="Forçar atualização">
+            <i class="fas fa-sync-alt"></i> Atualizar
+          </button>
+          <button class="btn btn-primary" id="btnCriarAgente">
+            <i class="fas fa-plus me-1"></i>Criar Agente
+          </button>
+        </div>
       </div>
 
       <!-- Estatísticas dos Agentes -->
@@ -736,6 +741,9 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-users me-2"></i>Grupos de Usuários</h2>
         <div class="d-flex gap-2">
+          <button class="btn btn-outline-info btn-sm" onclick="window.carregarGrupos ? window.carregarGrupos() : console.error('Função não disponível')" title="Forçar atualização">
+            <i class="fas fa-sync-alt"></i> Atualizar
+          </button>
           <div class="input-group" style="max-width: 300px;">
             <input type="text" class="form-control" id="filtroGrupos" placeholder="Buscar grupo...">
             <button class="btn btn-outline-secondary" id="btnFiltrarGrupos">
@@ -752,6 +760,20 @@
         <!-- Os grupos serão carregados aqui dinamicamente -->
       </div>
       <div class="pagination" id="gruposPagination"></div>
+
+      <!-- Histórico de Emails em Massa -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-envelope me-2"></i>Histórico de Emails em Massa
+          </h5>
+        </div>
+        <div class="card-body">
+          <div id="emailsHistoricoContainer">
+            <!-- Histórico será carregado dinamicamente -->
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- ==================== NOVAS SEÇÕES ==================== -->
@@ -2213,6 +2235,7 @@
       </div>
       <div class="modal-body">
         <form id="formCriarGrupo">
+          <input type="hidden" id="grupoId">
           <div class="form-group mb-3">
             <label for="nomeGrupo">Nome do Grupo</label>
             <input type="text" class="form-control" id="nomeGrupo" required placeholder="Ex: Gestores Regionais">
@@ -2221,6 +2244,14 @@
           <div class="form-group mb-3">
             <label for="descricaoGrupo">Descrição</label>
             <textarea class="form-control" id="descricaoGrupo" rows="3" placeholder="Descrição do grupo e seus objetivos..."></textarea>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="membrosGrupo">Membros do Grupo</label>
+            <select class="form-control" id="membrosGrupo" multiple size="4">
+              <!-- Membros serão carregados dinamicamente -->
+            </select>
+            <small class="text-muted">Segure Ctrl para selecionar múltiplos membros</small>
           </div>
 
           <div class="form-group mb-3">
@@ -2246,6 +2277,49 @@
     </div>
   </div>
 
+  <!-- Modal Enviar Email para Grupo -->
+  <div class="modal" id="modalEnviarEmail" role="dialog" aria-modal="true" aria-labelledby="modalEnviarEmailTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalEnviarEmailTitle">Enviar Email para Grupo</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalEnviarEmailClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="alert alert-info">
+          <p><strong>Grupo:</strong> <span id="emailGrupoNome"></span></p>
+          <p><strong>Membros:</strong> <span id="emailMembrosCount"></span> destinatários</p>
+        </div>
+        <form id="formEnviarEmail">
+          <input type="hidden" id="emailGrupoId">
+
+          <div class="form-group mb-3">
+            <label for="emailTipo">Tipo de Email</label>
+            <select class="form-control" id="emailTipo" required>
+              <option value="informativo">Informativo</option>
+              <option value="urgente">Urgente</option>
+              <option value="comunicado">Comunicado</option>
+              <option value="newsletter">Newsletter</option>
+            </select>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="emailAssunto">Assunto</label>
+            <input type="text" class="form-control" id="emailAssunto" required placeholder="Digite o assunto do email">
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="emailMensagem">Mensagem</label>
+            <textarea class="form-control" id="emailMensagem" rows="6" required placeholder="Digite a mensagem do email..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarEmail">Cancelar</button>
+        <button class="btn btn-primary" id="btnEnviarEmail">Enviar Email</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Botão para alternar tema -->
   <button class="theme-toggle" id="themeToggle" aria-label="Alternar tema">
     <i class="fas fa-moon"></i>
@@ -2256,7 +2330,9 @@
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   
-  <!-- Scripts do painel -->
+  <!-- Scripts do painel - ordem importa! -->
+  <script src="/static/ti/js/painel/agentes.js"></script>
+  <script src="/static/ti/js/painel/grupos.js"></script>
   <script src="/static/ti/js/painel/painel.js"></script>
   <script src="/static/ti/js/painel/enviar_ticket.js"></script>
   <script src="/static/ti/js/painel/notificacoes.js"></script>

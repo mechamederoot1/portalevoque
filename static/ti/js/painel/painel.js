@@ -29,31 +29,129 @@ document.querySelectorAll('.sidebar nav ul li.has-submenu > a').forEach(anchor =
     });
 });
 
-// Navigation links activate section
-const navLinks = document.querySelectorAll('.sidebar nav ul li a, .navbar-panel .nav-link-panel');
-const sections = document.querySelectorAll('section.content-section');
+// Navigation will be initialized after DOM is loaded
+let navLinks = null;
+let sections = null;
 
-navLinks.forEach(link => {
-    link.addEventListener('click', e => {
-        e.preventDefault();
-        const targetId = link.getAttribute('href').substring(1);
-        activateSection(targetId);
-        navLinks.forEach(l => l.classList.remove('active'));
-        navLinks.forEach(l => {
-            if (l.getAttribute('href').substring(1) === targetId) l.classList.add('active');
+function initializeNavigation() {
+    console.log('Inicializando navegação...');
+
+    navLinks = document.querySelectorAll('.sidebar nav ul li a, .navbar-panel .nav-link-panel');
+    sections = document.querySelectorAll('section.content-section');
+
+    console.log('Links de navegação encontrados:', navLinks.length);
+    console.log('Se��ões encontradas:', sections.length);
+
+    navLinks.forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            const href = link.getAttribute('href');
+            if (!href || href === '#') {
+                console.log('Link sem href válido:', link);
+                return;
+            }
+
+            const targetId = href.substring(1);
+            console.log('Navegando para seção:', targetId);
+
+            // Verificar se a seção existe
+            const targetSection = document.getElementById(targetId);
+            if (!targetSection) {
+                console.error('Seção não encontrada:', targetId);
+                return;
+            }
+
+            activateSection(targetId);
+            navLinks.forEach(l => l.classList.remove('active'));
+            navLinks.forEach(l => {
+                if (l.getAttribute('href') === href) l.classList.add('active');
+            });
+
+            // Atualizar hash da URL
+            window.location.hash = targetId;
         });
     });
-});
+
+    // Add hashchange listener
+    window.addEventListener('hashchange', function() {
+        const hash = window.location.hash.substring(1);
+        if (hash) {
+            activateSection(hash);
+
+            // Update active classes
+            navLinks.forEach(link => link.classList.remove('active'));
+
+            // Find and activate corresponding link
+            const targetLink = document.querySelector(`.sidebar a[href="#${hash}"]`);
+            if (targetLink) {
+                targetLink.classList.add('active');
+
+                // If it's a submenu item, also activate parent link
+                const submenu = targetLink.closest('.submenu');
+                if (submenu) {
+                    const parentLink = submenu.previousElementSibling;
+                    if (parentLink) {
+                        parentLink.classList.add('active');
+                        parentLink.parentElement.classList.add('open');
+                    }
+                }
+            }
+        }
+    });
+
+    // Add accessibility support for menu items
+    document.querySelectorAll('.sidebar nav ul li').forEach(item => {
+        item.addEventListener('keydown', function(e) {
+            // Enter or space activates the item
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const link = this.querySelector('a');
+                if (link) link.click();
+            }
+        });
+    });
+
+    // Improve submenu accessibility
+    document.querySelectorAll('.has-submenu').forEach(item => {
+        const toggle = item.querySelector('.submenu-toggle');
+        const submenu = item.querySelector('.submenu');
+
+        if (toggle && submenu) {
+            toggle.addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
+                    toggle.setAttribute('aria-expanded', !isExpanded);
+                    item.classList.toggle('open');
+                }
+            });
+        }
+    });
+
+    console.log('Navegação inicializada com sucesso');
+}
 
 function activateSection(id) {
-    sections.forEach(section => {
+    console.log('Ativando seção:', id);
+
+    // Get sections dynamically if not initialized
+    const allSections = sections || document.querySelectorAll('section.content-section');
+
+    if (!allSections || allSections.length === 0) {
+        console.error('Nenhuma seção encontrada!');
+        return;
+    }
+
+    allSections.forEach(section => {
         if (section.id === id) {
             section.classList.add('active');
             section.setAttribute('tabindex', '0');
-            section.focus();
-            
+            console.log('Seção ativada:', id);
+
             // Carregar conteúdo específico da seção
-            loadSectionContent(id);
+            setTimeout(() => {
+                loadSectionContent(id);
+            }, 50);
         } else {
             section.classList.remove('active');
             section.removeAttribute('tabindex');
@@ -63,15 +161,17 @@ function activateSection(id) {
 
 // Theme toggle
 const themeToggleBtn = document.getElementById('themeToggle');
-themeToggleBtn.addEventListener('click', () => {
-    if (document.body.getAttribute('data-theme') === 'dark') {
-        document.body.setAttribute('data-theme', 'light');
-        themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
-    } else {
-        document.body.setAttribute('data-theme', 'dark');
-        themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
-    }
-});
+if (themeToggleBtn) {
+    themeToggleBtn.addEventListener('click', () => {
+        if (document.body.getAttribute('data-theme') === 'dark') {
+            document.body.setAttribute('data-theme', 'light');
+            themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>';
+        } else {
+            document.body.setAttribute('data-theme', 'dark');
+            themeToggleBtn.innerHTML = '<i class="fas fa-moon"></i>';
+        }
+    });
+}
 
 // Variáveis globais para chamados
 let chamadosData = [];
@@ -127,7 +227,7 @@ function popularFiltrosDinamicos() {
         });
     }
 
-    // Popular filtro de agentes responsáveis
+    // Popular filtro de agentes respons��veis
     const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
     if (filtroAgenteResponsavel && chamadosData.length > 0) {
         const agentes = chamadosData
@@ -158,20 +258,48 @@ function popularFiltrosDinamicos() {
 // Função para atualizar contadores da visão geral
 async function atualizarContadoresVisaoGeral() {
     try {
+        console.log('Atualizando contadores da visão geral...');
         const response = await fetch('/ti/painel/api/chamados/estatisticas');
         if (!response.ok) {
             throw new Error('Erro ao carregar estatísticas');
         }
         const stats = await response.json();
-        
-        document.getElementById('countAbertos').textContent = stats.Aberto || 0;
-        document.getElementById('countAguardando').textContent = stats.Aguardando || 0;
-        document.getElementById('countConcluidos').textContent = stats.Concluido || 0;
-        document.getElementById('countCancelados').textContent = stats.Cancelado || 0;
+
+        const countAbertos = document.getElementById('countAbertos');
+        const countAguardando = document.getElementById('countAguardando');
+        const countConcluidos = document.getElementById('countConcluidos');
+        const countCancelados = document.getElementById('countCancelados');
+
+        if (countAbertos) countAbertos.textContent = stats.Aberto || 0;
+        if (countAguardando) countAguardando.textContent = stats.Aguardando || 0;
+        if (countConcluidos) countConcluidos.textContent = stats.Concluido || 0;
+        if (countCancelados) countCancelados.textContent = stats.Cancelado || 0;
+
+        console.log('Contadores atualizados:', stats);
     } catch (error) {
         console.error('Erro ao carregar estatísticas:', error);
-        if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar estatísticas');
+        // Usar dados locais se disponíveis
+        if (chamadosData && chamadosData.length > 0) {
+            const localStats = {
+                Aberto: chamadosData.filter(c => c.status === 'Aberto').length,
+                Aguardando: chamadosData.filter(c => c.status === 'Aguardando').length,
+                Concluido: chamadosData.filter(c => c.status === 'Concluido').length,
+                Cancelado: chamadosData.filter(c => c.status === 'Cancelado').length
+            };
+
+            const countAbertos = document.getElementById('countAbertos');
+            const countAguardando = document.getElementById('countAguardando');
+            const countConcluidos = document.getElementById('countConcluidos');
+            const countCancelados = document.getElementById('countCancelados');
+
+            if (countAbertos) countAbertos.textContent = localStats.Aberto;
+            if (countAguardando) countAguardando.textContent = localStats.Aguardando;
+            if (countConcluidos) countConcluidos.textContent = localStats.Concluido;
+            if (countCancelados) countCancelados.textContent = localStats.Cancelado;
+
+            console.log('Usando dados locais para estatísticas:', localStats);
+        } else {
+            console.log('Nenhum dado disponível para estatísticas');
         }
     }
 }
@@ -326,7 +454,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
             });
 
             if (!notificacaoResponse.ok) {
-                console.error('Erro ao enviar notificação:', await notificacaoResponse.text());
+                console.error('Erro ao enviar notifica��ão:', await notificacaoResponse.text());
                 throw new Error('Erro ao enviar notificação por e-mail');
             }
         }
@@ -515,7 +643,7 @@ function renderPagination(totalItems) {
 
 // Função para anexar event listeners aos cards de chamados
 function attachCardEventListeners() {
-    // Listener para mudança no select de status dos chamados (apenas selects de status específicos)
+    // Listener para mudan��a no select de status dos chamados (apenas selects de status específicos)
     document.querySelectorAll('select[id^="status-"]:not(#filtroPrioridade):not(#filtroAgenteResponsavel):not(#filtroUnidade)').forEach(select => {
         select.addEventListener('click', function(e) {
             e.stopPropagation();
@@ -801,11 +929,11 @@ function validarDadosUsuario(dados) {
     const erros = [];
     
     if (!dados.nome) erros.push('Nome é obrigat��rio');
-    if (!dados.sobrenome) erros.push('Sobrenome é obrigatório');
+    if (!dados.sobrenome) erros.push('Sobrenome é obrigat��rio');
     if (!dados.email) erros.push('E-mail é obrigatório');
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
     if (!dados.senha) erros.push('Senha é obrigatória. Clique em "Gerar Senha"');
-    if (!dados.nivel_acesso) erros.push('Nível de acesso é obrigatório');
+    if (!dados.nivel_acesso) erros.push('N��vel de acesso é obrigatório');
     if (!dados.setor || dados.setor.length === 0) erros.push('Selecione pelo menos um setor');
     
     // Validação de e-mail
@@ -1219,9 +1347,17 @@ async function loadUsuarios() {
         }
         usuariosData = await response.json();
         renderUsuariosPage(currentUsuariosPage);
+
+        // Inicializar filtro após carregar usuários
+        setTimeout(() => {
+            if (typeof inicializarFiltroPermissoes === 'function') {
+                inicializarFiltroPermissoes();
+            }
+        }, 100);
+
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
-        usuariosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar usuários. Tente novamente mais tarde.</p>';
+        usuariosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar usu��rios. Tente novamente mais tarde.</p>';
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar usuários');
         }
@@ -1646,26 +1782,36 @@ function attachBloqueadosEventListeners() {
 
 // Função para carregar conteúdo específico da seção quando ativada
 function loadSectionContent(sectionId) {
+    console.log('Carregando conteúdo da seção:', sectionId);
+
     switch(sectionId) {
         case 'listar-unidades':
-            renderListarUnidades();
+            if (typeof renderListarUnidades === 'function') {
+                renderListarUnidades();
+            }
             break;
         case 'gerenciar-chamados':
             loadChamados();
             // Adicionar filtro de agente após carregar chamados
             setTimeout(() => {
-                adicionarFiltroAgente();
+                if (typeof adicionarFiltroAgente === 'function') {
+                    adicionarFiltroAgente();
+                }
             }, 500);
             break;
         case 'permissoes':
             loadUsuarios();
             // Inicializar filtro de permissões após carregar usuários
             setTimeout(() => {
-                inicializarFiltroPermissoes();
+                if (typeof inicializarFiltroPermissoes === 'function') {
+                    inicializarFiltroPermissoes();
+                }
             }, 100);
             break;
         case 'bloqueios':
-            loadUsuariosBloqueados();
+            if (typeof loadUsuariosBloqueados === 'function') {
+                loadUsuariosBloqueados();
+            }
             break;
         case 'sla-dashboard':
             // Carregar dados SLA se a função existir
@@ -1675,43 +1821,109 @@ function loadSectionContent(sectionId) {
             break;
         case 'configuracoes':
             // Carregar configurações de prioridades
-            if (window.prioridadesManager) {
-                window.prioridadesManager.carregarProblemas();
+            if (window.prioridadesManager && typeof window.prioridadesManager.carregarProblemas === 'function') {
+                try {
+                    window.prioridadesManager.carregarProblemas();
+                } catch (error) {
+                    console.warn('Erro ao carregar prioridades (não crítico):', error);
+                }
             }
             atualizarContadoresVisaoGeral();
+            break;
+        case 'agentes-suporte':
+            // Carregar agentes de suporte
+            console.log('Carregando seção de agentes de suporte...');
+            if (typeof carregarAgentes === 'function') {
+                console.log('Função carregarAgentes encontrada, executando...');
+                carregarAgentes();
+            } else {
+                console.log('Função carregarAgentes não encontrada, tentando novamente em 100ms...');
+                setTimeout(() => {
+                    if (typeof carregarAgentes === 'function') {
+                        console.log('Função carregarAgentes encontrada no retry, executando...');
+                        carregarAgentes();
+                    } else {
+                        console.error('Função carregarAgentes ainda não disponível. Verifique o carregamento dos scripts.');
+                    }
+                }, 100);
+            }
+            break;
+        case 'grupos-usuarios':
+            // Carregar grupos de usuários
+            console.log('Carregando seção de grupos de usuários...');
+            if (typeof inicializarGrupos === 'function') {
+                console.log('Função inicializarGrupos encontrada, executando...');
+                inicializarGrupos();
+            } else if (typeof carregarGrupos === 'function') {
+                console.log('Função carregarGrupos encontrada, executando...');
+                carregarGrupos();
+            } else {
+                console.log('Funções de grupos não encontradas, tentando novamente em 100ms...');
+                setTimeout(() => {
+                    if (typeof inicializarGrupos === 'function') {
+                        console.log('Função inicializarGrupos encontrada no retry, executando...');
+                        inicializarGrupos();
+                    } else if (typeof carregarGrupos === 'function') {
+                        console.log('Função carregarGrupos encontrada no retry, executando...');
+                        carregarGrupos();
+                    } else {
+                        console.error('Funções de grupos ainda não disponíveis. Verifique o carregamento dos scripts.');
+                    }
+                }, 100);
+            }
             break;
         case 'visao-geral':
             atualizarContadoresVisaoGeral();
             break;
         case 'configuracoes-avancadas':
-            carregarConfiguracoesAvancadas();
+            if (typeof carregarConfiguracoesAvancadas === 'function') {
+                carregarConfiguracoesAvancadas();
+            }
             break;
         case 'alertas-sistema':
-            carregarAlertasSistema();
+            if (typeof carregarAlertasSistema === 'function') {
+                carregarAlertasSistema();
+            }
             break;
         case 'backup-manutencao':
-            carregarBackupManutencao();
+            if (typeof carregarBackupManutencao === 'function') {
+                carregarBackupManutencao();
+            }
             break;
         case 'logs-acesso':
-            carregarLogsAcesso();
+            if (typeof carregarLogsAcesso === 'function') {
+                carregarLogsAcesso();
+            }
             break;
         case 'logs-acoes':
-            carregarLogsAcoes();
+            if (typeof carregarLogsAcoes === 'function') {
+                carregarLogsAcoes();
+            }
             break;
         case 'analise-problemas':
-            carregarAnaliseProblemas();
+            if (typeof carregarAnaliseProblemas === 'function') {
+                carregarAnaliseProblemas();
+            }
             break;
         case 'monitoramento-catraca':
-            carregarMonitoramentoCatraca();
+            if (typeof carregarMonitoramentoCatraca === 'function') {
+                carregarMonitoramentoCatraca();
+            }
             break;
         case 'monitoramento-mikrotiks':
-            carregarMonitoramentoMikrotiks();
+            if (typeof carregarMonitoramentoMikrotiks === 'function') {
+                carregarMonitoramentoMikrotiks();
+            }
             break;
         case 'monitoramento-usuarios':
-            carregarMonitoramentoUsuarios();
+            if (typeof carregarMonitoramentoUsuarios === 'function') {
+                carregarMonitoramentoUsuarios();
+            }
             break;
         case 'dashboard-avancado':
-            carregarDashboardAvancado();
+            if (typeof carregarDashboardAvancado === 'function') {
+                carregarDashboardAvancado();
+            }
             break;
     }
 }
@@ -1735,176 +1947,97 @@ function resetInactivityTimer() {
 // Iniciar o timer quando a página carregar
 resetInactivityTimer();
 
+// Função de inicialização compreensiva
+function inicializarSistemaPainel() {
+    console.log('=== INICIALIZANDO SISTEMA DO PAINEL ===');
+
+    try {
+        // 1. Inicializar navegação
+        initializeNavigation();
+
+        // 2. Verificar elementos essenciais da interface
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const allSections = document.querySelectorAll('section.content-section');
+
+        console.log('Elementos encontrados:', {
+            sidebar: !!sidebar,
+            mainContent: !!mainContent,
+            sections: allSections.length
+        });
+
+        // 3. Ativar seção inicial
+        const hash = window.location.hash.substring(1);
+        if (hash && document.getElementById(hash)) {
+            console.log('Ativando seção do hash:', hash);
+            activateSection(hash);
+        } else {
+            console.log('Ativando seção padrão: visao-geral');
+            activateSection('visao-geral');
+        }
+
+        // 4. Carregar dados críticos
+        setTimeout(() => {
+            console.log('Carregando dados iniciais do sistema...');
+
+            // Carregar chamados para métricas
+            if (typeof loadChamados === 'function') {
+                console.log('Carregando chamados...');
+                loadChamados();
+            }
+
+            // Atualizar contadores
+            if (typeof atualizarContadoresVisaoGeral === 'function') {
+                console.log('Atualizando contadores...');
+                atualizarContadoresVisaoGeral();
+            }
+
+        }, 300);
+
+        // 5. Verificar funções essenciais
+        const funcoesCriticas = [
+            'activateSection',
+            'loadSectionContent',
+            'atualizarContadoresVisaoGeral',
+            'loadChamados'
+        ];
+
+        funcoesCriticas.forEach(funcao => {
+            if (typeof window[funcao] === 'function') {
+                console.log(`✓ Função ${funcao} disponível`);
+            } else {
+                console.warn(`⚠ Função ${funcao} não encontrada`);
+            }
+        });
+
+        console.log('=== INICIALIZAÇÃO DO PAINEL CONCLUÍDA ===');
+
+    } catch (error) {
+        console.error('ERRO na inicialização do painel:', error);
+    }
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
-    // Carregar chamados
-    loadChamados();
-    
-    // Se estiver na seção de listar unidades, carrega elas
-    if (window.location.hash === '#listar-unidades') {
-        renderListarUnidades();
-    }
-    
-    // Ativa a seção baseada no hash da URL
-    const hash = window.location.hash.substring(1);
-    if (hash) {
-        activateSection(hash);
-    } else {
-        activateSection('visao-geral');
-    }
+    console.log('DOM carregado - inicializando painel.js');
+
+    // Aguardar carregamento completo dos scripts
+    setTimeout(inicializarSistemaPainel, 100);
 });
 
-// Adiciona event listeners para links de navegação do submenu
-document.querySelectorAll('.submenu a').forEach(link => {
-    link.addEventListener('click', function(e) {
-        // Previne o comportamento padrão
-        e.preventDefault();
-        
-        // Obtém o ID da seção alvo
-        const targetId = this.getAttribute('href').substring(1);
-        
-        // Ativa a seção
-        activateSection(targetId);
-        
-        // Atualiza a classe active nos links
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        this.classList.add('active');
-        
-        // Adiciona active ao link pai do submenu
-        const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
-        if (parentSubmenuToggle) {
-            parentSubmenuToggle.classList.add('active');
-        }
-        
-        // Atualiza a URL com o hash
-        window.location.hash = targetId;
-    });
-});
+// Navigation event listeners are now handled in initializeNavigation() function
+// which is called after DOM is loaded
 
-// Adiciona event listeners para links diretos (sem submenu)
-document.querySelectorAll('.sidebar nav > ul > li > a:not(.submenu-toggle)').forEach(link => {
-    link.addEventListener('click', function(e) {
-        // Previne o comportamento padrão
-        e.preventDefault();
-        
-        // Obtém o ID da seção alvo
-        const targetId = this.getAttribute('href').substring(1);
-        
-        // Ativa a seção
-        activateSection(targetId);
-        
-        // Atualiza a classe active nos links
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        this.classList.add('active');
-        
-        // Atualiza a URL com o hash
-        window.location.hash = targetId;
-        
-        // Em dispositivos móveis, fecha o sidebar após a navegação
-        if (window.innerWidth < 992) {
-            sidebar.classList.remove('active');
-        }
-    });
-});
+// Hash change listener will be initialized in initializeNavigation()
 
-// Função para lidar com mudanças de hash na URL
-window.addEventListener('hashchange', function() {
-    const hash = window.location.hash.substring(1);
-    if (hash) {
-        activateSection(hash);
-        
-        // Atualiza a classe active nos links
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Encontra e ativa o link correspondente
-        const targetLink = document.querySelector(`.sidebar a[href="#${hash}"]`);
-        if (targetLink) {
-            targetLink.classList.add('active');
-            
-            // Se for um item de submenu, ativa também o link pai
-            const submenu = targetLink.closest('.submenu');
-            if (submenu) {
-                const parentLink = submenu.previousElementSibling;
-                if (parentLink) {
-                    parentLink.classList.add('active');
-                    parentLink.parentElement.classList.add('open');
-                }
-            }
-        }
-    }
-});
-
-// Adiciona suporte a teclas de acessibilidade para o menu
-document.querySelectorAll('.sidebar nav ul li').forEach(item => {
-    item.addEventListener('keydown', function(e) {
-        // Enter ou espaço ativa o item
-        if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            const link = this.querySelector('a');
-            if (link) link.click();
-        }
-    });
-});
-
-// Melhora a acessibilidade dos submenus
-document.querySelectorAll('.has-submenu').forEach(item => {
-    const toggle = item.querySelector('.submenu-toggle');
-    const submenu = item.querySelector('.submenu');
-    
-    if (toggle && submenu) {
-        toggle.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                const isExpanded = toggle.getAttribute('aria-expanded') === 'true';
-                toggle.setAttribute('aria-expanded', !isExpanded);
-                item.classList.toggle('open');
-            }
-        });
-    }
-});
+// Accessibility features are now handled in initializeNavigation()
 
 // Função para verificar se uma seção existe
 function sectionExists(id) {
     return Array.from(sections).some(section => section.id === id);
 }
 
-// Verifica o hash inicial e redireciona se necessário
-window.addEventListener('load', function() {
-    const hash = window.location.hash.substring(1);
-    if (hash && sectionExists(hash)) {
-        activateSection(hash);
-        
-        // Atualiza a classe active nos links
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
-        });
-        
-        // Encontra e ativa o link correspondente
-        const targetLink = document.querySelector(`.sidebar a[href="#${hash}"]`);
-        if (targetLink) {
-            targetLink.classList.add('active');
-            
-            // Se for um item de submenu, ativa também o link pai
-            const submenu = targetLink.closest('.submenu');
-            if (submenu) {
-                const parentLink = submenu.previousElementSibling;
-                if (parentLink) {
-                    parentLink.classList.add('active');
-                    parentLink.parentElement.classList.add('open');
-                }
-            }
-        }
-    } else {
-        // Se não houver hash ou a seção não existir, vai para a seção padrão
-        activateSection('visao-geral');
-    }
-});
+// Section initialization is now handled in inicializarSistemaPainel()
 
 // Função para abrir modal de ticket
 function openTicketModal(chamado) {
@@ -2080,7 +2213,7 @@ function initializeSocketIO() {
             if (window.advancedNotificationSystem) {
                 window.advancedNotificationSystem.showWarning(
                     'Chamado Excluído',
-                    `Chamado ${data.codigo} foi excluído`
+                    `Chamado ${data.codigo} foi exclu��do`
                 );
             }
             // Recarregar dados se necessário
@@ -2159,7 +2292,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==================== FUNCIONALIDADES DE AGENTES ====================
-let agentesData = [];
+// agentesData is declared in agentes.js
 
 // Event listener para botão "Criar Agente"
 document.getElementById('btnCriarAgente')?.addEventListener('click', async function() {
@@ -2281,12 +2414,18 @@ async function criarAgente() {
 // Carregar agentes
 async function carregarAgentes() {
     try {
+        console.log('Carregando agentes...');
         const response = await fetch('/ti/painel/api/agentes');
         if (!response.ok) {
             throw new Error('Erro ao carregar agentes');
         }
         agentesData = await response.json();
+        console.log('Agentes carregados:', agentesData);
         renderizarAgentes(agentesData);
+
+        // Carregar estatísticas dos agentes
+        await carregarEstatisticasAgentes();
+
     } catch (error) {
         console.error('Erro ao carregar agentes:', error);
         if (window.advancedNotificationSystem) {
@@ -2425,7 +2564,7 @@ async function excluirAgente(agenteId) {
 }
 
 // ==================== FUNCIONALIDADES DE GRUPOS ====================
-let gruposData = [];
+// gruposData is declared in grupos.js
 
 // Event listener para botão "Criar Grupo"
 document.getElementById('btnCriarGrupo')?.addEventListener('click', function() {
@@ -2611,7 +2750,7 @@ async function excluirGrupo(grupoId) {
 
 // Garantir que agentes e grupos sejam carregados corretamente
 function loadSectionContentEnhanced(sectionId) {
-    // Chamar a função original primeiro
+    // Chamar a funç��o original primeiro
     if (typeof loadSectionContent === 'function') {
         loadSectionContent(sectionId);
     }
@@ -2637,10 +2776,6 @@ function loadSectionContentEnhanced(sectionId) {
                 if (typeof inicializarGrupos === 'function') {
                     inicializarGrupos();
                 }
-            }, 100);
-            break;
-        case 'grupos-usuarios':
-            setTimeout(() => {
                 if (typeof carregarGrupos === 'function') {
                     carregarGrupos();
                 }
@@ -2754,8 +2889,12 @@ async function carregarAgentesParaFiltro() {
 // ==================== FILTRO DE PERMISSÕES ====================
 
 function inicializarFiltroPermissoes() {
+    console.log('Tentando inicializar filtro de permissões...');
+
     const filtroInput = document.getElementById('filtroPermissoes');
     const btnFiltrar = document.getElementById('btnFiltrarPermissoes');
+
+    console.log('Elementos encontrados:', { filtroInput: !!filtroInput, btnFiltrar: !!btnFiltrar });
 
     if (!filtroInput || !btnFiltrar) {
         console.log('Elementos de filtro não encontrados. Tentando novamente...');
@@ -2766,18 +2905,21 @@ function inicializarFiltroPermissoes() {
     // Função para filtrar usuários
     const filtrarUsuarios = () => {
         const termoBusca = filtroInput.value.toLowerCase().trim();
+        console.log('Executando filtro com termo:', termoBusca);
         filtrarListaUsuarios(termoBusca);
 
         // Feedback visual
         if (termoBusca) {
             filtroInput.style.backgroundColor = '#e8f4fd';
+            filtroInput.style.borderColor = '#007bff';
         } else {
             filtroInput.style.backgroundColor = '';
+            filtroInput.style.borderColor = '';
         }
     };
 
     // Event listeners para busca em tempo real
-    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 150));
+    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 100));
     btnFiltrar.addEventListener('click', filtrarUsuarios);
 
     // Filtrar ao pressionar Enter
@@ -2789,39 +2931,107 @@ function inicializarFiltroPermissoes() {
     });
 
     // Adicionar placeholder mais descritivo
-    filtroInput.placeholder = 'Buscar por nome, email ou unidade...';
+    filtroInput.placeholder = 'Buscar por nome, email ou nível de acesso...';
+
+    // Funcionalidade para limpar filtro com Escape
+    filtroInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') {
+            filtroInput.value = '';
+            filtrarUsuarios();
+            filtroInput.blur();
+        }
+    });
+
+    // Mostrar/esconder ícone de limpeza
+    filtroInput.addEventListener('input', function() {
+        const parentGroup = filtroInput.closest('.input-group');
+        if (parentGroup) {
+            let clearBtn = parentGroup.querySelector('.btn-clear-filter');
+            if (filtroInput.value.trim() && !clearBtn) {
+                clearBtn = document.createElement('button');
+                clearBtn.className = 'btn btn-outline-secondary btn-clear-filter';
+                clearBtn.type = 'button';
+                clearBtn.innerHTML = '<i class="fas fa-times"></i>';
+                clearBtn.title = 'Limpar filtro';
+                clearBtn.onclick = function() {
+                    filtroInput.value = '';
+                    filtrarUsuarios();
+                    filtroInput.focus();
+                    clearBtn.remove();
+                };
+                parentGroup.appendChild(clearBtn);
+            } else if (!filtroInput.value.trim() && clearBtn) {
+                clearBtn.remove();
+            }
+        }
+    });
 
     console.log('Filtro de permissões inicializado com sucesso!');
 }
 
 function filtrarListaUsuarios(termoBusca) {
     const usuariosGrid = document.getElementById('usuariosGrid');
-    if (!usuariosGrid) return;
+    if (!usuariosGrid) {
+        console.log('usuariosGrid não encontrado');
+        return;
+    }
 
-    // Corrigir seletores para trabalhar com a estrutura HTML real
-    const cards = usuariosGrid.querySelectorAll('.usuario-card, .card');
+    // Buscar por cards específicas de usuários
+    const cards = usuariosGrid.querySelectorAll('.usuario-card');
     let usuariosVisiveis = 0;
 
+    console.log(`Filtrando ${cards.length} cards de usuários com termo: "${termoBusca}"`);
+
     cards.forEach(card => {
-        // Buscar o texto em todos os elementos da card, incluindo dados específicos
-        const cardText = card.textContent.toLowerCase();
+        // Buscar elementos específicos baseados na estrutura real
+        const nomeElement = card.querySelector('.card-header h3');
+        const emailElements = card.querySelectorAll('.info-row span');
+        const statusElement = card.querySelector('.status-badge');
 
-        // Também buscar em atributos data- que podem conter informações
-        const nomeUsuario = card.querySelector('.card-title, .usuario-nome, h5, h6, strong')?.textContent?.toLowerCase() || '';
-        const emailUsuario = card.querySelector('.card-text, .usuario-email, .text-muted')?.textContent?.toLowerCase() || '';
-        const unidadeUsuario = card.querySelector('[data-unidade]')?.getAttribute('data-unidade')?.toLowerCase() || '';
+        // Extrair textos específicos
+        const nomeUsuario = nomeElement ? nomeElement.textContent.toLowerCase() : '';
 
-        // Texto completo para busca
-        const textoCompleto = `${cardText} ${nomeUsuario} ${emailUsuario} ${unidadeUsuario}`;
+        // Buscar email nos spans das info-rows
+        let emailUsuario = '';
+        let usuarioLogin = '';
+        let nivelUsuario = '';
+        let setoresUsuario = '';
 
-        if (termoBusca === '' || textoCompleto.includes(termoBusca)) {
+        emailElements.forEach((span, index) => {
+            const texto = span.textContent.toLowerCase();
+            if (texto.includes('@')) {
+                emailUsuario = texto;
+            } else {
+                // Baseado na ordem das info-rows: Usuário, E-mail, Nível, Setor(es)
+                switch(index) {
+                    case 0: usuarioLogin = texto; break;
+                    case 2: nivelUsuario = texto; break;
+                    case 3: setoresUsuario = texto; break;
+                }
+            }
+        });
+
+        const statusUsuario = statusElement ? statusElement.textContent.toLowerCase() : '';
+
+        // Verificar se algum campo contém o termo de busca
+        const encontrado = termoBusca === '' ||
+                          nomeUsuario.includes(termoBusca) ||
+                          emailUsuario.includes(termoBusca) ||
+                          usuarioLogin.includes(termoBusca) ||
+                          nivelUsuario.includes(termoBusca) ||
+                          setoresUsuario.includes(termoBusca) ||
+                          statusUsuario.includes(termoBusca);
+
+        if (encontrado) {
             card.style.display = '';
-            card.style.transition = 'opacity 0.2s ease';
+            card.style.transition = 'opacity 0.3s ease';
             card.style.opacity = '1';
+            card.style.transform = 'scale(1)';
             usuariosVisiveis++;
         } else {
             card.style.display = 'none';
             card.style.opacity = '0';
+            card.style.transform = 'scale(0.95)';
         }
     });
 
@@ -2979,7 +3189,7 @@ async function criarGrupo() {
 
         if (!nome) {
             if (window.advancedNotificationSystem) {
-                window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigatório');
+                window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigat��rio');
             }
             return;
         }
@@ -3116,7 +3326,36 @@ function renderizarGrupos(grupos) {
 
 // ==================== CARREGAR AGENTES ====================
 
-function atualizarEstatisticasAgentes(agentes) {
+async function carregarEstatisticasAgentes() {
+    try {
+        const response = await fetch('/ti/painel/api/agentes/estatisticas');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar estatísticas dos agentes');
+        }
+        const estatisticas = await response.json();
+        atualizarEstatisticasAgentes(estatisticas);
+    } catch (error) {
+        console.error('Erro ao carregar estatísticas dos agentes:', error);
+        // Tentar usar dados locais se disponíveis
+        if (agentesData && agentesData.length > 0) {
+            atualizarEstatisticasAgentesLocal(agentesData);
+        }
+    }
+}
+
+function atualizarEstatisticasAgentes(estatisticas) {
+    const totalAgentes = document.getElementById('totalAgentes');
+    const agentesAtivos = document.getElementById('agentesAtivos');
+    const chamadosAtribuidos = document.getElementById('chamadosAtribuidos');
+    const agentesDisponiveis = document.getElementById('agentesDisponiveis');
+
+    if (totalAgentes) totalAgentes.textContent = estatisticas.total_agentes || 0;
+    if (agentesAtivos) agentesAtivos.textContent = estatisticas.agentes_ativos || 0;
+    if (chamadosAtribuidos) chamadosAtribuidos.textContent = estatisticas.chamados_atribuidos || 0;
+    if (agentesDisponiveis) agentesDisponiveis.textContent = estatisticas.agentes_disponiveis || 0;
+}
+
+function atualizarEstatisticasAgentesLocal(agentes) {
     const totalAgentes = document.getElementById('totalAgentes');
     const agentesAtivos = document.getElementById('agentesAtivos');
     const chamadosAtribuidos = document.getElementById('chamadosAtribuidos');
@@ -3524,7 +3763,7 @@ async function renderizarGraficoPrioridades(prioridades) {
             plugins: {
                 title: {
                     display: true,
-                    text: 'Distribuição por Prioridade'
+                    text: 'Distribuiç��o por Prioridade'
                 }
             }
         }
@@ -3895,7 +4134,7 @@ function limparTodosFiltros() {
         renderChamadosPage(currentPage);
     }
 
-    // Mostrar notificação
+    // Mostrar notificaç��o
     if (window.advancedNotificationSystem) {
         window.advancedNotificationSystem.showInfo('Filtros Limpos', 'Todos os filtros foram removidos');
     }
@@ -3943,3 +4182,155 @@ function executarManutencao() {
         window.advancedNotificationSystem.showInfo('Manutenção', 'Iniciando processo de manutenção...');
     }
 }
+
+// Garantir que as funções estejam disponíveis globalmente
+window.inicializarFiltroPermissoes = inicializarFiltroPermissoes;
+window.filtrarListaUsuarios = filtrarListaUsuarios;
+window.limparTodosFiltros = limparTodosFiltros;
+window.atribuirAgente = atribuirAgente;
+window.alterarAgente = alterarAgente;
+window.confirmarAtribuicao = confirmarAtribuicao;
+window.fecharModalAgente = fecharModalAgente;
+window.carregarAgentes = carregarAgentes;
+window.carregarGrupos = carregarGrupos;
+window.renderizarAgentes = renderizarAgentes;
+window.renderizarGrupos = renderizarGrupos;
+window.excluirAgente = excluirAgente;
+window.excluirGrupo = excluirGrupo;
+window.toggleAgenteStatus = toggleAgenteStatus;
+window.editarAgente = editarAgente;
+window.editarGrupo = editarGrupo;
+window.gerenciarMembrosGrupo = gerenciarMembrosGrupo;
+window.adicionarFiltroAgente = adicionarFiltroAgente;
+
+// Função de debug compreensiva do sistema
+function debugSistemaPainel() {
+    console.log('=== DEBUG COMPLETO DO SISTEMA PAINEL ===');
+
+    try {
+        // 1. Verificar elementos DOM essenciais
+        const elementos = {
+            sidebar: document.getElementById('sidebar'),
+            mainContent: document.getElementById('mainContent'),
+            sections: document.querySelectorAll('section.content-section'),
+            visaoGeral: document.getElementById('visao-geral'),
+            agentesSuporte: document.getElementById('agentes-suporte'),
+            gruposUsuarios: document.getElementById('grupos-usuarios'),
+            gerenciarChamados: document.getElementById('gerenciar-chamados'),
+            permissoes: document.getElementById('permissoes')
+        };
+
+        console.log('--- ELEMENTOS DOM ---');
+        Object.entries(elementos).forEach(([nome, elemento]) => {
+            if (elemento) {
+                const isActive = elemento.classList?.contains('active');
+                console.log(`✓ ${nome}: encontrado${isActive ? ' (ATIVO)' : ''}`);
+            } else {
+                console.error(`✗ ${nome}: NÃO ENCONTRADO`);
+            }
+        });
+
+        // 2. Verificar funções críticas
+        const funcoesCriticas = [
+            'activateSection',
+            'loadSectionContent',
+            'loadChamados',
+            'carregarAgentes',
+            'carregarGrupos',
+            'atualizarContadoresVisaoGeral',
+            'inicializarFiltroPermissoes',
+            'filtrarListaUsuarios'
+        ];
+
+        console.log('--- FUNÇÕES CRÍTICAS ---');
+        funcoesCriticas.forEach(funcao => {
+            if (typeof window[funcao] === 'function') {
+                console.log(`✓ ${funcao}: disponível`);
+            } else {
+                console.error(`✗ ${funcao}: NÃO DISPONÍVEL`);
+            }
+        });
+
+        // 3. Verificar dados globais
+        console.log('--- DADOS GLOBAIS ---');
+        console.log('chamadosData:', window.chamadosData?.length || 0, 'itens');
+        console.log('usuariosData:', window.usuariosData?.length || 0, 'itens');
+        console.log('agentesData:', window.agentesData?.length || 0, 'itens');
+        console.log('gruposData:', window.gruposData?.length || 0, 'itens');
+
+        // 4. Verificar navegação
+        console.log('--- NAVEGAÇÃO ---');
+        const navLinks = document.querySelectorAll('.sidebar nav ul li a');
+        console.log('Links de navegação encontrados:', navLinks.length);
+
+        const activeSection = document.querySelector('section.content-section.active');
+        if (activeSection) {
+            console.log('Seção ativa atual:', activeSection.id);
+        } else {
+            console.error('NENHUMA SEÇÃO ATIVA ENCONTRADA!');
+        }
+
+        // 5. Testar navegação básica
+        console.log('--- TESTE DE NAVEGAÇÃO ---');
+        try {
+            if (typeof activateSection === 'function') {
+                console.log('Testando ativaç��o da seção visao-geral...');
+                activateSection('visao-geral');
+                console.log('✓ Navegação funcionando');
+            } else {
+                console.error('✗ Função activateSection não disponível');
+            }
+        } catch (error) {
+            console.error('✗ Erro ao testar navegação:', error);
+        }
+
+        // 6. Verificar contadores da visão geral
+        console.log('--- CONTADORES VISÃO GERAL ---');
+        const contadores = [
+            'countAbertos',
+            'countAguardando',
+            'countConcluidos',
+            'countCancelados'
+        ];
+
+        contadores.forEach(id => {
+            const elemento = document.getElementById(id);
+            if (elemento) {
+                console.log(`✓ ${id}: ${elemento.textContent}`);
+            } else {
+                console.error(`✗ ${id}: elemento não encontrado`);
+            }
+        });
+
+        // 7. Resumo final
+        console.log('--- RESUMO ---');
+        const problemas = [];
+
+        if (!elementos.sidebar) problemas.push('Sidebar não encontrada');
+        if (!elementos.mainContent) problemas.push('Main content n��o encontrado');
+        if (elementos.sections.length === 0) problemas.push('Nenhuma seção encontrada');
+        if (typeof window.activateSection !== 'function') problemas.push('Função activateSection não disponível');
+        if (typeof window.loadChamados !== 'function') problemas.push('Função loadChamados não disponível');
+
+        if (problemas.length === 0) {
+            console.log('✅ SISTEMA FUNCIONANDO CORRETAMENTE');
+        } else {
+            console.error('❌ PROBLEMAS ENCONTRADOS:');
+            problemas.forEach(problema => console.error('- ' + problema));
+        }
+
+    } catch (error) {
+        console.error('ERRO no debug do sistema:', error);
+    }
+
+    console.log('=== FIM DEBUG SISTEMA PAINEL ===');
+}
+
+// Disponibilizar globalmente
+window.debugSistemaPainel = debugSistemaPainel;
+
+// Executar debug automaticamente em desenvolvimento
+setTimeout(() => {
+    console.log('Executando debug automático do sistema...');
+    debugSistemaPainel();
+}, 2000);

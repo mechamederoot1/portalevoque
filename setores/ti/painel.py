@@ -347,7 +347,7 @@ def setup_database_endpoint():
 
     except Exception as e:
         db.session.rollback()
-        logger.error(f'Erro ao inserir dados de demonstração: {str(e)}')
+        logger.error(f'Erro ao inserir dados de demonstra��ão: {str(e)}')
         traceback.print_exc()
         return error_response(f'Erro ao inserir dados: {str(e)}')
 
@@ -1283,8 +1283,8 @@ def criar_usuario():
         for field in required_fields:
             if not data.get(field):
                 return error_response(f'Campo {field} é obrigatório', 400)
-        
-        niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor']
+
+        niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor', 'Agente de suporte']
         if data['nivel_acesso'] not in niveis_validos:
             return error_response('Nível de acesso inválido', 400)
 
@@ -1308,7 +1308,24 @@ def criar_usuario():
 
         db.session.add(novo_usuario)
         db.session.commit()
-        
+
+        # Se o usuário foi criado como agente de suporte, criar automaticamente o registro de agente
+        if data['nivel_acesso'] == 'Agente de suporte':
+            try:
+                from database import AgenteSuporte
+                agente = AgenteSuporte(
+                    usuario_id=novo_usuario.id,
+                    ativo=True,
+                    nivel_experiencia='junior',
+                    max_chamados_simultaneos=10
+                )
+                db.session.add(agente)
+                db.session.commit()
+                logger.info(f"Agente de suporte criado automaticamente para usuário {novo_usuario.nome}")
+            except Exception as e:
+                logger.error(f"Erro ao criar agente automaticamente: {str(e)}")
+                # Não interromper o fluxo se der erro na criação do agente
+
         # Emitir evento Socket.IO apenas se a conexão estiver disponível
         try:
             if hasattr(current_app, 'socketio'):
@@ -1520,7 +1537,7 @@ def atualizar_usuario(user_id):
                 return error_response('Email já está em uso por outro usuário', 400)
             usuario.email = data['email']
         if 'nivel_acesso' in data:
-            niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor']
+            niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor', 'Agente de suporte']
             if data['nivel_acesso'] not in niveis_validos:
                 return error_response('Nível de acesso inválido', 400)
             usuario.nivel_acesso = data['nivel_acesso']
@@ -2462,37 +2479,6 @@ def atribuir_chamado(chamado_id):
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao atribuir chamado: {str(e)}")
-        logger.error(traceback.format_exc())
-        return error_response('Erro interno no servidor')
-
-@painel_bp.route('/api/usuarios-disponiveis', methods=['GET'])
-@login_required
-@setor_required('Administrador')
-def usuarios_disponiveis():
-    """Lista usuários que podem se tornar agentes"""
-    try:
-        from database import AgenteSuporte
-
-        # Buscar usuários que não são agentes
-        usuarios_query = db.session.query(User).outerjoin(AgenteSuporte).filter(
-            AgenteSuporte.id.is_(None),
-            User.bloqueado == False
-        )
-
-        usuarios_data = []
-        for usuario in usuarios_query.all():
-            usuarios_data.append({
-                'id': usuario.id,
-                'nome': f"{usuario.nome} {usuario.sobrenome}",
-                'email': usuario.email,
-                'nivel_acesso': usuario.nivel_acesso,
-                'setores': usuario.setores
-            })
-
-        return json_response(usuarios_data)
-
-    except Exception as e:
-        logger.error(f"Erro ao listar usuários disponíveis: {str(e)}")
         logger.error(traceback.format_exc())
         return error_response('Erro interno no servidor')
 

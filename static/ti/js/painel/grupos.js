@@ -6,14 +6,53 @@ let emailsHistoricoData = [];
 // Inicialização da seção de grupos
 function inicializarGrupos() {
     console.log('Inicializando seção de grupos...');
-    
+
     // Carregar dados iniciais
     carregarGrupos();
     carregarEmailsHistorico();
-    
+
     // Configurar event listeners
     configurarEventListenersGrupos();
 }
+
+// Função de debug para verificar dados de grupos
+async function debugVerificarGrupos() {
+    console.log('=== DEBUG: Verificando dados de grupos ===');
+
+    try {
+        console.log('Buscando grupos...');
+        const responseGrupos = await fetch('/ti/painel/api/grupos');
+        console.log('Status da resposta grupos:', responseGrupos.status);
+
+        if (responseGrupos.ok) {
+            const grupos = await responseGrupos.json();
+            console.log('Total de grupos encontrados:', grupos.length);
+            console.log('Grupos encontrados:', grupos);
+
+            if (grupos.length === 0) {
+                console.log('NENHUM GRUPO ENCONTRADO! Verificar se existem grupos criados no banco');
+            }
+        } else {
+            console.error('Erro ao buscar grupos:', responseGrupos.status, responseGrupos.statusText);
+        }
+
+    } catch (error) {
+        console.error('Erro no debug de grupos:', error);
+    }
+
+    console.log('=== FIM DEBUG GRUPOS ===');
+}
+
+// Adicionar à janela global para fácil acesso
+window.debugVerificarGrupos = debugVerificarGrupos;
+
+// Auto-inicializar quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM carregado - grupos.js inicializado');
+
+    // Executar debug automaticamente
+    setTimeout(debugVerificarGrupos, 2000);
+});
 
 function configurarEventListenersGrupos() {
     // Modal de criação de grupo
@@ -91,12 +130,14 @@ function configurarEventListenersGrupos() {
 // Carregar grupos
 async function carregarGrupos() {
     try {
+        console.log('Carregando grupos...');
         const response = await fetch('/ti/painel/api/grupos');
         if (!response.ok) throw new Error('Erro ao carregar grupos');
-        
+
         gruposData = await response.json();
+        console.log('Grupos carregados:', gruposData);
         renderizarGrupos();
-        
+
     } catch (error) {
         console.error('Erro ao carregar grupos:', error);
         if (window.advancedNotificationSystem) {
@@ -107,15 +148,21 @@ async function carregarGrupos() {
 
 // Renderizar grupos
 function renderizarGrupos() {
-    const container = document.getElementById('gruposContainer');
+    const container = document.getElementById('gruposGrid');
     if (!container) return;
     
     if (!gruposData || gruposData.length === 0) {
+        console.log('Nenhum grupo encontrado para renderização');
         container.innerHTML = `
             <div class="text-center py-4">
                 <i class="fas fa-users fa-3x text-muted mb-3"></i>
-                <h5 class="text-muted">Nenhum grupo encontrado</h5>
-                <p class="text-muted">Crie o primeiro grupo de usuários</p>
+                <h5 class="text-muted">Nenhum grupo de usuários encontrado</h5>
+                <p class="text-muted">
+                    Clique em "Criar Grupo" para criar o primeiro grupo de usuários
+                </p>
+                <button class="btn btn-primary" onclick="window.debugVerificarGrupos()">
+                    <i class="fas fa-bug me-1"></i>Debug: Verificar Grupos
+                </button>
             </div>
         `;
         return;
@@ -573,6 +620,7 @@ function renderizarEmailsHistorico() {
 }
 
 // Exportar funções para uso global
+window.carregarGrupos = carregarGrupos;
 window.inicializarGrupos = inicializarGrupos;
 window.editarGrupo = editarGrupo;
 window.verDetalhesGrupo = verDetalhesGrupo;
