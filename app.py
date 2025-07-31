@@ -197,4 +197,4 @@ def handle_ping():
 if __name__ == '__main__':
     print("🚀 Iniciando aplicação com proteções de segurança ativas...")
     print("🔌 Socket.IO configurado e ativo")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
