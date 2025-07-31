@@ -461,7 +461,7 @@ function formatarData(dataString) {
     return `${dia}/${mes}/${ano}`;
 }
 
-// Função para renderizar a paginação
+// Funç��o para renderizar a paginação
 function renderPagination(totalItems) {
     pagination.innerHTML = '';
     const totalPages = Math.ceil(totalItems / chamadosPerPage);
@@ -515,12 +515,12 @@ function renderPagination(totalItems) {
 
 // Função para anexar event listeners aos cards de chamados
 function attachCardEventListeners() {
-    // Listener para mudança no select
-    document.querySelectorAll('.card select').forEach(select => {
+    // Listener para mudança no select de status dos chamados (apenas selects que começam com 'status-')
+    document.querySelectorAll('.card select[id^="status-"]').forEach(select => {
         select.addEventListener('click', function(e) {
             e.stopPropagation();
         });
-        
+
         select.addEventListener('change', async function(e) {
             e.stopPropagation();
             const chamadoId = this.id.replace('status-', '');
