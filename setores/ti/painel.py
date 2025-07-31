@@ -863,6 +863,26 @@ def atualizar_status_chamado(id):
         
         db.session.commit()
         
+        # Buscar informações do agente para incluir na resposta
+        agente_info = None
+        try:
+            from database import ChamadoAgente, AgenteSuporte
+            chamado_agente = ChamadoAgente.query.filter_by(
+                chamado_id=id,
+                ativo=True
+            ).first()
+
+            if chamado_agente and chamado_agente.agente:
+                agente = chamado_agente.agente
+                agente_info = {
+                    'id': agente.id,
+                    'nome': f"{agente.usuario.nome} {agente.usuario.sobrenome}",
+                    'email': agente.usuario.email,
+                    'nivel_experiencia': agente.nivel_experiencia
+                }
+        except Exception as agente_error:
+            logger.warning(f"Erro ao buscar agente: {str(agente_error)}")
+
         # Emitir evento Socket.IO apenas se a conexão estiver disponível
         try:
             if hasattr(current_app, 'socketio'):
@@ -872,16 +892,18 @@ def atualizar_status_chamado(id):
                     'status_anterior': status_anterior,
                     'novo_status': novo_status,
                     'solicitante': chamado.solicitante,
+                    'agente': agente_info,
                     'timestamp': agora_brazil.isoformat()
                 })
         except Exception as socket_error:
             logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
-        
+
         return json_response({
             'message': 'Status atualizado com sucesso.',
             'id': chamado.id,
             'status': chamado.status,
-            'codigo': chamado.codigo
+            'codigo': chamado.codigo,
+            'agente': agente_info
         })
     except Exception as e:
         db.session.rollback()
