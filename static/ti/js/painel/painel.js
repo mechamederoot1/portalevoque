@@ -127,7 +127,7 @@ function popularFiltrosDinamicos() {
         });
     }
 
-    // Popular filtro de agentes responsáveis
+    // Popular filtro de agentes respons��veis
     const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
     if (filtroAgenteResponsavel && chamadosData.length > 0) {
         const agentes = chamadosData
@@ -2641,10 +2641,6 @@ function loadSectionContentEnhanced(sectionId) {
                 if (typeof inicializarGrupos === 'function') {
                     inicializarGrupos();
                 }
-            }, 100);
-            break;
-        case 'grupos-usuarios':
-            setTimeout(() => {
                 if (typeof carregarGrupos === 'function') {
                     carregarGrupos();
                 }
