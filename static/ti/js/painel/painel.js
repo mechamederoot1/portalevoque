@@ -1897,3 +1897,466 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// ==================== FUNCIONALIDADES DE AGENTES ====================
+let agentesData = [];
+
+// Event listener para botão "Criar Agente"
+document.getElementById('btnCriarAgente')?.addEventListener('click', async function() {
+    await carregarUsuariosParaAgente();
+    document.getElementById('modalCriarAgente').classList.add('active');
+});
+
+// Event listeners para modal de agente
+document.getElementById('modalCriarAgenteClose')?.addEventListener('click', function() {
+    document.getElementById('modalCriarAgente').classList.remove('active');
+});
+
+document.getElementById('formCriarAgente')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await criarAgente();
+});
+
+// Carregar usuários para seleção no modal de agente
+async function carregarUsuariosParaAgente() {
+    try {
+        const response = await fetch('/ti/painel/api/usuarios');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar usuários');
+        }
+        const usuarios = await response.json();
+        const select = document.getElementById('selectUsuarioAgente');
+
+        // Limpar opções existentes (exceto a primeira)
+        select.innerHTML = '<option value="">Selecione um usuário</option>';
+
+        // Adicionar usuários não bloqueados
+        usuarios.filter(u => !u.bloqueado).forEach(usuario => {
+            const option = document.createElement('option');
+            option.value = usuario.id;
+            option.textContent = `${usuario.nome} ${usuario.sobrenome} (${usuario.usuario})`;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Erro ao carregar usuários:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar lista de usuários');
+        }
+    }
+}
+
+// Criar agente
+async function criarAgente() {
+    const usuarioId = document.getElementById('selectUsuarioAgente').value;
+    const nivelExperiencia = document.getElementById('nivelExperienciaAgente').value;
+    const maxChamados = parseInt(document.getElementById('maxChamadosAgente').value);
+    const ativo = document.getElementById('ativoAgente').checked;
+
+    // Coletar especialidades selecionadas
+    const especialidades = [];
+    document.querySelectorAll('#modalCriarAgente input[type="checkbox"]:checked').forEach(checkbox => {
+        if (checkbox.id !== 'ativoAgente') {
+            especialidades.push(checkbox.value);
+        }
+    });
+
+    if (!usuarioId) {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Selecione um usuário');
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch('/ti/painel/api/agentes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                usuario_id: parseInt(usuarioId),
+                nivel_experiencia: nivelExperiencia,
+                max_chamados_simultaneos: maxChamados,
+                especialidades: especialidades,
+                ativo: ativo
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao criar agente');
+        }
+
+        const data = await response.json();
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Agente Criado', `Agente ${data.nome} criado com sucesso!`);
+        }
+
+        // Fechar modal e resetar formulário
+        document.getElementById('modalCriarAgente').classList.remove('active');
+        document.getElementById('formCriarAgente').reset();
+
+        // Recarregar lista de agentes se estiver na seção
+        if (document.getElementById('agentes-suporte').classList.contains('active')) {
+            await carregarAgentes();
+        }
+
+    } catch (error) {
+        console.error('Erro ao criar agente:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+// Carregar agentes
+async function carregarAgentes() {
+    try {
+        const response = await fetch('/ti/painel/api/agentes');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar agentes');
+        }
+        agentesData = await response.json();
+        renderizarAgentes();
+    } catch (error) {
+        console.error('Erro ao carregar agentes:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
+        }
+    }
+}
+
+// Renderizar lista de agentes
+function renderizarAgentes() {
+    const container = document.querySelector('#agentes-suporte .cards-grid');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (agentesData.length === 0) {
+        container.innerHTML = '<p class="text-center py-4">Nenhum agente cadastrado.</p>';
+        return;
+    }
+
+    agentesData.forEach(agente => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const statusClass = agente.ativo ? 'status-concluido' : 'status-cancelado';
+        const statusText = agente.ativo ? 'Ativo' : 'Inativo';
+
+        card.innerHTML = `
+            <div class="card-header">
+                <h3>${agente.nome} ${agente.sobrenome}</h3>
+                <div class="status-badge ${statusClass}">
+                    <i class="fas ${agente.ativo ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                    ${statusText}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <strong>Usuário:</strong>
+                    <span>${agente.usuario}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Nível:</strong>
+                    <span>${agente.nivel_experiencia}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Máx. Chamados:</strong>
+                    <span>${agente.max_chamados_simultaneos}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Chamados Ativos:</strong>
+                    <span>${agente.chamados_ativos || 0}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Especialidades:</strong>
+                    <span>${agente.especialidades ? agente.especialidades.join(', ') : 'Nenhuma'}</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-primary btn-sm" onclick="editarAgente(${agente.id})">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="btn ${agente.ativo ? 'btn-warning' : 'btn-success'} btn-sm"
+                        onclick="toggleAgenteStatus(${agente.id}, ${!agente.ativo})">
+                    <i class="fas ${agente.ativo ? 'fa-pause' : 'fa-play'}"></i>
+                    ${agente.ativo ? 'Desativar' : 'Ativar'}
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="excluirAgente(${agente.id})">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+// Toggle status do agente
+async function toggleAgenteStatus(agenteId, novoStatus) {
+    try {
+        const response = await fetch(`/ti/painel/api/agentes/${agenteId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ ativo: novoStatus })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao alterar status');
+        }
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Status Alterado', `Agente ${novoStatus ? 'ativado' : 'desativado'} com sucesso!`);
+        }
+
+        await carregarAgentes();
+
+    } catch (error) {
+        console.error('Erro ao alterar status:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+// Excluir agente
+async function excluirAgente(agenteId) {
+    if (!confirm('Tem certeza que deseja excluir este agente?')) return;
+
+    try {
+        const response = await fetch(`/ti/painel/api/agentes/${agenteId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao excluir agente');
+        }
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Agente Excluído', 'Agente excluído com sucesso!');
+        }
+
+        await carregarAgentes();
+
+    } catch (error) {
+        console.error('Erro ao excluir agente:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+// ==================== FUNCIONALIDADES DE GRUPOS ====================
+let gruposData = [];
+
+// Event listener para botão "Criar Grupo"
+document.getElementById('btnCriarGrupo')?.addEventListener('click', function() {
+    document.getElementById('modalCriarGrupo').classList.add('active');
+});
+
+// Event listeners para modal de grupo
+document.getElementById('modalCriarGrupoClose')?.addEventListener('click', function() {
+    document.getElementById('modalCriarGrupo').classList.remove('active');
+});
+
+document.getElementById('formCriarGrupo')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    await criarGrupo();
+});
+
+// Criar grupo
+async function criarGrupo() {
+    const nome = document.getElementById('nomeGrupo').value.trim();
+    const descricao = document.getElementById('descricaoGrupo').value.trim();
+
+    if (!nome) {
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigatório');
+        }
+        return;
+    }
+
+    try {
+        const response = await fetch('/ti/painel/api/grupos', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                nome: nome,
+                descricao: descricao
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao criar grupo');
+        }
+
+        const data = await response.json();
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Grupo Criado', `Grupo "${data.nome}" criado com sucesso!`);
+        }
+
+        // Fechar modal e resetar formulário
+        document.getElementById('modalCriarGrupo').classList.remove('active');
+        document.getElementById('formCriarGrupo').reset();
+
+        // Recarregar lista de grupos se estiver na seção
+        if (document.getElementById('grupos-usuarios').classList.contains('active')) {
+            await carregarGrupos();
+        }
+
+    } catch (error) {
+        console.error('Erro ao criar grupo:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+// Carregar grupos
+async function carregarGrupos() {
+    try {
+        const response = await fetch('/ti/painel/api/grupos');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar grupos');
+        }
+        gruposData = await response.json();
+        renderizarGrupos();
+    } catch (error) {
+        console.error('Erro ao carregar grupos:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar grupos');
+        }
+    }
+}
+
+// Renderizar lista de grupos
+function renderizarGrupos() {
+    const container = document.querySelector('#grupos-usuarios .cards-grid');
+    if (!container) return;
+
+    container.innerHTML = '';
+
+    if (gruposData.length === 0) {
+        container.innerHTML = '<p class="text-center py-4">Nenhum grupo cadastrado.</p>';
+        return;
+    }
+
+    gruposData.forEach(grupo => {
+        const card = document.createElement('div');
+        card.className = 'card';
+
+        const statusClass = grupo.ativo ? 'status-concluido' : 'status-cancelado';
+        const statusText = grupo.ativo ? 'Ativo' : 'Inativo';
+
+        card.innerHTML = `
+            <div class="card-header">
+                <h3>${grupo.nome}</h3>
+                <div class="status-badge ${statusClass}">
+                    <i class="fas ${grupo.ativo ? 'fa-check-circle' : 'fa-times-circle'}"></i>
+                    ${statusText}
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <strong>Descrição:</strong>
+                    <span>${grupo.descricao || 'Sem descrição'}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Membros:</strong>
+                    <span>${grupo.membros_count || 0}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Unidades:</strong>
+                    <span>${grupo.unidades_count || 0}</span>
+                </div>
+                <div class="info-row">
+                    <strong>Criado por:</strong>
+                    <span>${grupo.criador_nome || 'N/A'}</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-primary btn-sm" onclick="gerenciarMembrosGrupo(${grupo.id})">
+                    <i class="fas fa-users"></i> Membros
+                </button>
+                <button class="btn btn-info btn-sm" onclick="editarGrupo(${grupo.id})">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="excluirGrupo(${grupo.id})">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+}
+
+// Excluir grupo
+async function excluirGrupo(grupoId) {
+    if (!confirm('Tem certeza que deseja excluir este grupo?')) return;
+
+    try {
+        const response = await fetch(`/ti/painel/api/grupos/${grupoId}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || 'Erro ao excluir grupo');
+        }
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess('Grupo Excluído', 'Grupo excluído com sucesso!');
+        }
+
+        await carregarGrupos();
+
+    } catch (error) {
+        console.error('Erro ao excluir grupo:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', error.message);
+        }
+    }
+}
+
+// Atualizar loadSectionContent para incluir agentes e grupos
+const originalLoadSectionContent = loadSectionContent;
+loadSectionContent = function(sectionId) {
+    originalLoadSectionContent(sectionId);
+
+    switch(sectionId) {
+        case 'agentes-suporte':
+            carregarAgentes();
+            break;
+        case 'grupos-usuarios':
+            carregarGrupos();
+            break;
+    }
+};
+
+// Placeholder functions para funcionalidades futuras
+function editarAgente(agenteId) {
+    console.log('Editar agente:', agenteId);
+    // TODO: Implementar modal de edição de agente
+}
+
+function editarGrupo(grupoId) {
+    console.log('Editar grupo:', grupoId);
+    // TODO: Implementar modal de edição de grupo
+}
+
+function gerenciarMembrosGrupo(grupoId) {
+    console.log('Gerenciar membros do grupo:', grupoId);
+    // TODO: Implementar modal de gerenciamento de membros
+}
