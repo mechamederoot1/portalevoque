@@ -3092,44 +3092,35 @@ async function carregarBackupManutencao() {
 
 async function carregarLogsAcesso() {
     try {
-        const container = document.getElementById('logsAcessoContainer');
-        if (container) {
+        const tabela = document.getElementById('tabelaLogsAcesso');
+        if (tabela) {
             // Simular logs de acesso
             const logs = [
-                { usuario: 'Admin', ip: '192.168.1.100', data: '31/01/2025 10:30:00', acao: 'Login' },
-                { usuario: 'João Silva', ip: '192.168.1.101', data: '31/01/2025 10:25:00', acao: 'Logout' },
-                { usuario: 'Maria Santos', ip: '192.168.1.102', data: '31/01/2025 10:20:00', acao: 'Acesso Negado' }
+                { usuario: 'Admin', dataLogin: '31/01/2025 10:30:00', dataLogout: '31/01/2025 12:15:00', duracao: '1h 45m', ip: '192.168.1.100', status: 'Ativo' },
+                { usuario: 'João Silva', dataLogin: '31/01/2025 10:25:00', dataLogout: '31/01/2025 11:30:00', duracao: '1h 05m', ip: '192.168.1.101', status: 'Finalizado' },
+                { usuario: 'Maria Santos', dataLogin: '31/01/2025 10:20:00', dataLogout: '-', duracao: '-', ip: '192.168.1.102', status: 'Bloqueado' }
             ];
 
-            container.innerHTML = `
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Usuário</th>
-                                <th>IP</th>
-                                <th>Data/Hora</th>
-                                <th>Ação</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            ${logs.map(log => `
-                                <tr>
-                                    <td>${log.usuario}</td>
-                                    <td>${log.ip}</td>
-                                    <td>${log.data}</td>
-                                    <td>
-                                        <span class="badge bg-${log.acao === 'Login' ? 'success' : log.acao === 'Logout' ? 'info' : 'danger'}">
-                                            ${log.acao}
-                                        </span>
-                                    </td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `;
+            tabela.innerHTML = logs.map(log => `
+                <tr>
+                    <td>${log.usuario}</td>
+                    <td>${log.dataLogin}</td>
+                    <td>${log.dataLogout}</td>
+                    <td>${log.duracao}</td>
+                    <td>${log.ip}</td>
+                    <td>
+                        <span class="badge bg-${log.status === 'Ativo' ? 'success' : log.status === 'Finalizado' ? 'info' : 'danger'}">
+                            ${log.status}
+                        </span>
+                    </td>
+                </tr>
+            `).join('');
         }
+
+        // Atualizar estatísticas
+        const acessosHoje = document.getElementById('acessosHoje');
+        if (acessosHoje) acessosHoje.textContent = '15';
+
     } catch (error) {
         console.error('Erro ao carregar logs de acesso:', error);
     }
