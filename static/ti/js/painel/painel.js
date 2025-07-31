@@ -1889,18 +1889,21 @@ function inicializarSistemaPainel() {
     console.log('=== INICIALIZANDO SISTEMA DO PAINEL ===');
 
     try {
-        // 1. Verificar elementos essenciais da interface
+        // 1. Inicializar navegação
+        initializeNavigation();
+
+        // 2. Verificar elementos essenciais da interface
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
-        const sections = document.querySelectorAll('section.content-section');
+        const allSections = document.querySelectorAll('section.content-section');
 
         console.log('Elementos encontrados:', {
             sidebar: !!sidebar,
             mainContent: !!mainContent,
-            sections: sections.length
+            sections: allSections.length
         });
 
-        // 2. Ativar seção inicial
+        // 3. Ativar seção inicial
         const hash = window.location.hash.substring(1);
         if (hash && document.getElementById(hash)) {
             console.log('Ativando seção do hash:', hash);
@@ -1910,7 +1913,7 @@ function inicializarSistemaPainel() {
             activateSection('visao-geral');
         }
 
-        // 3. Carregar dados críticos
+        // 4. Carregar dados críticos
         setTimeout(() => {
             console.log('Carregando dados iniciais do sistema...');
 
@@ -1928,7 +1931,7 @@ function inicializarSistemaPainel() {
 
         }, 300);
 
-        // 4. Verificar funções essenciais
+        // 5. Verificar funções essenciais
         const funcoesCriticas = [
             'activateSection',
             'loadSectionContent',
@@ -3235,7 +3238,7 @@ function adicionarBotoesSelecaoUnidades() {
     buttonsContainer.appendChild(btnSelecionarTodas);
     buttonsContainer.appendChild(btnDesmarcarTodas);
 
-    // Inserir após o select
+    // Inserir ap��s o select
     unidadesGrupo.parentNode.insertBefore(buttonsContainer, unidadesGrupo.nextSibling);
 }
 
