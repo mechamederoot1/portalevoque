@@ -89,7 +89,7 @@ function renderizarPaginacaoLogsAcesso(pagination) {
 
 async function carregarEstatisticasAcessos() {
     try {
-        const response = await fetch('/ti/admin/api/logs/acessos/estatisticas');
+        const response = await fetch('/ti/painel/api/logs/acesso/estatisticas');
         if (!response.ok) {
             throw new Error('Erro ao carregar estatísticas');
         }
