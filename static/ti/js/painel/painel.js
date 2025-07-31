@@ -588,14 +588,9 @@ async function gerarSenha() {
         
         // Atualiza campos da senha gerada de forma compacta no formulário
         document.getElementById('senhaGeradaInput').value = data.senha;
-        
-        // Atualiza indicador de força
-        const forcaIndicador = document.getElementById('forcaSenha');
-        forcaIndicador.textContent = data.forca;
-        forcaIndicador.className = `badge ${data.forca.toLowerCase()}`;
-        
+
         // Mostra container compacto
-        document.getElementById('senhaGeradaContainer').style.display = 'flex';
+        document.getElementById('senhaGeradaContainer').style.display = 'block';
     } catch (error) {
         console.error('Erro ao gerar senha:', error);
         if (window.advancedNotificationSystem) {
