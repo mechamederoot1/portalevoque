@@ -7,29 +7,35 @@ let agentesStatisticsData = {};
 async function carregarAgentes() {
     try {
         console.log('Carregando agentes de suporte...');
-        
-        // Carregar dados dos agentes
-        const response = await fetch('/ti/painel/api/agentes');
+
+        // Carregar usuários com nível "Agente de suporte"
+        const response = await fetch('/ti/painel/api/usuarios');
         if (!response.ok) {
-            throw new Error('Erro ao carregar agentes');
+            throw new Error('Erro ao carregar usuários');
         }
-        
-        agentesData = await response.json();
+
+        const todosUsuarios = await response.json();
+
+        // Filtrar apenas usuários com nível "Agente de suporte"
+        agentesData = todosUsuarios.filter(usuario =>
+            usuario.nivel_acesso === 'Agente de suporte' && !usuario.bloqueado
+        );
+
         console.log('Agentes carregados:', agentesData);
-        
+
         // Carregar estatísticas
         await carregarEstatisticasAgentes();
-        
+
         // Renderizar os dados
         renderizarAgentes();
-        
+
     } catch (error) {
         console.error('Erro ao carregar agentes:', error);
         const container = document.getElementById('agentesGrid');
         if (container) {
             container.innerHTML = '<p class="text-center py-4">Erro ao carregar agentes. Tente novamente mais tarde.</p>';
         }
-        
+
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes de suporte');
         }
