@@ -2022,7 +2022,7 @@
       <div class="modal-body">
         <form id="formTicket">
           <input type="hidden" id="ticketChamadoId">
-          
+
           <div class="form-group mb-3">
             <label for="ticketModelo">Modelo de Mensagem</label>
             <select class="form-control" id="ticketModelo">
@@ -2061,6 +2061,165 @@
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btnCancelarTicket">Cancelar</button>
         <button class="btn btn-primary" id="btnEnviarTicket">Enviar Ticket</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Criar Agente -->
+  <div class="modal" id="modalCriarAgente" role="dialog" aria-modal="true" aria-labelledby="modalCriarAgenteTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalCriarAgenteTitle">Criar Agente de Suporte</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalCriarAgenteClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formCriarAgente">
+          <div class="form-group mb-3">
+            <label for="selectUsuarioAgente">Usuário</label>
+            <select class="form-control" id="selectUsuarioAgente" required>
+              <option value="">Selecione um usuário</option>
+              <!-- Usuários serão carregados dinamicamente -->
+            </select>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="nivelExperienciaAgente">Nível de Experiência</label>
+            <select class="form-control" id="nivelExperienciaAgente" required>
+              <option value="junior">Júnior</option>
+              <option value="pleno">Pleno</option>
+              <option value="senior">Sênior</option>
+            </select>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="maxChamadosAgente">Máximo de Chamados Simultâneos</label>
+            <input type="number" class="form-control" id="maxChamadosAgente" value="10" min="1" max="50" required>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="especialidadesAgente">Especialidades</label>
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="especHardware" value="Hardware">
+                  <label class="form-check-label" for="especHardware">Hardware</label>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="especSoftware" value="Software">
+                  <label class="form-check-label" for="especSoftware">Software</label>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="especRedes" value="Redes">
+                  <label class="form-check-label" for="especRedes">Redes</label>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="especSistemas" value="Sistemas">
+                  <label class="form-check-label" for="especSistemas">Sistemas</label>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="especTelefonia" value="Telefonia">
+                  <label class="form-check-label" for="especTelefonia">Telefonia</label>
+                </div>
+                <div class="form-check">
+                  <input type="checkbox" class="form-check-input" id="especOutros" value="Outros">
+                  <label class="form-check-label" for="especOutros">Outros</label>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="ativoAgente" checked>
+            <label class="form-check-label" for="ativoAgente">
+              Agente ativo
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarAgente">Cancelar</button>
+        <button class="btn btn-primary" id="btnSalvarAgente">Criar Agente</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Atribuir Chamado -->
+  <div class="modal" id="modalAtribuirChamado" role="dialog" aria-modal="true" aria-labelledby="modalAtribuirChamadoTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalAtribuirChamadoTitle">Atribuir Chamado a Agente</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalAtribuirChamadoClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formAtribuirChamado">
+          <input type="hidden" id="chamadoIdAtribuir">
+
+          <div class="form-group mb-3">
+            <label>Chamado</label>
+            <p id="dadosChamadoAtribuir" class="form-control-plaintext"></p>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="selectAgenteAtribuir">Agente Responsável</label>
+            <select class="form-control" id="selectAgenteAtribuir" required>
+              <option value="">Selecione um agente</option>
+              <!-- Agentes serão carregados dinamicamente -->
+            </select>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="observacoesAtribuicao">Observações</label>
+            <textarea class="form-control" id="observacoesAtribuicao" rows="3" placeholder="Observações sobre a atribuição..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarAtribuicao">Cancelar</button>
+        <button class="btn btn-primary" id="btnConfirmarAtribuicao">Atribuir</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Criar Grupo -->
+  <div class="modal" id="modalCriarGrupo" role="dialog" aria-modal="true" aria-labelledby="modalCriarGrupoTitle">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalCriarGrupoTitle">Criar Grupo de Usuários</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalCriarGrupoClose">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="formCriarGrupo">
+          <div class="form-group mb-3">
+            <label for="nomeGrupo">Nome do Grupo</label>
+            <input type="text" class="form-control" id="nomeGrupo" required placeholder="Ex: Gestores Regionais">
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="descricaoGrupo">Descrição</label>
+            <textarea class="form-control" id="descricaoGrupo" rows="3" placeholder="Descrição do grupo e seus objetivos..."></textarea>
+          </div>
+
+          <div class="form-group mb-3">
+            <label for="unidadesGrupo">Unidades do Grupo</label>
+            <select class="form-control" id="unidadesGrupo" multiple size="6">
+              <!-- Unidades serão carregadas dinamicamente -->
+            </select>
+            <small class="text-muted">Segure Ctrl para selecionar múltiplas unidades</small>
+          </div>
+
+          <div class="form-check mb-3">
+            <input type="checkbox" class="form-check-input" id="ativoGrupo" checked>
+            <label class="form-check-label" for="ativoGrupo">
+              Grupo ativo
+            </label>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btnCancelarGrupo">Cancelar</button>
+        <button class="btn btn-primary" id="btnSalvarGrupo">Criar Grupo</button>
       </div>
     </div>
   </div>
