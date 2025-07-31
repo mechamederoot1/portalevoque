@@ -36,12 +36,30 @@ const sections = document.querySelectorAll('section.content-section');
 navLinks.forEach(link => {
     link.addEventListener('click', e => {
         e.preventDefault();
-        const targetId = link.getAttribute('href').substring(1);
+        const href = link.getAttribute('href');
+        if (!href || href === '#') {
+            console.log('Link sem href válido:', link);
+            return;
+        }
+
+        const targetId = href.substring(1);
+        console.log('Navegando para seção:', targetId);
+
+        // Verificar se a seção existe
+        const targetSection = document.getElementById(targetId);
+        if (!targetSection) {
+            console.error('Seção não encontrada:', targetId);
+            return;
+        }
+
         activateSection(targetId);
         navLinks.forEach(l => l.classList.remove('active'));
         navLinks.forEach(l => {
-            if (l.getAttribute('href').substring(1) === targetId) l.classList.add('active');
+            if (l.getAttribute('href') === href) l.classList.add('active');
         });
+
+        // Atualizar hash da URL
+        window.location.hash = targetId;
     });
 });
 
@@ -338,7 +356,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
 
             if (!notificacaoResponse.ok) {
                 console.error('Erro ao enviar notificação:', await notificacaoResponse.text());
-                throw new Error('Erro ao enviar notificação por e-mail');
+                throw new Error('Erro ao enviar notifica��ão por e-mail');
             }
         }
 
@@ -859,7 +877,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             alterar_senha_primeiro_acesso: document.getElementById('alterarSenhaPrimeiroAcesso').checked
         };
 
-        // Validaç������o
+        // Validaç����o
         const errosValidacao = validarDadosUsuario(usuarioData);
         if (errosValidacao.length > 0) {
             throw new Error(errosValidacao.join('<br>'));
@@ -3914,7 +3932,7 @@ async function atribuirAgente(chamadoId) {
                         </div>
                         <div class="form-group">
                             <label for="observacoesAtribuicao">Observações (opcional):</label>
-                            <textarea id="observacoesAtribuicao" class="form-control" rows="3" placeholder="Observações sobre a atribuição..."></textarea>
+                            <textarea id="observacoesAtribuicao" class="form-control" rows="3" placeholder="Observações sobre a atribui��ão..."></textarea>
                         </div>
                     </div>
                     <div class="modal-footer">
