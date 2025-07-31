@@ -945,7 +945,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
 
                 if (agenteResponse.ok) {
                     if (window.advancedNotificationSystem) {
-                        window.advancedNotificationSystem.showSuccess('Usuário e Agente Criados', `Usuário ${data.nome} criado e registrado como agente de suporte!`);
+                        window.advancedNotificationSystem.showSuccess('Usuário e Agente Criados', `Usu��rio ${data.nome} criado e registrado como agente de suporte!`);
                     }
                 } else {
                     if (window.advancedNotificationSystem) {
@@ -1997,7 +1997,7 @@ document.querySelectorAll('.sidebar nav > ul > li > a:not(.submenu-toggle)').for
         // Atualiza a URL com o hash
         window.location.hash = targetId;
         
-        // Em dispositivos móveis, fecha o sidebar após a navegação
+        // Em dispositivos m��veis, fecha o sidebar após a navegação
         if (window.innerWidth < 992) {
             sidebar.classList.remove('active');
         }
@@ -2352,7 +2352,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==================== FUNCIONALIDADES DE AGENTES ====================
-let agentesData = [];
+// agentesData is declared in agentes.js
 
 // Event listener para botão "Criar Agente"
 document.getElementById('btnCriarAgente')?.addEventListener('click', async function() {
