@@ -537,7 +537,7 @@ function renderPagination(totalItems) {
     }
 
     const prevBtn = document.createElement('button');
-    prevBtn.textContent = '��';
+    prevBtn.textContent = '«';
     prevBtn.disabled = currentPage === 1;
     prevBtn.addEventListener('click', () => {
         if (currentPage > 1) {
@@ -1872,55 +1872,79 @@ function resetInactivityTimer() {
 // Iniciar o timer quando a página carregar
 resetInactivityTimer();
 
+// Função de inicialização compreensiva
+function inicializarSistemaPainel() {
+    console.log('=== INICIALIZANDO SISTEMA DO PAINEL ===');
+
+    try {
+        // 1. Verificar elementos essenciais da interface
+        const sidebar = document.getElementById('sidebar');
+        const mainContent = document.getElementById('mainContent');
+        const sections = document.querySelectorAll('section.content-section');
+
+        console.log('Elementos encontrados:', {
+            sidebar: !!sidebar,
+            mainContent: !!mainContent,
+            sections: sections.length
+        });
+
+        // 2. Ativar seção inicial
+        const hash = window.location.hash.substring(1);
+        if (hash && document.getElementById(hash)) {
+            console.log('Ativando seção do hash:', hash);
+            activateSection(hash);
+        } else {
+            console.log('Ativando seção padrão: visao-geral');
+            activateSection('visao-geral');
+        }
+
+        // 3. Carregar dados críticos
+        setTimeout(() => {
+            console.log('Carregando dados iniciais do sistema...');
+
+            // Carregar chamados para métricas
+            if (typeof loadChamados === 'function') {
+                console.log('Carregando chamados...');
+                loadChamados();
+            }
+
+            // Atualizar contadores
+            if (typeof atualizarContadoresVisaoGeral === 'function') {
+                console.log('Atualizando contadores...');
+                atualizarContadoresVisaoGeral();
+            }
+
+        }, 300);
+
+        // 4. Verificar funções essenciais
+        const funcoesCriticas = [
+            'activateSection',
+            'loadSectionContent',
+            'atualizarContadoresVisaoGeral',
+            'loadChamados'
+        ];
+
+        funcoesCriticas.forEach(funcao => {
+            if (typeof window[funcao] === 'function') {
+                console.log(`✓ Função ${funcao} disponível`);
+            } else {
+                console.warn(`⚠ Função ${funcao} não encontrada`);
+            }
+        });
+
+        console.log('=== INICIALIZAÇÃO DO PAINEL CONCLUÍDA ===');
+
+    } catch (error) {
+        console.error('ERRO na inicialização do painel:', error);
+    }
+}
+
 // Inicialização
 document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM carregado - inicializando painel.js');
 
-    // Ativa a seção baseada no hash da URL ou visão geral por padrão
-    const hash = window.location.hash.substring(1);
-    if (hash && document.getElementById(hash)) {
-        activateSection(hash);
-    } else {
-        activateSection('visao-geral');
-    }
-
-    // Carregar dados iniciais após um pequeno delay para garantir que as funções estejam disponíveis
-    setTimeout(() => {
-        console.log('Carregando dados iniciais...');
-
-        // Carregar chamados para visão geral
-        if (typeof loadChamados === 'function') {
-            loadChamados();
-        } else {
-            console.log('Função loadChamados não disponível');
-        }
-
-        // Verificar e carregar agentes apenas se necessário
-        if (typeof carregarAgentes === 'function') {
-            console.log('Função carregarAgentes disponível');
-            // Só carregar se a seção de agentes estiver ativa
-            const agentesSection = document.getElementById('agentes-suporte');
-            if (agentesSection && agentesSection.classList.contains('active')) {
-                console.log('Carregando agentes porque a seção está ativa');
-                carregarAgentes();
-            }
-        } else {
-            console.log('Função carregarAgentes não disponível na inicialização');
-        }
-
-        // Verificar e carregar grupos apenas se necessário
-        if (typeof carregarGrupos === 'function') {
-            console.log('Função carregarGrupos disponível');
-            // Só carregar se a seção de grupos estiver ativa
-            const gruposSection = document.getElementById('grupos-usuarios');
-            if (gruposSection && gruposSection.classList.contains('active')) {
-                console.log('Carregando grupos porque a seção está ativa');
-                carregarGrupos();
-            }
-        } else {
-            console.log('Função carregarGrupos não disponível na inicialização');
-        }
-    }, 200);
+    // Aguardar carregamento completo dos scripts
+    setTimeout(inicializarSistemaPainel, 100);
 });
 
 // Adiciona event listeners para links de navegação do submenu
