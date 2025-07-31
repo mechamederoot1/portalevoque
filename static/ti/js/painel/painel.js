@@ -107,7 +107,7 @@ async function loadChamados() {
     }
 }
 
-// Função para popular filtros com dados dinâmicos
+// Funç��o para popular filtros com dados dinâmicos
 function popularFiltrosDinamicos() {
     // Popular filtro de unidades
     const filtroUnidade = document.getElementById('filtroUnidade');
@@ -2782,6 +2782,11 @@ function filtrarListaUsuarios(termoBusca) {
         }
     } else if (mensagemVazia) {
         mensagemVazia.remove();
+    }
+
+    // Mostrar contador de resultados
+    if (termoBusca) {
+        console.log(`Filtro aplicado: "${termoBusca}" - ${usuariosVisiveis} usuário(s) encontrado(s)`);
     }
 }
 
