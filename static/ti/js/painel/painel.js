@@ -1489,6 +1489,21 @@ function loadSectionContent(sectionId) {
         case 'logs-acesso':
             carregarLogsAcesso();
             break;
+        case 'logs-acoes':
+            carregarLogsAcoes();
+            break;
+        case 'analise-problemas':
+            carregarAnaliseProblemas();
+            break;
+        case 'monitoramento-catraca':
+            carregarMonitoramentoCatraca();
+            break;
+        case 'monitoramento-mikrotiks':
+            carregarMonitoramentoMikrotiks();
+            break;
+        case 'monitoramento-usuarios':
+            carregarMonitoramentoUsuarios();
+            break;
         case 'dashboard-avancado':
             carregarDashboardAvancado();
             break;
