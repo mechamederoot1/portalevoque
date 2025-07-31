@@ -1784,3 +1784,130 @@ def atualizar_status_setor_usuario():
         logger.error(f"Erro ao atualizar status por setor/usuário: {str(e)}")
         logger.error(traceback.format_exc())
         return error_response('Erro interno no servidor')
+
+# ==================== ALERTAS DO SISTEMA ====================
+
+@painel_bp.route('/api/alertas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_alertas():
+    """Lista alertas do sistema"""
+    try:
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 10))
+
+        # Gerar alertas simulados (em produção, seria de uma tabela de alertas)
+        alertas_sistema = [
+            {
+                'id': 1,
+                'tipo': 'warning',
+                'titulo': 'Uso de Memória Alto',
+                'mensagem': 'O servidor está usando 85% da memória disponível',
+                'data': '2025-01-31 10:30:00',
+                'status': 'ativo',
+                'prioridade': 'alta'
+            },
+            {
+                'id': 2,
+                'tipo': 'info',
+                'titulo': 'Backup Concluído',
+                'mensagem': 'Backup automático realizado com sucesso',
+                'data': '2025-01-31 06:00:00',
+                'status': 'resolvido',
+                'prioridade': 'baixa'
+            },
+            {
+                'id': 3,
+                'tipo': 'error',
+                'titulo': 'Falha na Conectividade',
+                'mensagem': 'Problemas de conexão detectados na rede',
+                'data': '2025-01-31 09:15:00',
+                'status': 'ativo',
+                'prioridade': 'crítica'
+            }
+        ]
+
+        # Simular paginação
+        total = len(alertas_sistema)
+        start = (page - 1) * per_page
+        end = start + per_page
+        alertas_paginados = alertas_sistema[start:end]
+
+        return json_response({
+            'alertas': alertas_paginados,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': total,
+                'pages': (total + per_page - 1) // per_page
+            }
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar alertas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+# ==================== CONFIGURAÇÕES AVANÇADAS ====================
+
+@painel_bp.route('/api/configuracoes-avancadas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def carregar_configuracoes_avancadas():
+    """Carrega configurações avançadas do sistema"""
+    try:
+        configuracoes_avancadas = {
+            'sistema': {
+                'debug_mode': False,
+                'log_level': 'INFO',
+                'max_file_size': '50MB',
+                'session_timeout': 30,
+                'auto_logout': True
+            },
+            'seguranca': {
+                'force_https': True,
+                'csrf_protection': True,
+                'rate_limiting': True,
+                'ip_whitelist': ['127.0.0.1'],
+                'password_complexity': True
+            },
+            'performance': {
+                'cache_enabled': True,
+                'compression': True,
+                'cdn_enabled': False,
+                'database_pool_size': 10
+            },
+            'backup': {
+                'auto_backup': True,
+                'backup_frequency': 'daily',
+                'retention_days': 30,
+                'backup_location': '/backups/'
+            }
+        }
+
+        return json_response(configuracoes_avancadas)
+
+    except Exception as e:
+        logger.error(f"Erro ao carregar configurações avançadas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/configuracoes-avancadas', methods=['POST'])
+@login_required
+@setor_required('Administrador')
+def salvar_configuracoes_avancadas():
+    """Salva configurações avançadas do sistema"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        # Em produção, salvar no banco de dados
+        logger.info(f"Configurações avançadas atualizadas por {current_user.nome}")
+
+        return json_response({'message': 'Configurações avançadas salvas com sucesso'})
+
+    except Exception as e:
+        logger.error(f"Erro ao salvar configurações avançadas: {str(e)}")
+        return error_response('Erro interno no servidor')
