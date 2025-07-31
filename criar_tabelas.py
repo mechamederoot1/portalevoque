@@ -47,7 +47,9 @@ def create_database_migration():
             
             # Verificar conexão
             try:
-                db.engine.execute('SELECT 1')
+                from sqlalchemy import text
+                with db.engine.connect() as connection:
+                    connection.execute(text('SELECT 1'))
                 print("   ✓ Conexão com banco de dados estabelecida")
             except Exception as e:
                 print(f"   ✗ Erro na conexão: {str(e)}")
