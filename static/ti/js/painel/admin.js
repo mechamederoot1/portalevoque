@@ -116,7 +116,7 @@ async function carregarLogsAcoes(page = 1, filtros = {}) {
             ...filtros
         });
 
-        const response = await fetch(`/ti/admin/api/logs/acoes?${params}`);
+        const response = await fetch(`/ti/painel/api/logs/acoes?${params}`);
         if (!response.ok) {
             throw new Error('Erro ao carregar logs de ações');
         }
