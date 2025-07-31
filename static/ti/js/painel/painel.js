@@ -311,7 +311,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
 
         const data = await response.json();
         
-        // Se o status foi atualizado com sucesso e �� um dos status que requer notificação
+        // Se o status foi atualizado com sucesso e é um dos status que requer notificação
         if (['Aguardando', 'Cancelado', 'Concluido'].includes(novoStatus)) {
             // Envia a notificação
             const notificacaoResponse = await fetch(`/ti/painel/api/chamados/${chamadoId}/notificar`, {
@@ -1173,7 +1173,7 @@ async function excluirChamado(chamadoId) {
         // Remove o chamado da lista local
         chamadosData = chamadosData.filter(chamado => chamado.id != chamadoId);
         
-        // Atualiza a visualizaç��o
+        // Atualiza a visualização
         renderChamadosPage(currentPage);
         
         // Usar sistema de notificações avançado
@@ -1219,6 +1219,14 @@ async function loadUsuarios() {
         }
         usuariosData = await response.json();
         renderUsuariosPage(currentUsuariosPage);
+
+        // Inicializar filtro após carregar usuários
+        setTimeout(() => {
+            if (typeof inicializarFiltroPermissoes === 'function') {
+                inicializarFiltroPermissoes();
+            }
+        }, 100);
+
     } catch (error) {
         console.error('Erro ao carregar usuários:', error);
         usuariosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar usuários. Tente novamente mais tarde.</p>';
