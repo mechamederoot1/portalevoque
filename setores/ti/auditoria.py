@@ -72,9 +72,19 @@ def listar_logs_acesso():
                 'ativo': log.ativo,
                 'session_id': log.session_id[:10] + '...' if log.session_id else None  # Truncar por segurança
             })
-        
-        return json_response(logs_data)
-        
+
+        return json_response({
+            'logs': logs_data,
+            'pagination': {
+                'page': logs_paginated.page,
+                'pages': logs_paginated.pages,
+                'per_page': logs_paginated.per_page,
+                'total': logs_paginated.total,
+                'has_next': logs_paginated.has_next,
+                'has_prev': logs_paginated.has_prev
+            }
+        })
+
     except Exception as e:
         logger.error(f"Erro ao listar logs de acesso: {str(e)}")
         return error_response('Erro interno do servidor')
