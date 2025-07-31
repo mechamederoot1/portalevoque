@@ -1766,7 +1766,11 @@ function loadSectionContent(sectionId) {
         case 'configuracoes':
             // Carregar configurações de prioridades
             if (window.prioridadesManager && typeof window.prioridadesManager.carregarProblemas === 'function') {
-                window.prioridadesManager.carregarProblemas();
+                try {
+                    window.prioridadesManager.carregarProblemas();
+                } catch (error) {
+                    console.warn('Erro ao carregar prioridades (não crítico):', error);
+                }
             }
             atualizarContadoresVisaoGeral();
             break;
@@ -2112,7 +2116,7 @@ window.addEventListener('load', function() {
             }
         }
     } else {
-        // Se não houver hash ou a seção não existir, vai para a seç��o padrão
+        // Se não houver hash ou a seção não existir, vai para a seção padrão
         activateSection('visao-geral');
     }
 });
@@ -2894,7 +2898,7 @@ function gerenciarMembrosGrupo(grupoId) {
 
 // Adicionar filtro de agente na seção de gerenciar chamados
 function adicionarFiltroAgente() {
-    // Verificar se o filtro j�� existe
+    // Verificar se o filtro já existe
     if (document.getElementById('filtroAgente')) return;
 
     // Encontrar o container de filtros na seção de gerenciar chamados
