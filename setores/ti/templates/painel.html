@@ -684,9 +684,14 @@
     <section id="agentes-suporte" class="content-section" tabindex="0" aria-label="Agentes de Suporte">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-headset me-2"></i>Agentes de Suporte</h2>
-        <button class="btn btn-primary" id="btnCriarAgente">
-          <i class="fas fa-plus me-1"></i>Criar Agente
-        </button>
+        <div class="d-flex gap-2">
+          <button class="btn btn-outline-info btn-sm" onclick="window.carregarAgentes ? window.carregarAgentes() : console.error('Função não disponível')" title="Forçar atualização">
+            <i class="fas fa-sync-alt"></i> Atualizar
+          </button>
+          <button class="btn btn-primary" id="btnCriarAgente">
+            <i class="fas fa-plus me-1"></i>Criar Agente
+          </button>
+        </div>
       </div>
 
       <!-- Estatísticas dos Agentes -->
@@ -1473,7 +1478,7 @@
       </div>
     </section>
 
-    <!-- Nova Se��ão: Adicionar ao Banco -->
+    <!-- Nova Seção: Adicionar ao Banco -->
     <section id="adicionar-problema" class="content-section" tabindex="0" aria-label="Adicionar ao Banco">
       <h2>Adicionar ao Banco</h2>
       
@@ -1660,7 +1665,7 @@
                 </button>
                 <hr>
                 <button class="btn btn-outline-secondary btn-sm" onclick="window.advancedNotificationSystem?.testNotifications()">
-                  <i class="fas fa-bell"></i> Testar Notificações
+                  <i class="fas fa-bell"></i> Testar Notifica��ões
                 </button>
               </div>
             </div>
@@ -2649,7 +2654,7 @@
         // Limpar formulário
         document.getElementById('formAdicionarProblema').reset();
 
-        // Mostrar notificaç��o de sucesso
+        // Mostrar notificação de sucesso
         if (window.advancedNotificationSystem) {
           window.advancedNotificationSystem.showSuccess(
             'Problema Adicionado',
