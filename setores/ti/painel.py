@@ -34,6 +34,17 @@ def api_login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def json_response(data, status=200):
+    """Retorna resposta JSON padronizada"""
+    response = jsonify(data)
+    response.status_code = status
+    response.headers['Content-Type'] = 'application/json'
+    return response
+
+def error_response(message, status=400):
+    """Retorna erro JSON padronizado"""
+    return json_response({'error': message}, status)
+
 # Timezone do Brasil
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 
