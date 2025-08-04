@@ -843,6 +843,115 @@ class SessaoAtiva(db.Model):
     def __repr__(self):
         return f'<SessaoAtiva {self.usuario.nome} - {self.session_id}>'
 
+class NotificacaoAgente(db.Model):
+    """Tabela para notificações de agentes"""
+    __tablename__ = 'notificacoes_agentes'
+
+    id = db.Column(db.Integer, primary_key=True)
+    agente_id = db.Column(db.Integer, db.ForeignKey('agentes_suporte.id'), nullable=False)
+    titulo = db.Column(db.String(255), nullable=False)
+    mensagem = db.Column(db.Text, nullable=False)
+    tipo = db.Column(db.String(50), nullable=False)  # 'chamado_atribuido', 'chamado_transferido', 'sistema', etc.
+    chamado_id = db.Column(db.Integer, db.ForeignKey('chamado.id'), nullable=True)
+
+    # Status da notificação
+    lida = db.Column(db.Boolean, default=False)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_leitura = db.Column(db.DateTime, nullable=True)
+
+    # Metadados extras como JSON
+    metadados = db.Column(db.Text, nullable=True)  # JSON string para dados extras
+
+    # Configurações
+    exibir_popup = db.Column(db.Boolean, default=True)
+    som_ativo = db.Column(db.Boolean, default=True)
+    prioridade = db.Column(db.String(20), default='normal')  # 'alta', 'normal', 'baixa'
+
+    # Relacionamentos
+    agente = db.relationship('AgenteSuporte', backref='notificacoes')
+    chamado = db.relationship('Chamado', backref='notificacoes')
+
+    def marcar_como_lida(self):
+        """Marca a notificação como lida"""
+        self.lida = True
+        self.data_leitura = get_brazil_time().replace(tzinfo=None)
+        db.session.commit()
+
+    def get_metadados(self):
+        """Retorna metadados como dict"""
+        if self.metadados:
+            try:
+                return json.loads(self.metadados)
+            except:
+                return {}
+        return {}
+
+    def set_metadados(self, dados):
+        """Define metadados a partir de dict"""
+        if dados:
+            self.metadados = json.dumps(dados)
+        else:
+            self.metadados = None
+
+    def __repr__(self):
+        return f'<NotificacaoAgente {self.id} - {self.titulo}>'
+
+class HistoricoAtendimento(db.Model):
+    """Tabela para histórico detalhado de atendimentos dos agentes"""
+    __tablename__ = 'historico_atendimentos'
+
+    id = db.Column(db.Integer, primary_key=True)
+    chamado_id = db.Column(db.Integer, db.ForeignKey('chamado.id'), nullable=False)
+    agente_id = db.Column(db.Integer, db.ForeignKey('agentes_suporte.id'), nullable=False)
+
+    # Datas importantes
+    data_atribuicao = db.Column(db.DateTime, nullable=False)
+    data_primeira_resposta = db.Column(db.DateTime, nullable=True)
+    data_conclusao = db.Column(db.DateTime, nullable=True)
+
+    # Status do atendimento
+    status_inicial = db.Column(db.String(50), nullable=False)
+    status_final = db.Column(db.String(50), nullable=True)
+
+    # Métricas
+    tempo_primeira_resposta_min = db.Column(db.Integer, nullable=True)  # Em minutos
+    tempo_total_resolucao_min = db.Column(db.Integer, nullable=True)    # Em minutos
+
+    # Observações e detalhes
+    observacoes_iniciais = db.Column(db.Text, nullable=True)
+    observacoes_finais = db.Column(db.Text, nullable=True)
+    solucao_aplicada = db.Column(db.Text, nullable=True)
+
+    # Transferências
+    transferido_de_agente_id = db.Column(db.Integer, db.ForeignKey('agentes_suporte.id'), nullable=True)
+    transferido_para_agente_id = db.Column(db.Integer, db.ForeignKey('agentes_suporte.id'), nullable=True)
+    motivo_transferencia = db.Column(db.Text, nullable=True)
+
+    # Avaliação (se houver)
+    avaliacao_cliente = db.Column(db.Integer, nullable=True)  # 1-5 estrelas
+    comentario_avaliacao = db.Column(db.Text, nullable=True)
+
+    # Relacionamentos
+    chamado = db.relationship('Chamado', backref='historico_atendimentos')
+    agente = db.relationship('AgenteSuporte', foreign_keys=[agente_id], backref='historico_atendimentos')
+    transferido_de = db.relationship('AgenteSuporte', foreign_keys=[transferido_de_agente_id])
+    transferido_para = db.relationship('AgenteSuporte', foreign_keys=[transferido_para_agente_id])
+
+    def calcular_tempo_resposta(self):
+        """Calcula tempo de primeira resposta em minutos"""
+        if self.data_primeira_resposta and self.data_atribuicao:
+            delta = self.data_primeira_resposta - self.data_atribuicao
+            self.tempo_primeira_resposta_min = int(delta.total_seconds() / 60)
+
+    def calcular_tempo_resolucao(self):
+        """Calcula tempo total de resolução em minutos"""
+        if self.data_conclusao and self.data_atribuicao:
+            delta = self.data_conclusao - self.data_atribuicao
+            self.tempo_total_resolucao_min = int(delta.total_seconds() / 60)
+
+    def __repr__(self):
+        return f'<HistoricoAtendimento {self.id} - Chamado {self.chamado_id}>'
+
 def init_app(app):
     db.init_app(app)
     
