@@ -172,12 +172,17 @@ def abrir_chamado():
         unidades = Unidade.query.order_by(Unidade.nome).all()
         problemas = ProblemaReportado.query.filter_by(ativo=True).order_by(ProblemaReportado.nome).all()
         itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
-        
+
+        # Log de debug
+        current_app.logger.info(f"📊 Dados carregados - Unidades: {len(unidades)}, Problemas: {len(problemas)}, Itens: {len(itens_internet)}")
+
         if not unidades:
+            current_app.logger.info("🔄 Nenhuma unidade encontrada, executando seed_unidades()")
             seed_unidades()
             unidades = Unidade.query.order_by(Unidade.nome).all()
             problemas = ProblemaReportado.query.filter_by(ativo=True).order_by(ProblemaReportado.nome).all()
             itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
+            current_app.logger.info(f"📊 Após seed - Unidades: {len(unidades)}, Problemas: {len(problemas)}, Itens: {len(itens_internet)}")
             
         if request.method == 'POST':
             try:
