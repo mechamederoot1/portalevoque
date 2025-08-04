@@ -122,7 +122,7 @@ def setup_database_endpoint():
         # Verificar se já existem dados de demonstração
         existing_logs = LogAcesso.query.limit(1).first()
         if existing_logs:
-            return json_response({'message': 'Dados de demonstraç��o já existem', 'logs_count': LogAcesso.query.count()})
+            return json_response({'message': 'Dados de demonstraç���o já existem', 'logs_count': LogAcesso.query.count()})
 
         # Criar usuários de teste se não existem
         admin_user = User.query.filter_by(email='admin@demo.com').first()
@@ -2284,9 +2284,9 @@ def criar_usuario():
         logger.error(traceback.format_exc())
         return error_response(f'Erro ao criar usuário: {str(e)}')
 
-@painel_bp.route('/api/usuarios', methods=['GET'])
+@painel_bp.route('/api/usuarios-search', methods=['GET'])
 @login_required
-def buscar_usuarios():
+def buscar_usuarios_backup():
     try:
         busca = request.args.get('busca', '').strip()
         page = request.args.get('page', 1, type=int)
