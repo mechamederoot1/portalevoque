@@ -984,8 +984,10 @@
         await this.carregarEstatisticas();
         await this.carregarChamadosDisponiveis();
         await this.carregarMeusChamados();
+        await this.carregarNotificacoes();
         this.configurarEventos();
         this.iniciarSocketIO();
+        this.iniciarVerificacaoNotificacoes();
       }
 
       async carregarEstatisticas() {
