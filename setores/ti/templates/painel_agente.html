@@ -1770,6 +1770,9 @@
               <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.verDetalhes(${chamado.id})" title="Gerenciar">
                 <i class="fas fa-edit"></i>
               </button>
+              <button class="btn btn-sm btn-outline-success" onclick="painelAgente.abrirModalEnviarEmail(${chamado.id})" title="Enviar por e-mail">
+                <i class="fas fa-envelope"></i>
+              </button>
             </td>
           </tr>
         `).join('');
