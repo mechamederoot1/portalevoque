@@ -28,16 +28,15 @@ class Config:
         SQLALCHEMY_DATABASE_URI = 'sqlite:///app.db'
         print("⚠️ Usando SQLite para desenvolvimento (mysql não configurado)")
     else:
+        # Codifica a senha para uso na URL
+        DB_PASSWORD_ENCODED = quote_plus(DB_PASSWORD)
 
-    # Codifica a senha para uso na URL
-    DB_PASSWORD_ENCODED = quote_plus(DB_PASSWORD)
-
-    # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
-    SQLALCHEMY_DATABASE_URI = (
-        f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-        '?charset=utf8mb4'
-        '&ssl_disabled=false'
-    )
+        # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
+        SQLALCHEMY_DATABASE_URI = (
+            f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+            '?charset=utf8mb4'
+            '&ssl_disabled=false'
+        )
 
     # Configurações do SQLAlchemy
     SQLALCHEMY_TRACK_MODIFICATIONS = False
