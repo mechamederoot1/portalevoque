@@ -58,6 +58,17 @@ def relatorios():
     """Página de relatórios de compras"""
     return render_template('compras/relatorios.html')
 
+@compras_bp.route('/painel-admin')
+@login_required
+def painel_admin():
+    """Painel administrativo do setor de compras"""
+    # Verificar se é administrador ou tem acesso a compras
+    if not (current_user.nivel_acesso == 'Administrador' or current_user.tem_acesso_setor('Compras')):
+        flash('Acesso negado.', 'error')
+        return redirect(url_for('main.index'))
+
+    return render_template('compras/painel_admin.html')
+
 @compras_bp.route('/api/solicitacao', methods=['POST'])
 @login_required
 @setor_required('Compras')
@@ -119,7 +130,7 @@ def criar_solicitacao():
 
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f'Erro ao criar solicita��ão: {str(e)}')
+        current_app.logger.error(f'Erro ao criar solicitação: {str(e)}')
         return jsonify({'erro': 'Erro interno do servidor'}), 500
 
 def enviar_email_nova_solicitacao(solicitacao):
@@ -163,7 +174,7 @@ def enviar_email_nova_solicitacao(solicitacao):
                     </div>
 
                     <div class="info-box">
-                        <h3>🛍️ Produto/Serviço</h3>
+                        <h3>🛍�� Produto/Serviço</h3>
                         <p><strong>Item:</strong> {{ solicitacao.produto }}</p>
                         <p><strong>Quantidade:</strong> {{ solicitacao.quantidade }}</p>
                         {% if solicitacao.categoria %}<p><strong>Categoria:</strong> {{ solicitacao.categoria|title }}</p>{% endif %}
