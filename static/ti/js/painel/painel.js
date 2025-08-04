@@ -2041,8 +2041,68 @@ document.addEventListener('DOMContentLoaded', function() {
                 initializeSocketIO();
             }
         }, 1000);
+
+        // Inicializar event listeners de filtros
+        initializeFilterListeners();
     }, 100);
 });
+
+// Função para inicializar listeners de filtros
+function initializeFilterListeners() {
+    // Botão filtrar chamados
+    const btnFiltrarChamados = document.getElementById('btnFiltrarChamados');
+    if (btnFiltrarChamados) {
+        btnFiltrarChamados.addEventListener('click', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    // Botão limpar filtros
+    const btnLimparFiltros = document.getElementById('btnLimparFiltros');
+    if (btnLimparFiltros) {
+        btnLimparFiltros.addEventListener('click', function() {
+            // Limpar todos os campos de filtro
+            const filtroSolicitante = document.getElementById('filtroSolicitante');
+            const filtroProblema = document.getElementById('filtroProblema');
+            const filtroPrioridade = document.getElementById('filtroPrioridade');
+            const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+            const filtroUnidade = document.getElementById('filtroUnidade');
+            const filtroDataInicio = document.getElementById('filtroDataInicio');
+            const filtroDataFim = document.getElementById('filtroDataFim');
+
+            if (filtroSolicitante) filtroSolicitante.value = '';
+            if (filtroProblema) filtroProblema.value = '';
+            if (filtroPrioridade) filtroPrioridade.value = '';
+            if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
+            if (filtroUnidade) filtroUnidade.value = '';
+            if (filtroDataInicio) filtroDataInicio.value = '';
+            if (filtroDataFim) filtroDataFim.value = '';
+
+            // Renderizar novamente
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    // Botão para reconectar Socket.IO
+    const btnReconectarSocket = document.getElementById('btnReconectarSocket');
+    if (btnReconectarSocket) {
+        btnReconectarSocket.addEventListener('click', function() {
+            console.log('Tentando reconectar Socket.IO...');
+            updateSocketStatus('Reconectando...', 'warning');
+
+            if (socket) {
+                socket.disconnect();
+                setTimeout(() => {
+                    socket.connect();
+                }, 1000);
+            } else {
+                initializeSocketIO();
+            }
+        });
+    }
+}
 
 // Navigation event listeners are now handled in initializeNavigation() function
 // which is called after DOM is loaded
