@@ -67,7 +67,7 @@ function initializeNavigation() {
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
             if (!targetSection) {
-                console.error('Seção não encontrada:', targetId);
+                console.error('Seção n��o encontrada:', targetId);
                 return;
             }
 
@@ -142,35 +142,21 @@ function initializeNavigation() {
 }
 
 function activateSection(id) {
-    console.log('🔧 DEBUG: Ativando seção:', id);
+    console.log('Ativando seção:', id);
 
     // Get sections dynamically if not initialized
     const allSections = sections || document.querySelectorAll('section.content-section');
 
-    console.log('🔧 DEBUG: Seções encontradas:', allSections.length);
-    allSections.forEach((section, index) => {
-        console.log(`🔧 DEBUG: Seção ${index}: ${section.id}`);
-    });
-
     if (!allSections || allSections.length === 0) {
-        console.error('❌ ERRO: Nenhuma seção encontrada!');
+        console.error('Nenhuma seção encontrada!');
         return;
     }
-
-    const targetSection = document.getElementById(id);
-    if (!targetSection) {
-        console.error('❌ ERRO: Seção com ID não encontrada:', id);
-        return;
-    }
-
-    console.log('🔧 DEBUG: Seção alvo encontrada:', targetSection);
 
     allSections.forEach(section => {
-        const wasActive = section.classList.contains('active');
         if (section.id === id) {
             section.classList.add('active');
             section.setAttribute('tabindex', '0');
-            console.log('✅ Seção ativada:', id, 'Display:', getComputedStyle(section).display);
+            console.log('Seção ativada:', id);
 
             // Carregar conteúdo específico da seção
             setTimeout(() => {
@@ -179,21 +165,8 @@ function activateSection(id) {
         } else {
             section.classList.remove('active');
             section.removeAttribute('tabindex');
-            if (wasActive) {
-                console.log('🔄 Seção desativada:', section.id);
-            }
         }
     });
-
-    // Verificar se a seção foi realmente ativada
-    setTimeout(() => {
-        const activeSection = document.querySelector('section.content-section.active');
-        if (activeSection) {
-            console.log('✅ Verificação: Seção ativa confirmada:', activeSection.id);
-        } else {
-            console.error('❌ ERRO: Nenhuma seção está ativa após ativação!');
-        }
-    }, 100);
 }
 
 // Theme toggle
