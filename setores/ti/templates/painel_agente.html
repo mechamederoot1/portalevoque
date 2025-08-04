@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Painel do Agente - Evoque Fitness</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Animate.css -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/painel.css') }}">
+</head>
+<body data-theme="dark">
+
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-panel">
+    <div class="container-fluid">
+      <div class="d-flex align-items-center">
+        <span class="navbar-brand mb-0 h1">
+          <i class="fas fa-headset me-2"></i>Painel do Agente de Suporte
+        </span>
+      </div>
+      
+      <div class="collapse navbar-collapse" id="navbarPanel">
+        <ul class="navbar-nav ms-auto">
+          <li class="nav-item">
+            <a class="nav-link-panel" href="#" id="btnNotificacoes">
+              <i class="fas fa-bell me-1"></i> 
+              Notificações
+              <span class="notification-badge" id="notificationCount" style="display: none;">0</span>
+            </a>
+          </li>
+          <li class="nav-item dropdown">
+            <a class="nav-link-panel dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-user-circle me-1"></i>
+              {% if current_user.is_authenticated %}
+                {{ current_user.nome }} {{ current_user.sobrenome }} (Agente)
+              {% else %}
+                Agente
+              {% endif %}
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="navbarDropdown">
+              <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i> Meu Perfil</a></li>
+              <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i> Preferências</a></li>
+              {% if current_user.nivel_acesso == 'Administrador' %}
+              <li><hr class="dropdown-divider" /></li>
+              <li><a class="dropdown-item" href="{{ url_for('ti.painel') }}"><i class="fas fa-tools me-2"></i> Painel Admin</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider" /></li>
+              <li><a class="dropdown-item" href="{{ url_for('auth.logout') }}"><i class="fas fa-sign-out-alt me-2"></i> Sair</a></li>
+            </ul>
+          </li>
+        </ul>
+      </div>
+    </div>
+  </nav>
+
+  <main class="main-content-agent" id="mainContent">
+    
+    <!-- Dashboard do Agente -->
+    <div class="container-fluid py-4">
+      
+      <!-- Cabeçalho com Estatísticas -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <h2 class="mb-3">
+            <i class="fas fa-tachometer-alt me-2"></i>Meu Dashboard
+          </h2>
+        </div>
+      </div>
+
+      <!-- Cards de Estatísticas -->
+      <div class="row mb-4">
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-warning text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Chamados Atribuídos</h6>
+                  <h3 id="chamadosAtribuidos">0</h3>
+                  <small>Ativos para mim</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-tasks fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Concluídos Hoje</h6>
+                  <h3 id="concluidosHoje">0</h3>
+                  <small>Resolvidos</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-check-circle fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Chamados Disponíveis</h6>
+                  <h3 id="chamadosDisponiveis">0</h3>
+                  <small>Sem agente</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-folder-open fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-3 col-md-6 mb-3">
+          <div class="card bg-primary text-white">
+            <div class="card-body">
+              <div class="d-flex justify-content-between">
+                <div>
+                  <h6 class="card-title">Tempo Médio</h6>
+                  <h3 id="tempoMedio">0h</h3>
+                  <small>De resolução</small>
+                </div>
+                <div class="align-self-center">
+                  <i class="fas fa-clock fa-2x"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chamados Disponíveis para Atribuição -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-inbox me-2"></i>Chamados Disponíveis
+                <span class="badge bg-secondary ms-2" id="countDisponiveis">0</span>
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Solicitante</th>
+                      <th>Problema</th>
+                      <th>Prioridade</th>
+                      <th>Data Abertura</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabelaChamadosDisponiveis">
+                    <!-- Dados serão carregados dinamicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Meus Chamados -->
+      <div class="row mb-4">
+        <div class="col-12">
+          <div class="card">
+            <div class="card-header">
+              <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                  <i class="fas fa-user-cog me-2"></i>Meus Chamados
+                  <span class="badge bg-warning ms-2" id="countMeusChamados">0</span>
+                </h5>
+                <div class="btn-group" role="group">
+                  <button type="button" class="btn btn-sm btn-outline-light active" data-filter="ativos">
+                    <i class="fas fa-play me-1"></i>Ativos
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-light" data-filter="aguardando">
+                    <i class="fas fa-pause me-1"></i>Aguardando
+                  </button>
+                  <button type="button" class="btn btn-sm btn-outline-light" data-filter="concluidos">
+                    <i class="fas fa-check me-1"></i>Concluídos
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-responsive">
+                <table class="table table-dark table-striped table-hover">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Solicitante</th>
+                      <th>Problema</th>
+                      <th>Status</th>
+                      <th>Prioridade</th>
+                      <th>Atribuído em</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="tabelaMeusChamados">
+                    <!-- Dados serão carregados dinamicamente -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- Container de Notificações -->
+  <div id="notificationContainer" class="notification-container"></div>
+
+  <!-- Modal Detalhes do Chamado -->
+  <div class="modal" id="modalChamado" role="dialog" aria-modal="true">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="modalTitle">Detalhes do chamado</h3>
+        <button class="modal-close" aria-label="Fechar modal" id="modalClose">&times;</button>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <p><strong>Código:</strong> <span id="modalCodigo"></span></p>
+        <p><strong>Protocolo:</strong> <span id="modalProtocolo"></span></p>
+        <p><strong>Solicitante:</strong> <span id="modalSolicitante"></span></p>
+        <p><strong>Problema:</strong> <span id="modalProblema"></span></p>
+        <p><strong>Descrição:</strong> <span id="modalDescricao"></span></p>
+        <p><strong>Data de abertura:</strong> <span id="modalData"></span></p>
+        <label for="modalStatus">Alterar Status</label>
+        <select id="modalStatus">
+          <option value="Aberto">Aberto</option>
+          <option value="Aguardando">Aguardando</option>
+          <option value="Concluido">Concluído</option>
+        </select>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-success" id="modalAtribuir">
+          <i class="fas fa-user-plus"></i> Atribuir a Mim
+        </button>
+        <button class="btn btn-primary" id="modalUpdate">
+          <i class="fas fa-save"></i> Atualizar Status
+        </button>
+        <button class="btn btn-secondary" id="modalCancel">
+          <i class="fas fa-times"></i> Fechar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Socket.IO -->
+  <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+  
+  <!-- Scripts customizados -->
+  <script>
+    // Painel do Agente de Suporte
+    class PainelAgente {
+      constructor() {
+        this.init();
+      }
+
+      async init() {
+        await this.carregarEstatisticas();
+        await this.carregarChamadosDisponiveis();
+        await this.carregarMeusChamados();
+        this.configurarEventos();
+        this.iniciarSocketIO();
+      }
+
+      async carregarEstatisticas() {
+        try {
+          const response = await fetch('/ti/painel/api/agente/estatisticas');
+          if (response.ok) {
+            const data = await response.json();
+            document.getElementById('chamadosAtribuidos').textContent = data.atribuidos || 0;
+            document.getElementById('concluidosHoje').textContent = data.concluidos_hoje || 0;
+            document.getElementById('chamadosDisponiveis').textContent = data.disponiveis || 0;
+            document.getElementById('tempoMedio').textContent = data.tempo_medio || '0h';
+          }
+        } catch (error) {
+          console.error('Erro ao carregar estatísticas:', error);
+        }
+      }
+
+      async carregarChamadosDisponiveis() {
+        try {
+          const response = await fetch('/ti/painel/api/chamados/disponiveis');
+          if (response.ok) {
+            const chamados = await response.json();
+            this.renderizarChamadosDisponiveis(chamados);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar chamados disponíveis:', error);
+        }
+      }
+
+      async carregarMeusChamados(filtro = 'ativos') {
+        try {
+          const response = await fetch(`/ti/painel/api/agente/meus-chamados?filtro=${filtro}`);
+          if (response.ok) {
+            const chamados = await response.json();
+            this.renderizarMeusChamados(chamados);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar meus chamados:', error);
+        }
+      }
+
+      renderizarChamadosDisponiveis(chamados) {
+        const tbody = document.getElementById('tabelaChamadosDisponiveis');
+        const count = document.getElementById('countDisponiveis');
+        
+        count.textContent = chamados.length;
+        
+        if (chamados.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum chamado disponível</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = chamados.map(chamado => `
+          <tr>
+            <td><span class="badge bg-primary">${chamado.codigo}</span></td>
+            <td>${chamado.solicitante}</td>
+            <td>${chamado.problema}</td>
+            <td><span class="badge bg-${this.getPrioridadeClass(chamado.prioridade)}">${chamado.prioridade}</span></td>
+            <td>${chamado.data_abertura}</td>
+            <td>
+              <button class="btn btn-sm btn-success" onclick="painelAgente.atribuirChamado(${chamado.id})">
+                <i class="fas fa-user-plus me-1"></i>Atribuir a Mim
+              </button>
+              <button class="btn btn-sm btn-outline-info" onclick="painelAgente.verDetalhes(${chamado.id})">
+                <i class="fas fa-eye"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      renderizarMeusChamados(chamados) {
+        const tbody = document.getElementById('tabelaMeusChamados');
+        const count = document.getElementById('countMeusChamados');
+        
+        count.textContent = chamados.length;
+        
+        if (chamados.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhum chamado atribuído</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = chamados.map(chamado => `
+          <tr>
+            <td><span class="badge bg-primary">${chamado.codigo}</span></td>
+            <td>${chamado.solicitante}</td>
+            <td>${chamado.problema}</td>
+            <td><span class="badge bg-${this.getStatusClass(chamado.status)}">${chamado.status}</span></td>
+            <td><span class="badge bg-${this.getPrioridadeClass(chamado.prioridade)}">${chamado.prioridade}</span></td>
+            <td>${chamado.data_atribuicao}</td>
+            <td>
+              <button class="btn btn-sm btn-primary" onclick="painelAgente.verDetalhes(${chamado.id})">
+                <i class="fas fa-edit me-1"></i>Gerenciar
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      async atribuirChamado(chamadoId) {
+        try {
+          const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/atribuir-me`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+          });
+          
+          if (response.ok) {
+            this.showNotification('Chamado atribuído com sucesso!', 'success');
+            await this.carregarEstatisticas();
+            await this.carregarChamadosDisponiveis();
+            await this.carregarMeusChamados();
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || 'Erro ao atribuir chamado', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao atribuir chamado:', error);
+          this.showNotification('Erro ao atribuir chamado', 'error');
+        }
+      }
+
+      configurarEventos() {
+        // Filtros dos meus chamados
+        document.querySelectorAll('[data-filter]').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            document.querySelectorAll('[data-filter]').forEach(b => b.classList.remove('active'));
+            e.target.classList.add('active');
+            this.carregarMeusChamados(e.target.getAttribute('data-filter'));
+          });
+        });
+
+        // Auto-refresh a cada 30 segundos
+        setInterval(() => {
+          this.carregarEstatisticas();
+          this.carregarChamadosDisponiveis();
+        }, 30000);
+      }
+
+      iniciarSocketIO() {
+        const socket = io();
+        
+        socket.on('novo_chamado', (data) => {
+          this.showNotification(`Novo chamado: ${data.codigo}`, 'info');
+          this.carregarEstatisticas();
+          this.carregarChamadosDisponiveis();
+        });
+
+        socket.on('chamado_atualizado', (data) => {
+          this.carregarEstatisticas();
+          this.carregarMeusChamados();
+        });
+      }
+
+      getPrioridadeClass(prioridade) {
+        const classes = {
+          'Crítica': 'danger',
+          'Alta': 'warning',
+          'Normal': 'info',
+          'Baixa': 'secondary'
+        };
+        return classes[prioridade] || 'secondary';
+      }
+
+      getStatusClass(status) {
+        const classes = {
+          'Aberto': 'primary',
+          'Aguardando': 'warning',
+          'Concluido': 'success',
+          'Cancelado': 'danger'
+        };
+        return classes[status] || 'secondary';
+      }
+
+      showNotification(message, type) {
+        const notification = document.createElement('div');
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
+        notification.innerHTML = `
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        const container = document.getElementById('notificationContainer');
+        container.appendChild(notification);
+        
+        setTimeout(() => {
+          notification.remove();
+        }, 5000);
+      }
+    }
+
+    // Inicializar quando o DOM estiver carregado
+    document.addEventListener('DOMContentLoaded', () => {
+      window.painelAgente = new PainelAgente();
+    });
+  </script>
+</body>
+</html>
