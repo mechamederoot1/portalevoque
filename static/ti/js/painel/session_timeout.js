@@ -3,7 +3,9 @@
  * Monitora a atividade do usuário e exibe alertas quando a sessão está próxima do timeout
  */
 
-class SessionTimeoutManager {
+// Guard to prevent duplicate class declaration
+if (typeof window.SessionTimeoutManager === 'undefined') {
+    window.SessionTimeoutManager = class SessionTimeoutManager {
     constructor() {
         this.sessionTimeout = 15 * 60 * 1000; // 15 minutos em milissegundos
         this.warningTime = 2 * 60 * 1000; // Avisar com 2 minutos restantes
@@ -276,13 +278,14 @@ class SessionTimeoutManager {
         if (this.warningInterval) clearTimeout(this.warningInterval);
         this.hideWarning();
     }
+    }
 }
 
 // Inicializar o gerenciador de sessão quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
     // Verificar se já existe uma instância ativa
-    if (!window.sessionManager || window.sessionManager.isActive === false) {
-        window.sessionManager = new SessionTimeoutManager();
+    if (typeof window.SessionTimeoutManager !== 'undefined' && (!window.sessionManager || window.sessionManager.isActive === false)) {
+        window.sessionManager = new window.SessionTimeoutManager();
     }
 });
 
