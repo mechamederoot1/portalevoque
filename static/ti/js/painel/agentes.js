@@ -489,7 +489,9 @@ async function debugVerificarDados() {
         console.log('Status da resposta usuários:', responseUsuarios.status);
 
         if (responseUsuarios.ok) {
-            const usuarios = await responseUsuarios.json();
+            const data = await responseUsuarios.json();
+            // Extract usuarios array from API response
+            const usuarios = data && data.usuarios ? data.usuarios : (Array.isArray(data) ? data : []);
             console.log('Total de usuários encontrados:', usuarios.length);
 
             const agentes = usuarios.filter(u => u.nivel_acesso === 'Agente de suporte');
