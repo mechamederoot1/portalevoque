@@ -9,7 +9,10 @@ from flask_login import current_user
 
 class SessionSecurity:
     def __init__(self):
-        self.session_timeout = 900  # 15 minutos
+        # Pega o timeout das configurações de environment (em minutos) e converte para segundos
+        import os
+        timeout_minutes = int(os.environ.get('SESSION_TIMEOUT', 15))
+        self.session_timeout = timeout_minutes * 60  # Converte minutos para segundos
         self.max_session_lifetime = 28800  # 8 horas
         self.regenerate_interval = 1800  # 30 minutos
     
