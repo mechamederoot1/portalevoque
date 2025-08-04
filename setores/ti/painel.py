@@ -2122,7 +2122,7 @@ def criar_usuario():
                 logger.error(f"Erro ao criar agente automaticamente: {str(e)}")
                 # Não interromper o fluxo se der erro na criação do agente
 
-        # Emitir evento Socket.IO apenas se a conexão estiver disponível
+        # Emitir evento Socket.IO apenas se a conex��o estiver disponível
         try:
             if hasattr(current_app, 'socketio'):
                 current_app.socketio.emit('usuario_criado', {
@@ -2157,15 +2157,58 @@ def criar_usuario():
 @login_required
 def buscar_usuarios():
     try:
-        # Verificar se o banco de dados está disponível
-        try:
-            # Tentar uma consulta simples primeiro
-            db.session.execute(db.text('SELECT 1'))
-            db.session.commit()
-        except Exception as conn_error:
-            logger.warning(f"Banco de dados não disponível: {str(conn_error)}")
-            # Retornar dados de exemplo para permitir que a interface funcione
-            usuarios_exemplo = [
+        busca = request.args.get('busca', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+
+        # Buscar usuários no banco de dados
+        query = User.query
+
+        # Aplicar filtros de busca se fornecido
+        if busca:
+            query = query.filter(
+                db.or_(
+                    User.nome.ilike(f'%{busca}%'),
+                    User.sobrenome.ilike(f'%{busca}%'),
+                    User.email.ilike(f'%{busca}%'),
+                    User.usuario.ilike(f'%{busca}%')
+                )
+            )
+
+        # Paginação
+        usuarios_pag = query.order_by(User.nome).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        usuarios_list = []
+        for user in usuarios_pag.items:
+            usuarios_list.append({
+                'id': user.id,
+                'nome': user.nome,
+                'sobrenome': user.sobrenome,
+                'email': user.email,
+                'usuario': user.usuario,
+                'nivel_acesso': user.nivel_acesso,
+                'setor': user.setor,
+                'bloqueado': getattr(user, 'bloqueado', False),
+                'ativo': getattr(user, 'ativo', True),
+                'data_cadastro': user.data_criacao.strftime('%d/%m/%Y') if hasattr(user, 'data_criacao') and user.data_criacao else None
+            })
+
+        return json_response({
+            'usuarios': usuarios_list,
+            'total': usuarios_pag.total,
+            'pages': usuarios_pag.pages,
+            'current_page': page,
+            'per_page': per_page,
+            'has_next': usuarios_pag.has_next,
+            'has_prev': usuarios_pag.has_prev
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar usuários: {str(e)}")
+        # Fallback: retornar usuários exemplo em caso de erro
+        usuarios_exemplo = [
                 {
                     'id': 1,
                     'nome': 'Admin',
