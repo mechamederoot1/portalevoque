@@ -1292,6 +1292,35 @@
         });
       }
 
+      // Configurar event listeners para botões do modal
+      const modalAtribuir = document.getElementById('modalAtribuir');
+      const modalAtualizar = document.getElementById('modalAtualizar');
+      const modalTransferir = document.getElementById('modalTransferir');
+
+      if (modalAtribuir) {
+        modalAtribuir.addEventListener('click', function() {
+          if (window.painelAgente && window.painelAgente.chamadoAtual) {
+            window.painelAgente.atribuirChamado(window.painelAgente.chamadoAtual.id);
+          }
+        });
+      }
+
+      if (modalAtualizar) {
+        modalAtualizar.addEventListener('click', function() {
+          if (window.painelAgente) {
+            window.painelAgente.atualizarChamado();
+          }
+        });
+      }
+
+      if (modalTransferir) {
+        modalTransferir.addEventListener('click', function() {
+          if (window.painelAgente) {
+            window.painelAgente.transferirChamado();
+          }
+        });
+      }
+
       // Mostrar dashboard inicialmente
       showSection('dashboard-agente');
     });
@@ -2144,7 +2173,7 @@
             this.showNotification('Erro ao filtrar histórico', 'error');
           }
         } catch (error) {
-          console.error('Erro ao filtrar histórico:', error);
+          console.error('Erro ao filtrar hist��rico:', error);
           this.showNotification('Erro ao filtrar histórico', 'error');
         }
       }
