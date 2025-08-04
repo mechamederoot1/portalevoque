@@ -1648,7 +1648,6 @@ def criar_usuario_view():
 
 @painel_bp.route('/api/gerar-senha', methods=['GET'])
 @login_required
-@setor_required('Administrador')
 def gerar_senha():
     try:
         import string
