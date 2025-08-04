@@ -26,7 +26,9 @@ async function carregarAgentes() {
             throw new Error(`Erro HTTP ${response.status}: ${response.statusText}`);
         }
 
-        const todosUsuarios = await response.json();
+        const data = await response.json();
+        // Extract usuarios array from API response
+        const todosUsuarios = data && data.usuarios ? data.usuarios : (Array.isArray(data) ? data : []);
         console.log('Total de usuários recebidos:', todosUsuarios.length);
         console.log('Primeiros 3 usuários:', todosUsuarios.slice(0, 3));
 
