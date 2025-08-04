@@ -28,6 +28,13 @@ def nova_solicitacao():
     """Página para criar nova solicitação de compra"""
     return render_template('compras/nova_solicitacao.html')
 
+@compras_bp.route('/solicitacoes')
+@login_required
+@setor_required('Compras')
+def solicitacoes():
+    """Página de listagem de solicitações"""
+    return render_template('compras/acompanhar_pedidos.html')
+
 @compras_bp.route('/acompanhar-pedidos')
 @login_required
 @setor_required('Compras')
