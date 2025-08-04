@@ -1268,6 +1268,15 @@
         });
       });
       
+      // Configurar botão de notificações na navbar
+      const btnNotificacoes = document.getElementById('btnNotificacoes');
+      if (btnNotificacoes) {
+        btnNotificacoes.addEventListener('click', function(e) {
+          e.preventDefault();
+          showSection('notificacoes-agente');
+        });
+      }
+
       // Mostrar dashboard inicialmente
       showSection('dashboard-agente');
     });
