@@ -106,7 +106,7 @@ def setup_database_endpoint():
         if existing_logs:
             return json_response({'message': 'Dados de demonstração já existem', 'logs_count': LogAcesso.query.count()})
 
-        # Criar usuários de teste se não existem
+        # Criar usu��rios de teste se não existem
         admin_user = User.query.filter_by(email='admin@demo.com').first()
         if not admin_user:
             admin_user = User(
@@ -750,6 +750,191 @@ def carregar_configuracoes_notificacoes():
     except Exception as e:
         logger.error(f"Erro ao carregar configurações de notificações: {str(e)}")
         return error_response(f'Erro ao carregar configurações de notificações: {str(e)}')
+
+# ==================== APIS PARA AGENTES DE SUPORTE ====================
+
+@painel_bp.route('/api/agente/estatisticas', methods=['GET'])
+@api_login_required
+def estatisticas_agente():
+    """Retorna estatísticas do agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Buscar chamados atribuídos ativos
+        chamados_atribuidos = ChamadoAgente.query.filter_by(
+            agente_id=agente.id,
+            ativo=True
+        ).join(Chamado).filter(
+            Chamado.status.in_(['Aberto', 'Aguardando'])
+        ).count()
+
+        # Buscar chamados concluídos hoje
+        hoje = get_brazil_time().date()
+        concluidos_hoje = ChamadoAgente.query.filter_by(
+            agente_id=agente.id
+        ).join(Chamado).filter(
+            Chamado.status == 'Concluido',
+            func.date(Chamado.data_conclusao) == hoje
+        ).count()
+
+        # Buscar chamados disponíveis (sem agente)
+        disponiveis = Chamado.query.outerjoin(ChamadoAgente).filter(
+            Chamado.status.in_(['Aberto']),
+            ChamadoAgente.id.is_(None)
+        ).count()
+
+        estatisticas = {
+            'atribuidos': chamados_atribuidos,
+            'concluidos_hoje': concluidos_hoje,
+            'disponiveis': disponiveis,
+            'tempo_medio': '2.5h'  # Placeholder - implementar cálculo real
+        }
+
+        return json_response(estatisticas)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar estatísticas do agente: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/disponiveis', methods=['GET'])
+@api_login_required
+def chamados_disponiveis():
+    """Retorna chamados disponíveis para atribuição"""
+    try:
+        # Buscar chamados sem agente atribuído
+        chamados = db.session.query(Chamado).outerjoin(ChamadoAgente).filter(
+            Chamado.status.in_(['Aberto']),
+            ChamadoAgente.id.is_(None)
+        ).order_by(Chamado.data_abertura.desc()).limit(10).all()
+
+        chamados_list = []
+        for chamado in chamados:
+            data_abertura_brazil = chamado.get_data_abertura_brazil()
+            chamados_list.append({
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'solicitante': chamado.solicitante,
+                'problema': chamado.problema,
+                'prioridade': chamado.prioridade,
+                'data_abertura': data_abertura_brazil.strftime('%d/%m %H:%M') if data_abertura_brazil else 'N/A'
+            })
+
+        return json_response(chamados_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar chamados disponíveis: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agente/meus-chamados', methods=['GET'])
+@api_login_required
+def meus_chamados_agente():
+    """Retorna chamados do agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        filtro = request.args.get('filtro', 'ativos')
+
+        query = db.session.query(ChamadoAgente, Chamado).join(Chamado).filter(
+            ChamadoAgente.agente_id == agente.id
+        )
+
+        if filtro == 'ativos':
+            query = query.filter(
+                ChamadoAgente.ativo == True,
+                Chamado.status.in_(['Aberto', 'Aguardando'])
+            )
+        elif filtro == 'aguardando':
+            query = query.filter(
+                ChamadoAgente.ativo == True,
+                Chamado.status == 'Aguardando'
+            )
+        elif filtro == 'concluidos':
+            query = query.filter(
+                Chamado.status.in_(['Concluido', 'Cancelado'])
+            )
+
+        atribuicoes = query.order_by(ChamadoAgente.data_atribuicao.desc()).limit(20).all()
+
+        chamados_list = []
+        for atribuicao, chamado in atribuicoes:
+            data_atribuicao_brazil = atribuicao.data_atribuicao
+            if data_atribuicao_brazil:
+                data_atribuicao_brazil = utc_to_brazil(data_atribuicao_brazil)
+
+            chamados_list.append({
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'solicitante': chamado.solicitante,
+                'problema': chamado.problema,
+                'status': chamado.status,
+                'prioridade': chamado.prioridade,
+                'data_atribuicao': data_atribuicao_brazil.strftime('%d/%m %H:%M') if data_atribuicao_brazil else 'N/A'
+            })
+
+        return json_response(chamados_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar chamados do agente: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/atribuir-me', methods=['POST'])
+@api_login_required
+def atribuir_chamado_para_mim(chamado_id):
+    """Atribui um chamado ao agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Verificar se o agente pode receber mais chamados
+        if not agente.pode_receber_chamado():
+            return error_response('Você já atingiu o limite máximo de chamados simultâneos')
+
+        # Verificar se o chamado existe e está disponível
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        if chamado.status not in ['Aberto']:
+            return error_response('Chamado não está disponível para atribuição')
+
+        # Verificar se já tem agente atribuído
+        atribuicao_existente = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if atribuicao_existente:
+            return error_response('Chamado já possui agente atribuído')
+
+        # Criar nova atribuição
+        nova_atribuicao = ChamadoAgente(
+            chamado_id=chamado_id,
+            agente_id=agente.id,
+            atribuido_por=current_user.id,
+            observacoes='Auto-atribuição pelo agente'
+        )
+
+        db.session.add(nova_atribuicao)
+        db.session.commit()
+
+        logger.info(f"Chamado {chamado.codigo} auto-atribuído ao agente {current_user.nome}")
+
+        return json_response({
+            'message': f'Chamado {chamado.codigo} atribuído com sucesso'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atribuir chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
 
 # ==================== PROBLEMAS REPORTADOS ====================
 
@@ -2154,7 +2339,7 @@ def listar_setores():
         setores = [
             {'id': 'TI', 'nome': 'Setor de TI'},
             {'id': 'Compras', 'nome': 'Setor de compras'},
-            {'id': 'Manutencao', 'nome': 'Setor de manutenção'},
+            {'id': 'Manutencao', 'nome': 'Setor de manuten��ão'},
             {'id': 'Financeiro', 'nome': 'Setor financeiro'},
             {'id': 'Marketing', 'nome': 'Setor de produtos'},
             {'id': 'Comercial', 'nome': 'Setor comercial'},
