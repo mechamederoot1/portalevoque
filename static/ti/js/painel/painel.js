@@ -36,11 +36,22 @@ let sections = null;
 function initializeNavigation() {
     console.log('Inicializando navegação...');
 
-    navLinks = document.querySelectorAll('.sidebar nav ul li a, .navbar-panel .nav-link-panel');
+    // Always re-query the DOM to ensure we have the latest elements
+    navLinks = document.querySelectorAll('.sidebar nav ul li a');
     sections = document.querySelectorAll('section.content-section');
 
     console.log('Links de navegação encontrados:', navLinks.length);
     console.log('Seções encontradas:', sections.length);
+
+    if (navLinks.length === 0) {
+        console.error('ERRO: Nenhum link de navegação encontrado!');
+        return;
+    }
+
+    if (sections.length === 0) {
+        console.error('ERRO: Nenhuma seção encontrada!');
+        return;
+    }
 
     navLinks.forEach(link => {
         link.addEventListener('click', e => {
@@ -57,17 +68,30 @@ function initializeNavigation() {
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
             if (!targetSection) {
-                console.error('Seção n��o encontrada:', targetId);
+                console.error('Seção não encontrada:', targetId);
                 return;
             }
 
-            activateSection(targetId);
-            navLinks.forEach(l => l.classList.remove('active'));
-            navLinks.forEach(l => {
-                if (l.getAttribute('href') === href) l.classList.add('active');
-            });
+            // Remove active class from all navigation links
+            document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
 
-            // Atualizar hash da URL
+            // Add active class to clicked link
+            link.classList.add('active');
+
+            // Handle submenu parent activation
+            const submenu = link.closest('.submenu');
+            if (submenu) {
+                const parentToggle = submenu.previousElementSibling;
+                if (parentToggle && parentToggle.classList.contains('submenu-toggle')) {
+                    parentToggle.classList.add('active');
+                    parentToggle.parentElement.classList.add('open');
+                }
+            }
+
+            // Activate the target section
+            activateSection(targetId);
+
+            // Update URL hash
             window.location.hash = targetId;
         });
     });
@@ -134,21 +158,32 @@ function initializeNavigation() {
 function activateSection(id) {
     console.log('Ativando seção:', id);
 
-    // Get sections dynamically if not initialized
-    const allSections = sections || document.querySelectorAll('section.content-section');
+    // Always query sections fresh to ensure we have the latest DOM state
+    const allSections = document.querySelectorAll('section.content-section');
 
     if (!allSections || allSections.length === 0) {
         console.error('Nenhuma seção encontrada!');
         return;
     }
 
+    console.log(`Encontradas ${allSections.length} seções. Procurando seção: ${id}`);
+
+    let sectionFound = false;
+
     allSections.forEach(section => {
         if (section.id === id) {
             section.classList.add('active');
             section.setAttribute('tabindex', '0');
             console.log('Seção ativada:', id);
+            sectionFound = true;
 
-            // Carregar conteúdo específico da seção
+            // Scroll to top of main content
+            const mainContent = document.getElementById('mainContent');
+            if (mainContent) {
+                mainContent.scrollTop = 0;
+            }
+
+            // Load section-specific content
             setTimeout(() => {
                 loadSectionContent(id);
             }, 50);
@@ -157,6 +192,12 @@ function activateSection(id) {
             section.removeAttribute('tabindex');
         }
     });
+
+    if (!sectionFound) {
+        console.error(`Seção com ID '${id}' não foi encontrada no DOM!`);
+        // List all available sections for debugging
+        console.log('Seções disponíveis:', Array.from(allSections).map(s => s.id));
+    }
 }
 
 // Theme toggle
@@ -182,7 +223,7 @@ let currentFilter = 'all';
 const chamadosGrid = document.getElementById('chamadosGrid');
 const pagination = document.getElementById('pagination');
 
-// Função para carregar os chamados da API
+// Fun��ão para carregar os chamados da API
 async function loadChamados() {
     try {
         const response = await fetch('/ti/painel/api/chamados');
@@ -883,7 +924,7 @@ document.getElementById('nivelAcesso')?.addEventListener('click', function(e) {
     e.stopPropagation();
 });
 
-// Detectar quando usuário seleciona "Agente de Suporte"
+// Detectar quando usu��rio seleciona "Agente de Suporte"
 document.getElementById('nivelAcesso')?.addEventListener('change', function(e) {
     if (this.value === 'Agente de Suporte') {
         // Automaticamente criar agente de suporte após criar o usuário
@@ -924,7 +965,7 @@ document.getElementById('btnGerarSenha')?.addEventListener('click', function(e) 
     gerarSenha();
 });
 
-// Função para validar dados do usuário
+// Funç��o para validar dados do usuário
 function validarDadosUsuario(dados) {
     const erros = [];
     
@@ -1084,7 +1125,7 @@ document.getElementById('emailUsuario')?.addEventListener('input', function() {
     }
 });
 
-// Validação em tempo real para campos obrigatórios
+// Validaç��o em tempo real para campos obrigatórios
 ['nomeUsuario', 'sobrenomeUsuario', 'nivelAcesso', 'setorUsuario'].forEach(id => {
     const elemento = document.getElementById(id);
     if (elemento) {
@@ -1345,7 +1386,19 @@ async function loadUsuarios() {
         if (!response.ok) {
             throw new Error('Erro ao carregar usuários');
         }
-        usuariosData = await response.json();
+        const data = await response.json();
+
+        // Extract usuarios array from API response
+        if (data && data.usuarios && Array.isArray(data.usuarios)) {
+            usuariosData = data.usuarios;
+        } else if (Array.isArray(data)) {
+            usuariosData = data;
+        } else {
+            console.error('Unexpected API response format:', data);
+            usuariosData = [];
+        }
+
+        console.log('Usuarios loaded:', usuariosData.length);
         renderUsuariosPage(currentUsuariosPage);
 
         // Inicializar filtro após carregar usuários
@@ -1525,26 +1578,68 @@ function attachUsuariosEventListeners() {
 
 // Função para abrir modal de edição
 function abrirModalEditarUsuario(usuarioId) {
-    const usuario = usuariosData.find(u => u.id == usuarioId);
-    if (!usuario) return;
+    // Check in both usuariosData arrays (if using different data sources)
+    let usuario = null;
+
+    if (usuariosData && Array.isArray(usuariosData)) {
+        usuario = usuariosData.find(u => u.id == usuarioId);
+    }
+
+    // If not found in usuariosData, check in the filtrarListaUsuarios data
+    if (!usuario && window.currentUsuariosList) {
+        usuario = window.currentUsuariosList.find(u => u.id == usuarioId);
+    }
+
+    if (!usuario) {
+        console.error('Usuário não encontrado:', usuarioId);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Usuário não encontrado para edição');
+        }
+        return;
+    }
+
+    console.log('Abrindo modal para editar usuário:', usuario);
 
     // Preencher formulário
     document.getElementById('editUsuarioId').value = usuario.id;
-    document.getElementById('editNomeUsuario').value = usuario.nome;
-    document.getElementById('editSobrenomeUsuario').value = usuario.sobrenome;
-    document.getElementById('editUsuarioLogin').value = usuario.usuario;
-    document.getElementById('editEmailUsuario').value = usuario.email;
-    document.getElementById('editNivelAcesso').value = usuario.nivel_acesso;
-    document.getElementById('editBloqueado').checked = usuario.bloqueado;
+    document.getElementById('editNomeUsuario').value = usuario.nome || '';
+    document.getElementById('editSobrenomeUsuario').value = usuario.sobrenome || '';
+    document.getElementById('editUsuarioLogin').value = usuario.usuario || '';
+    document.getElementById('editEmailUsuario').value = usuario.email || '';
+    document.getElementById('editNivelAcesso').value = usuario.nivel_acesso || '';
+    document.getElementById('editBloqueado').checked = usuario.bloqueado || false;
 
     // Limpar e selecionar setores
     const setorSelect = document.getElementById('editSetorUsuario');
-    Array.from(setorSelect.options).forEach(option => {
-        option.selected = usuario.setores.includes(option.value);
-    });
+    if (setorSelect) {
+        Array.from(setorSelect.options).forEach(option => {
+            option.selected = false; // Clear all first
+        });
+
+        // Handle setores - could be array or comma-separated string
+        let setores = [];
+        if (Array.isArray(usuario.setores)) {
+            setores = usuario.setores;
+        } else if (typeof usuario.setores === 'string') {
+            setores = usuario.setores.split(',').map(s => s.trim());
+        }
+
+        // Select matching options
+        Array.from(setorSelect.options).forEach(option => {
+            if (setores.includes(option.value)) {
+                option.selected = true;
+            }
+        });
+    }
 
     // Abrir modal
-    document.getElementById('modalEditarUsuario').classList.add('active');
+    const modal = document.getElementById('modalEditarUsuario');
+    if (modal) {
+        modal.classList.add('active');
+        console.log('Modal de edição aberto');
+    } else {
+        console.error('Modal de edição não encontrado');
+    }
 }
 
 // Função para gerar nova senha
@@ -1828,6 +1923,18 @@ function loadSectionContent(sectionId) {
                     console.warn('Erro ao carregar prioridades (não crítico):', error);
                 }
             }
+            // Carregar problemas e configurações de notificações
+            setTimeout(() => {
+                if (typeof carregarProblemas === 'function') {
+                    carregarProblemas();
+                }
+                if (typeof carregarConfiguracaoNotificacoes === 'function') {
+                    carregarConfiguracaoNotificacoes();
+                }
+                if (typeof carregarConfiguracoes === 'function') {
+                    carregarConfiguracoes();
+                }
+            }, 300);
             atualizarContadoresVisaoGeral();
             break;
         case 'agentes-suporte':
@@ -1925,6 +2032,14 @@ function loadSectionContent(sectionId) {
                 carregarDashboardAvancado();
             }
             break;
+        case 'adicionar-problema':
+            // Carregar lista de problemas existentes
+            setTimeout(() => {
+                if (typeof carregarListaProblemasExistentes === 'function') {
+                    carregarListaProblemasExistentes();
+                }
+            }, 300);
+            break;
     }
 }
 
@@ -1982,9 +2097,36 @@ function inicializarSistemaPainel() {
             console.log('Ativando seção do hash:', hash);
             activateSection(hash);
         } else {
-            console.log('Ativando seção padrão: visao-geral');
+            console.log('Ativando seç��o padrão: visao-geral');
             activateSection('visao-geral');
         }
+
+        // 5. Set up test function for debugging navigation
+        window.testNavigation = function(sectionId) {
+            console.log('=== TESTE DE NAVEGAÇÃO ===');
+            console.log('Tentando navegar para:', sectionId);
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                console.log('Seção encontrada, ativando...');
+                activateSection(sectionId);
+
+                // Activate corresponding nav link
+                const navLink = document.querySelector(`.sidebar a[href="#${sectionId}"]`);
+                if (navLink) {
+                    document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
+                    navLink.classList.add('active');
+                    console.log('Link de navegação ativado');
+                } else {
+                    console.warn('Link de navegação não encontrado para:', sectionId);
+                }
+
+                console.log('Navegação concluída com sucesso');
+                return true;
+            } else {
+                console.error('Seção não encontrada:', sectionId);
+                return false;
+            }
+        };
 
         // 4. Carregar dados críticos
         setTimeout(() => {
@@ -2028,23 +2170,49 @@ function inicializarSistemaPainel() {
 }
 
 // Inicialização
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM carregado - inicializando painel.js');
+function initializePainel() {
+    console.log('Inicializando painel.js...');
 
-    // Aguardar carregamento completo dos scripts
+    // Verificar se os elementos DOM est��o disponíveis
+    const sidebar = document.getElementById('sidebar');
+    const sections = document.querySelectorAll('section.content-section');
+
+    if (!sidebar || sections.length === 0) {
+        console.log('Elementos DOM ainda não disponíveis, tentando novamente em 100ms...');
+        setTimeout(initializePainel, 100);
+        return;
+    }
+
+    console.log('Elementos DOM encontrados, iniciando sistema...');
+
+    inicializarSistemaPainel();
+
+    // Inicializar Socket.IO
     setTimeout(() => {
-        inicializarSistemaPainel();
+        if (typeof initializeSocketIO === 'function') {
+            initializeSocketIO();
+        }
+    }, 1000);
 
-        // Inicializar Socket.IO
-        setTimeout(() => {
-            if (typeof initializeSocketIO === 'function') {
-                initializeSocketIO();
-            }
-        }, 1000);
+    // Inicializar event listeners de filtros
+    initializeFilterListeners();
+}
 
-        // Inicializar event listeners de filtros
-        initializeFilterListeners();
-    }, 100);
+// Try multiple initialization methods to ensure it works
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializePainel);
+} else {
+    // DOM is already loaded
+    initializePainel();
+}
+
+// Fallback initialization
+window.addEventListener('load', function() {
+    // Only run if not already initialized
+    if (!navLinks || navLinks.length === 0) {
+        console.log('Fallback initialization triggered');
+        setTimeout(initializePainel, 100);
+    }
 });
 
 // Função para inicializar listeners de filtros
@@ -2113,8 +2281,45 @@ function initializeFilterListeners() {
 
 // Função para verificar se uma seção existe
 function sectionExists(id) {
-    return Array.from(sections).some(section => section.id === id);
+    const allSections = document.querySelectorAll('section.content-section');
+    return Array.from(allSections).some(section => section.id === id);
 }
+
+// Global functions for debugging and manual control
+window.debugPainel = {
+    activateSection: function(id) {
+        console.log('Ativação manual da seção:', id);
+        activateSection(id);
+    },
+    listSections: function() {
+        const sections = document.querySelectorAll('section.content-section');
+        console.log('Seções disponíveis:', Array.from(sections).map(s => s.id));
+        return Array.from(sections).map(s => s.id);
+    },
+    listNavLinks: function() {
+        const links = document.querySelectorAll('.sidebar nav ul li a');
+        console.log('Links de navegação:', Array.from(links).map(l => l.getAttribute('href')));
+        return Array.from(links).map(l => l.getAttribute('href'));
+    },
+    reinitialize: function() {
+        console.log('Reinicializando sistema...');
+        initializeNavigation();
+    },
+    testNavigation: function(sectionId) {
+        console.log('Testando navegação para:', sectionId);
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            activateSection(sectionId);
+            console.log('Navegação executada com sucesso');
+        } else {
+            console.error('Seção não encontrada:', sectionId);
+        }
+    }
+};
+
+// Make key functions globally available
+window.activateSection = activateSection;
+window.loadSectionContent = loadSectionContent;
 
 // Section initialization is now handled in inicializarSistemaPainel()
 
@@ -2968,8 +3173,8 @@ function inicializarFiltroPermissoes() {
         filtrarListaUsuarios(termoBusca, 1); // Sempre começar da primeira página em nova busca
     };
 
-    // Event listeners para busca em tempo real
-    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 100));
+    // Event listeners para busca em tempo real (increased debounce to reduce flickering)
+    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 500));
     btnFiltrar.addEventListener('click', filtrarUsuarios);
 
     // Filtrar ao pressionar Enter
@@ -2981,7 +3186,7 @@ function inicializarFiltroPermissoes() {
     });
 
     // Adicionar placeholder mais descritivo
-    filtroInput.placeholder = 'Buscar por nome, email ou nível de acesso...';
+    filtroInput.placeholder = 'Buscar por nome, email, unidade ou nível de acesso...';
 
     // Funcionalidade para limpar filtro com Escape
     filtroInput.addEventListener('keydown', function(e) {
@@ -2992,7 +3197,7 @@ function inicializarFiltroPermissoes() {
         }
     });
 
-    // Mostrar/esconder ícone de limpeza
+    // Mostrar/esconder ��cone de limpeza
     filtroInput.addEventListener('input', function() {
         const parentGroup = filtroInput.closest('.input-group');
         if (parentGroup) {
@@ -3022,14 +3227,22 @@ function inicializarFiltroPermissoes() {
     filtrarListaUsuarios('', 1);
 }
 
-// Variáveis para controle de paginação de usuários
-let currentUsuariosPage = 1;
+// Variáveis para controle de paginação de usuários (reutilizando variável já declarada)
+// let currentUsuariosPage = 1; // REMOVIDO: Já declarado anteriormente
 let currentUsuariosBusca = '';
+let isSearching = false;
 
 async function filtrarListaUsuarios(termoBusca, page = 1) {
     console.log(`Filtrando usu��rios com termo: "${termoBusca}", página: ${page}`);
 
+    // Prevent multiple simultaneous requests
+    if (isSearching) {
+        console.log('Busca já em andamento, aguardando...');
+        return;
+    }
+
     try {
+        isSearching = true;
         // Atualizar variáveis globais
         currentUsuariosBusca = termoBusca;
         currentUsuariosPage = page;
@@ -3048,21 +3261,25 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
 
         const data = await response.json();
 
+        // Extract usuarios array from API response
+        const usuarios = data && data.usuarios ? data.usuarios : (Array.isArray(data) ? data : []);
+
+        // Store for global access
+        window.currentUsuariosList = usuarios;
+
         // Renderizar usuários
-        renderizarUsuarios(data.usuarios);
+        renderizarUsuarios(usuarios);
 
         // Renderizar paginação
-        renderizarPaginacaoUsuarios(data.pagination);
+        renderizarPaginacaoUsuarios(data.pagination || {});
 
-        // Feedback visual no input
+        // Feedback visual no input (using CSS classes instead of inline styles)
         const filtroInput = document.getElementById('filtroPermissoes');
         if (filtroInput) {
             if (termoBusca) {
-                filtroInput.style.backgroundColor = '#e8f4fd';
-                filtroInput.style.borderColor = '#007bff';
+                filtroInput.classList.add('searching');
             } else {
-                filtroInput.style.backgroundColor = '';
-                filtroInput.style.borderColor = '';
+                filtroInput.classList.remove('searching');
             }
         }
 
@@ -3083,6 +3300,8 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
                 </div>
             `;
         }
+    } finally {
+        isSearching = false;
     }
 }
 
@@ -3110,7 +3329,7 @@ function renderizarUsuarios(usuarios) {
 
     // Renderizar cards dos usuários
     usuariosGrid.innerHTML = usuarios.map(usuario => `
-        <div class="card usuario-card animate__animated animate__fadeIn">
+        <div class="card usuario-card">
             <div class="card-header">
                 <h3>${usuario.nome} ${usuario.sobrenome}</h3>
                 <span class="status-badge ${usuario.bloqueado ? 'bg-danger' : 'bg-success'}">
@@ -3160,6 +3379,123 @@ function renderizarUsuarios(usuarios) {
             </div>
         </div>
     `).join('');
+}
+
+// Missing functions for the permissions section buttons
+function editarUsuario(usuarioId) {
+    console.log('Editando usuário:', usuarioId);
+    abrirModalEditarUsuario(usuarioId);
+}
+
+function bloquearUsuario(usuarioId) {
+    console.log('Bloqueando usuário:', usuarioId);
+    toggleBloqueioUsuario(usuarioId);
+}
+
+function desbloquearUsuario(usuarioId) {
+    console.log('Desbloqueando usuário:', usuarioId);
+    toggleBloqueioUsuario(usuarioId);
+}
+
+// Make functions globally available
+window.editarUsuario = editarUsuario;
+window.bloquearUsuario = bloquearUsuario;
+window.desbloquearUsuario = desbloquearUsuario;
+window.gerarNovaSenha = gerarNovaSenha;
+window.excluirUsuario = excluirUsuario;
+
+// Add event listeners for edit modal (initialize once)
+function initializeEditModalListeners() {
+    // Close modal listeners
+    const closeBtn = document.getElementById('modalEditarUsuarioClose');
+    const cancelBtn = document.getElementById('btnCancelarEdicao');
+    const modal = document.getElementById('modalEditarUsuario');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+    }
+
+    // Click outside to close
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    }
+
+    // Save button listener
+    const saveBtn = document.getElementById('btnSalvarUsuario');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+            const usuarioId = document.getElementById('editUsuarioId').value;
+            const nome = document.getElementById('editNomeUsuario').value.trim();
+            const sobrenome = document.getElementById('editSobrenomeUsuario').value.trim();
+            const usuario = document.getElementById('editUsuarioLogin').value.trim();
+            const email = document.getElementById('editEmailUsuario').value.trim();
+            const nivelAcesso = document.getElementById('editNivelAcesso').value;
+            const setorSelect = document.getElementById('editSetorUsuario');
+            const setores = Array.from(setorSelect.selectedOptions).map(option => option.value);
+            const bloqueado = document.getElementById('editBloqueado').checked;
+
+            try {
+                const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome,
+                        sobrenome,
+                        usuario,
+                        email,
+                        nivel_acesso: nivelAcesso,
+                        setores,
+                        bloqueado
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao atualizar usuário');
+                }
+
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showSuccess('Usuário Atualizado', 'Usuário atualizado com sucesso!');
+                }
+                modal.classList.remove('active');
+
+                // Refresh the users list
+                if (typeof loadUsuarios === 'function') {
+                    await loadUsuarios();
+                }
+                // Also refresh the permissions list
+                if (typeof filtrarListaUsuarios === 'function') {
+                    await filtrarListaUsuarios(currentUsuariosBusca || '', currentUsuariosPage || 1);
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar usuário:', error);
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+                }
+            }
+        });
+    }
+}
+
+// Initialize modal listeners when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEditModalListeners);
+} else {
+    initializeEditModalListeners();
 }
 
 function renderizarPaginacaoUsuarios(pagination) {
@@ -4167,7 +4503,7 @@ async function confirmarAtribuicao(chamadoId) {
 
         fecharModalAgente();
 
-        // Recarregar chamados para mostrar a atribuição
+        // Recarregar chamados para mostrar a atribui��ão
         await loadChamados();
 
     } catch (error) {

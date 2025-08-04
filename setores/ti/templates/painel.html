@@ -2444,7 +2444,7 @@
   <!-- Scripts do painel - carregam DEPOIS da navegação -->
   <script src="/static/ti/js/painel/agentes.js"></script>
   <script src="/static/ti/js/painel/grupos.js"></script>
-  <!-- COMENTADO temporariamente para evitar conflito: <script src="/static/ti/js/painel/painel.js"></script> -->
+  <script src="/static/ti/js/painel/painel.js"></script>
   <script src="/static/ti/js/painel/enviar_ticket.js"></script>
   <script src="/static/ti/js/painel/notificacoes.js"></script>
   <script src="/static/ti/js/painel/sla.js"></script>
@@ -3021,20 +3021,8 @@
         });
       });
 
-      // Carregar problemas ao entrar na seção de configurações
-      document.querySelector('a[href="#configuracoes"]')?.addEventListener('click', function() {
-        setTimeout(() => {
-          carregarProblemas();
-          carregarConfiguracaoNotificacoes();
-        }, 300);
-      });
-
-      // Carregar lista ao entrar na seção "Adicionar ao Banco"
-      document.querySelector('a[href="#adicionar-problema"]')?.addEventListener('click', function() {
-        setTimeout(() => {
-          carregarListaProblemasExistentes();
-        }, 300);
-      });
+      // REMOVED: Navigation listeners to avoid conflicts with painel.js
+      // Section loading is now handled by loadSectionContent() in painel.js
     });
 
     // Função para executar backup
@@ -3139,18 +3127,16 @@ async function salvarConfiguracoesChamados() {
     }
 }
 
-// Adicione esta chamada no DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    // ... outros event listeners ...
+// Configuration loading moved to painel.js loadSectionContent()
+// Event listeners setup
+function configurarEventosConfiguracoes() {
     configurarEventosChamados();
-    
-    // Carregar configurações ao entrar na seção
-    document.querySelector('a[href="#configuracoes"]')?.addEventListener('click', function() {
-        setTimeout(() => {
-            carregarConfiguracoes();
-        }, 300);
-    });
-});
+}
+
+// Call this when the configuracoes section is loaded
+if (typeof window.configurarEventosConfiguracoes !== 'function') {
+    window.configurarEventosConfiguracoes = configurarEventosConfiguracoes;
+}
 
 async function carregarConfiguracoes() {
     try {

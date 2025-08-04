@@ -95,7 +95,7 @@ a {
   transition: all var(--transition-speed) ease;
 }
 
-/* ============ SEÇÃO: SIDEBAR ============ */
+/* ============ SE��ÃO: SIDEBAR ============ */
 .sidebar {
   position: fixed;
   top: 0;
@@ -1039,6 +1039,14 @@ h2::after {
 .form-control:focus,
 .form-control:active {
   color: #ffffff !important;
+  background-color: var(--card-bg) !important;
+}
+
+/* Estado de busca ativa */
+.form-control.searching {
+  background-color: var(--card-bg) !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: 0 0 0 2px rgba(255, 98, 0, 0.15) !important;
 }
 
 .form-control:focus {
@@ -2559,14 +2567,15 @@ a:focus-visible {
 
 [data-theme="dark"] .form-control,
 [data-theme="light"] .form-control {
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-tertiary) !important;
   border: 1px solid var(--border-color);
-  color: var(--text-primary);
+  color: var(--text-primary) !important;
 }
 
 [data-theme="dark"] .form-control:focus,
 [data-theme="light"] .form-control:focus {
-  background-color: var(--bg-tertiary);
+  background-color: var(--bg-tertiary) !important;
+  color: var(--text-primary) !important;
   border-color: var(--accent-color);
   color: var(--text-primary);
   box-shadow: 0 0 0 0.2rem rgba(255, 98, 0, 0.25);
