@@ -1463,6 +1463,19 @@ def marcar_notificacao_lida(notificacao_id):
         logger.error(f"Erro ao marcar notificação como lida: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/auth/teste', methods=['GET'])
+def teste_autenticacao():
+    """Endpoint para testar autenticação"""
+    if current_user.is_authenticated:
+        return json_response({
+            'authenticated': True,
+            'user_id': current_user.id,
+            'user_name': current_user.nome,
+            'setor': current_user.setor
+        })
+    else:
+        return json_response({'authenticated': False}, 401)
+
 @painel_bp.route('/api/chamados/<int:chamado_id>/auto-atribuir', methods=['POST'])
 @api_login_required
 def auto_atribuir_chamado(chamado_id):
@@ -1794,7 +1807,7 @@ def adicionar_unidade():
             return error_response('Nome da unidade não pode ser vazio.', 400)
         
         if Unidade.query.filter_by(nome=nome).first():
-            return error_response('Unidade com este nome já existe.', 400)
+            return error_response('Unidade com este nome j�� existe.', 400)
         
         id_unidade = data.get('id')
         if id_unidade:
