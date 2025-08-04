@@ -1541,7 +1541,7 @@ function renderUsuariosPagination(totalItems) {
     usuariosPagination.appendChild(nextBtn);
 }
 
-// Função para anexar event listeners aos cards de usu��rios
+// Função para anexar event listeners aos cards de usuários
 function attachUsuariosEventListeners() {
     // Listener para botão Editar
     document.querySelectorAll('.btn-editar').forEach(btn => {
@@ -1578,26 +1578,68 @@ function attachUsuariosEventListeners() {
 
 // Função para abrir modal de edição
 function abrirModalEditarUsuario(usuarioId) {
-    const usuario = usuariosData.find(u => u.id == usuarioId);
-    if (!usuario) return;
+    // Check in both usuariosData arrays (if using different data sources)
+    let usuario = null;
+
+    if (usuariosData && Array.isArray(usuariosData)) {
+        usuario = usuariosData.find(u => u.id == usuarioId);
+    }
+
+    // If not found in usuariosData, check in the filtrarListaUsuarios data
+    if (!usuario && window.currentUsuariosList) {
+        usuario = window.currentUsuariosList.find(u => u.id == usuarioId);
+    }
+
+    if (!usuario) {
+        console.error('Usuário não encontrado:', usuarioId);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Usuário não encontrado para edição');
+        }
+        return;
+    }
+
+    console.log('Abrindo modal para editar usuário:', usuario);
 
     // Preencher formulário
     document.getElementById('editUsuarioId').value = usuario.id;
-    document.getElementById('editNomeUsuario').value = usuario.nome;
-    document.getElementById('editSobrenomeUsuario').value = usuario.sobrenome;
-    document.getElementById('editUsuarioLogin').value = usuario.usuario;
-    document.getElementById('editEmailUsuario').value = usuario.email;
-    document.getElementById('editNivelAcesso').value = usuario.nivel_acesso;
-    document.getElementById('editBloqueado').checked = usuario.bloqueado;
+    document.getElementById('editNomeUsuario').value = usuario.nome || '';
+    document.getElementById('editSobrenomeUsuario').value = usuario.sobrenome || '';
+    document.getElementById('editUsuarioLogin').value = usuario.usuario || '';
+    document.getElementById('editEmailUsuario').value = usuario.email || '';
+    document.getElementById('editNivelAcesso').value = usuario.nivel_acesso || '';
+    document.getElementById('editBloqueado').checked = usuario.bloqueado || false;
 
     // Limpar e selecionar setores
     const setorSelect = document.getElementById('editSetorUsuario');
-    Array.from(setorSelect.options).forEach(option => {
-        option.selected = usuario.setores.includes(option.value);
-    });
+    if (setorSelect) {
+        Array.from(setorSelect.options).forEach(option => {
+            option.selected = false; // Clear all first
+        });
+
+        // Handle setores - could be array or comma-separated string
+        let setores = [];
+        if (Array.isArray(usuario.setores)) {
+            setores = usuario.setores;
+        } else if (typeof usuario.setores === 'string') {
+            setores = usuario.setores.split(',').map(s => s.trim());
+        }
+
+        // Select matching options
+        Array.from(setorSelect.options).forEach(option => {
+            if (setores.includes(option.value)) {
+                option.selected = true;
+            }
+        });
+    }
 
     // Abrir modal
-    document.getElementById('modalEditarUsuario').classList.add('active');
+    const modal = document.getElementById('modalEditarUsuario');
+    if (modal) {
+        modal.classList.add('active');
+        console.log('Modal de edição aberto');
+    } else {
+        console.error('Modal de edição não encontrado');
+    }
 }
 
 // Função para gerar nova senha
