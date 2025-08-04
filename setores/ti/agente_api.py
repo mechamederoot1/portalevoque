@@ -443,3 +443,108 @@ def perfil_agente():
     except Exception as e:
         logger.error(f"Erro ao buscar perfil do agente: {str(e)}")
         return error_response('Erro interno no servidor')
+
+@agente_api_bp.route('/api/chamados/<int:chamado_id>/atribuir-me', methods=['POST'])
+@api_login_required
+def atribuir_chamado_para_mim(chamado_id):
+    """Atribui um chamado para o agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Verificar se o chamado existe
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        # Verificar se o chamado já está atribuído
+        atribuicao_existente = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if atribuicao_existente:
+            return error_response('Chamado já está atribuído a outro agente', 400)
+
+        # Verificar se o agente pode receber mais chamados
+        if not agente.pode_receber_chamado():
+            return error_response('Você já atingiu o limite máximo de chamados simultâneos', 400)
+
+        # Verificar se o chamado está em um status que permite atribuição
+        if chamado.status not in ['Aberto', 'Aguardando']:
+            return error_response('Chamado não está disponível para atribuição', 400)
+
+        # Criar nova atribuição
+        nova_atribuicao = ChamadoAgente(
+            chamado_id=chamado_id,
+            agente_id=agente.id,
+            atribuido_por=current_user.id,
+            observacoes=f'Auto-atribuição pelo agente'
+        )
+
+        # Se o chamado estava "Aberto", muda para "Aguardando"
+        if chamado.status == 'Aberto':
+            chamado.status = 'Aguardando'
+
+        db.session.add(nova_atribuicao)
+        db.session.commit()
+
+        # Enviar e-mails de notificação
+        try:
+            from setores.ti.routes import enviar_email
+
+            # E-mail para o solicitante
+            assunto_cliente = f"Chamado {chamado.codigo} - Agente Atribuído"
+            corpo_cliente = f"""
+Olá {chamado.solicitante},
+
+Seu chamado {chamado.codigo} foi atribuído para atendimento.
+
+Detalhes do agente responsável:
+- Nome: {current_user.nome} {current_user.sobrenome}
+- E-mail: {current_user.email}
+
+O agente entrará em contato em breve para dar início ao atendimento.
+
+Atenciosamente,
+Equipe de Suporte TI - Evoque Fitness
+"""
+            enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
+
+        except Exception as email_error:
+            logger.warning(f"Erro ao enviar e-mail de atribuição: {str(email_error)}")
+
+        # Emitir evento Socket.IO para notificação em tempo real
+        try:
+            from flask import current_app
+            if hasattr(current_app, 'socketio'):
+                current_app.socketio.emit('chamado_atribuido', {
+                    'chamado_id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'protocolo': chamado.protocolo,
+                    'solicitante': chamado.solicitante,
+                    'problema': chamado.problema,
+                    'prioridade': chamado.prioridade,
+                    'agente_id': agente.id,
+                    'agente_nome': f"{current_user.nome} {current_user.sobrenome}",
+                    'agente_email': current_user.email,
+                    'timestamp': get_brazil_time().isoformat()
+                })
+        except Exception as socket_error:
+            logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
+
+        logger.info(f"Chamado {chamado.codigo} auto-atribuído para agente {current_user.nome}")
+
+        return json_response({
+            'message': 'Chamado atribuído com sucesso!',
+            'chamado_id': chamado.id,
+            'codigo': chamado.codigo
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atribuir chamado: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno no servidor')
