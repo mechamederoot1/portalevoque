@@ -1446,8 +1446,11 @@
             <td><span class="badge bg-${this.getPrioridadeClass(chamado.prioridade)}">${chamado.prioridade}</span></td>
             <td>${chamado.data_atribuicao}</td>
             <td>
-              <button class="btn btn-sm btn-primary" onclick="painelAgente.verDetalhes(${chamado.id})">
+              <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.verDetalhes(${chamado.id})">
                 <i class="fas fa-edit me-1"></i>Gerenciar
+              </button>
+              <button class="btn btn-sm btn-outline-info" onclick="painelAgente.abrirModalEnviarEmail(${chamado.id})" title="Enviar por e-mail">
+                <i class="fas fa-envelope"></i>
               </button>
             </td>
           </tr>
