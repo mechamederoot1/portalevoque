@@ -30,8 +30,9 @@ app = Flask(
     instance_relative_config=True
 )
 
-# Carrega as configurações do objeto Config
-app.config.from_object(Config)
+# Carrega as configurações baseadas no ambiente
+from config import get_config
+app.config.from_object(get_config())
 
 # APLICAR CONFIGURAÇÕES DE SEGURANÇA
 app.config.from_object(SecurityConfig)
