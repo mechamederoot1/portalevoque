@@ -2069,23 +2069,49 @@ function inicializarSistemaPainel() {
 }
 
 // Inicialização
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM carregado - inicializando painel.js');
+function initializePainel() {
+    console.log('Inicializando painel.js...');
 
-    // Aguardar carregamento completo dos scripts
+    // Verificar se os elementos DOM estão disponíveis
+    const sidebar = document.getElementById('sidebar');
+    const sections = document.querySelectorAll('section.content-section');
+
+    if (!sidebar || sections.length === 0) {
+        console.log('Elementos DOM ainda não disponíveis, tentando novamente em 100ms...');
+        setTimeout(initializePainel, 100);
+        return;
+    }
+
+    console.log('Elementos DOM encontrados, iniciando sistema...');
+
+    inicializarSistemaPainel();
+
+    // Inicializar Socket.IO
     setTimeout(() => {
-        inicializarSistemaPainel();
+        if (typeof initializeSocketIO === 'function') {
+            initializeSocketIO();
+        }
+    }, 1000);
 
-        // Inicializar Socket.IO
-        setTimeout(() => {
-            if (typeof initializeSocketIO === 'function') {
-                initializeSocketIO();
-            }
-        }, 1000);
+    // Inicializar event listeners de filtros
+    initializeFilterListeners();
+}
 
-        // Inicializar event listeners de filtros
-        initializeFilterListeners();
-    }, 100);
+// Try multiple initialization methods to ensure it works
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializePainel);
+} else {
+    // DOM is already loaded
+    initializePainel();
+}
+
+// Fallback initialization
+window.addEventListener('load', function() {
+    // Only run if not already initialized
+    if (!navLinks || navLinks.length === 0) {
+        console.log('Fallback initialization triggered');
+        setTimeout(initializePainel, 100);
+    }
 });
 
 // Função para inicializar listeners de filtros
