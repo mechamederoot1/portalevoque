@@ -1019,7 +1019,7 @@ def atribuir_chamado_para_mim(chamado_id):
         # Verificar se o usuário é um agente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente:
-            logger.warning(f"Usuário {current_user.id} não é um agente de suporte ativo")
+            logger.warning(f"Usuário {current_user.id} n��o é um agente de suporte ativo")
             return error_response('Usuário não é um agente de suporte', 403)
 
         # Verificar se o agente pode receber mais chamados
@@ -1475,7 +1475,7 @@ def listar_problemas():
             db.session.execute(db.text('SELECT 1'))
             db.session.commit()
         except Exception as conn_error:
-            logger.warning(f"Banco de dados n��o disponível: {str(conn_error)}")
+            logger.warning(f"Banco de dados não disponível: {str(conn_error)}")
             # Retornar lista vazia em vez de erro para permitir que a interface funcione
             return json_response([])
 
@@ -1851,7 +1851,7 @@ def obter_estatisticas_chamados():
             stats_dict[stat.status] = stat.quantidade
             total += stat.quantidade
         
-        # Garantir que todos os status estão presentes
+        # Garantir que todos os status est��o presentes
         status_padrao = ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']
         for status in status_padrao:
             if status not in stats_dict:
@@ -1985,6 +1985,63 @@ def deletar_chamado(id):
         return error_response('Erro interno ao excluir chamado.')
 
 # ==================== USUÁRIOS ====================
+
+@painel_bp.route('/api/usuarios', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_usuarios():
+    """Lista usuários com filtros opcionais"""
+    try:
+        busca = request.args.get('busca', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+
+        query = User.query
+
+        # Aplicar filtros de busca
+        if busca:
+            query = query.filter(
+                db.or_(
+                    User.nome.ilike(f'%{busca}%'),
+                    User.sobrenome.ilike(f'%{busca}%'),
+                    User.email.ilike(f'%{busca}%'),
+                    User.usuario.ilike(f'%{busca}%')
+                )
+            )
+
+        # Paginação
+        usuarios_pag = query.order_by(User.nome).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        usuarios_list = []
+        for user in usuarios_pag.items:
+            usuarios_list.append({
+                'id': user.id,
+                'nome': user.nome,
+                'sobrenome': user.sobrenome,
+                'email': user.email,
+                'usuario': user.usuario,
+                'nivel_acesso': user.nivel_acesso,
+                'setor': user.setor,
+                'bloqueado': getattr(user, 'bloqueado', False),
+                'ativo': getattr(user, 'ativo', True),
+                'data_cadastro': user.data_cadastro.strftime('%d/%m/%Y') if user.data_cadastro else None
+            })
+
+        return json_response({
+            'usuarios': usuarios_list,
+            'total': usuarios_pag.total,
+            'pages': usuarios_pag.pages,
+            'current_page': page,
+            'per_page': per_page,
+            'has_next': usuarios_pag.has_next,
+            'has_prev': usuarios_pag.has_prev
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar usuários: {str(e)}")
+        return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/usuarios', methods=['POST'])
 @login_required
