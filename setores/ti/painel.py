@@ -1168,7 +1168,7 @@ def atualizar_chamado_agente(chamado_id):
         # Adicionar observações se fornecidas
         observacoes = data.get('observacoes', '')
         if observacoes:
-            # Criar registro no histórico do ticket
+            # Criar registro no hist��rico do ticket
             try:
                 historico = HistoricoTicket(
                     chamado_id=chamado.id,
@@ -2135,7 +2135,7 @@ def criar_usuario():
 
 @painel_bp.route('/api/usuarios', methods=['GET'])
 @login_required
-def listar_usuarios():
+def buscar_usuarios():
     try:
         # Verificar se o banco de dados está disponível
         try:
