@@ -65,7 +65,7 @@ class Config:
     PASSWORD_MIN_LENGTH = int(os.environ.get('PASSWORD_MIN_LENGTH', 6))
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=SESSION_TIMEOUT)
     
-    # Configura��ões de logs
+    # Configurações de logs
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     LOG_FILE_PATH = os.environ.get('LOG_FILE_PATH', 'logs/app.log')
     
@@ -182,9 +182,10 @@ class TestingConfig(Config):
 # Dicionário de configurações
 config = {
     'development': DevelopmentConfig,
+    'dev-sqlite': DevelopmentSQLiteConfig,
     'production': ProductionConfig,
     'testing': TestingConfig,
-    'default': DevelopmentConfig
+    'default': DevelopmentSQLiteConfig  # Use SQLite for easier development
 }
 
 def get_config():
