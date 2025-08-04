@@ -41,6 +41,24 @@ def json_response(data, status=200):
     response.headers['Content-Type'] = 'application/json'
     return response
 
+def verificar_ou_criar_agente(usuario):
+    """Verifica se o usuário é um agente ou cria um se necessário"""
+    agente = AgenteSuporte.query.filter_by(usuario_id=usuario.id, ativo=True).first()
+    if not agente:
+        # Verificar se é administrador ou tem acesso ao TI
+        if usuario.nivel_acesso == 'Administrador' or usuario.setor == 'TI':
+            # Criar registro de agente automaticamente
+            agente = AgenteSuporte(
+                usuario_id=usuario.id,
+                ativo=True,
+                nivel_experiencia='pleno',
+                max_chamados_simultaneos=15
+            )
+            db.session.add(agente)
+            db.session.commit()
+            logger.info(f"Agente criado automaticamente para usuário {usuario.id}")
+    return agente
+
 def error_response(message, status=400):
     """Retorna erro JSON padronizado"""
     return json_response({'error': message}, status)
@@ -104,7 +122,7 @@ def setup_database_endpoint():
         # Verificar se já existem dados de demonstração
         existing_logs = LogAcesso.query.limit(1).first()
         if existing_logs:
-            return json_response({'message': 'Dados de demonstração já existem', 'logs_count': LogAcesso.query.count()})
+            return json_response({'message': 'Dados de demonstraç���o já existem', 'logs_count': LogAcesso.query.count()})
 
         # Criar usuários de teste se não existem
         admin_user = User.query.filter_by(email='admin@demo.com').first()
@@ -293,7 +311,7 @@ def setup_database_endpoint():
                 acao, categoria, detalhes = random.choice(acoes_exemplo)
                 ip = random.choice(ips_exemplo)
 
-                # Horário da ação aleatório no dia
+                # Horário da ação aleat��rio no dia
                 hora_acao = data_acao.replace(
                     hour=random.randint(8, 18),
                     minute=random.randint(0, 59),
@@ -400,7 +418,7 @@ def setup_demo_page():
     '''
 
 def carregar_configuracoes():
-    """Carrega configurações do banco de dados ou retorna padr��es"""
+    """Carrega configurações do banco de dados ou retorna padr����es"""
     try:
         config_final = CONFIGURACOES_PADRAO.copy()
 
@@ -422,7 +440,7 @@ def carregar_configuracoes():
                     if config.chave in ['versao_database', 'data_criacao', 'sistema_inicializado']:
                         config_final[config.chave] = config.valor
                     else:
-                        logger.error(f"Erro ao decodificar configuração {config.chave}")
+                        logger.error(f"Erro ao decodificar configuraç��o {config.chave}")
                     continue
 
         except Exception as db_error:
@@ -688,7 +706,7 @@ def salvar_configuracoes_notificacoes():
         if not data:
             return error_response('Dados não fornecidos', 400)
         
-        logger.info(f"Salvando configurações de notificações: {data}")
+        logger.info(f"Salvando configurações de notificaç��es: {data}")
         
         # Validar campos obrigatórios
         campos_esperados = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
@@ -804,6 +822,7 @@ def estatisticas_agente():
 def chamados_disponiveis():
     """Retorna chamados disponíveis para atribuição"""
     try:
+        logger.debug(f"Carregando chamados disponíveis para usuário {current_user.id} ({current_user.nome})")
         # Buscar chamados sem agente atribuído
         chamados = db.session.query(Chamado).outerjoin(ChamadoAgente).filter(
             Chamado.status.in_(['Aberto']),
@@ -816,9 +835,11 @@ def chamados_disponiveis():
             chamados_list.append({
                 'id': chamado.id,
                 'codigo': chamado.codigo,
+                'protocolo': chamado.protocolo if hasattr(chamado, 'protocolo') else None,
                 'solicitante': chamado.solicitante,
                 'problema': chamado.problema,
                 'prioridade': chamado.prioridade,
+                'descricao': chamado.descricao if hasattr(chamado, 'descricao') else None,
                 'data_abertura': data_abertura_brazil.strftime('%d/%m %H:%M') if data_abertura_brazil else 'N/A'
             })
 
@@ -887,26 +908,177 @@ def meus_chamados_agente():
         logger.error(f"Erro ao buscar chamados do agente: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/chamados/<int:chamado_id>/detalhes', methods=['GET'])
+@api_login_required
+def detalhes_chamado(chamado_id):
+    """Retorna detalhes de um chamado específico"""
+    try:
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        # Buscar agente atribuído
+        agente_info = None
+        chamado_agente = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if chamado_agente and chamado_agente.agente:
+            agente_info = {
+                'id': chamado_agente.agente.id,
+                'nome': f"{chamado_agente.agente.usuario.nome} {chamado_agente.agente.usuario.sobrenome}",
+                'usuario': chamado_agente.agente.usuario.usuario,
+                'email': chamado_agente.agente.usuario.email,
+                'nivel_experiencia': chamado_agente.agente.nivel_experiencia
+            }
+
+        data_abertura_brazil = chamado.get_data_abertura_brazil()
+        data_conclusao_brazil = chamado.get_data_conclusao_brazil()
+
+        chamado_data = {
+            'id': chamado.id,
+            'codigo': chamado.codigo,
+            'protocolo': chamado.protocolo,
+            'solicitante': chamado.solicitante,
+            'email': chamado.email,
+            'telefone': chamado.telefone,
+            'unidade': chamado.unidade,
+            'problema': chamado.problema,
+            'descricao': chamado.descricao,
+            'status': chamado.status,
+            'prioridade': chamado.prioridade,
+            'data_abertura': data_abertura_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_abertura_brazil else None,
+            'data_conclusao': data_conclusao_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_conclusao_brazil else None,
+            'agente': agente_info
+        }
+
+        return json_response(chamado_data)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar detalhes do chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/enviar-email', methods=['POST'])
+@api_login_required
+def enviar_email_chamado(chamado_id):
+    """Envia e-mail relacionado a um chamado"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        destino = data.get('destino', chamado.email)
+        assunto = data.get('assunto', f'Atualização do Chamado {chamado.codigo}')
+        mensagem = data.get('mensagem', '')
+        incluir_detalhes = data.get('incluir_detalhes', True)
+
+        if not destino:
+            return error_response('E-mail de destino é obrigatório', 400)
+
+        # Montar corpo do e-mail
+        corpo_email = mensagem
+
+        if incluir_detalhes:
+            detalhes = f"""
+
+=== DETALHES DO CHAMADO ===
+Código: {chamado.codigo}
+Protocolo: {chamado.protocolo}
+Solicitante: {chamado.solicitante}
+Problema: {chamado.problema}
+Descrição: {chamado.descricao or 'Não informada'}
+Status: {chamado.status}
+Prioridade: {chamado.prioridade}
+Data de Abertura: {chamado.get_data_abertura_brazil().strftime('%d/%m/%Y %H:%M:%S') if chamado.get_data_abertura_brazil() else 'N/A'}
+"""
+            corpo_email += detalhes
+
+        # Tentar enviar e-mail
+        try:
+            from setores.ti.routes import enviar_email
+            enviar_email(assunto, corpo_email, [destino])
+
+            # Registrar log da ação
+            registrar_log_acao(
+                usuario_id=current_user.id,
+                acao=f'E-mail enviado para chamado {chamado.codigo}',
+                categoria='chamados',
+                detalhes=f'E-mail enviado para {destino} sobre o chamado {chamado.codigo}',
+                recurso_afetado=str(chamado.id),
+                tipo_recurso='chamado'
+            )
+
+            return json_response({
+                'message': 'E-mail enviado com sucesso',
+                'destino': destino,
+                'assunto': assunto
+            })
+
+        except Exception as email_error:
+            logger.error(f"Erro ao enviar e-mail: {str(email_error)}")
+            return error_response('Erro ao enviar e-mail. Verifique as configurações de e-mail.')
+
+    except Exception as e:
+        logger.error(f"Erro no endpoint de envio de e-mail: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 @painel_bp.route('/api/chamados/<int:chamado_id>/atribuir-me', methods=['POST'])
 @api_login_required
 def atribuir_chamado_para_mim(chamado_id):
     """Atribui um chamado ao agente logado"""
     try:
-        # Verificar se o usuário é um agente
+        logger.info(f"Tentativa de atribuição do chamado {chamado_id} pelo usuário {current_user.id}")
+
+        # Processar dados JSON se fornecidos
+        data = {}
+        if request.is_json:
+            try:
+                data = request.get_json() or {}
+            except Exception as e:
+                logger.warning(f"Erro ao processar JSON: {e}")
+
+        # Buscar ou criar agente automaticamente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente:
-            return error_response('Usuário não é um agente de suporte', 403)
+            # Criar agente automaticamente para admins e usuários de TI
+            if current_user.nivel_acesso == 'Administrador' or current_user.setor == 'TI':
+                agente = AgenteSuporte(
+                    usuario_id=current_user.id,
+                    ativo=True,
+                    nivel_experiencia='pleno',
+                    max_chamados_simultaneos=15
+                )
+                db.session.add(agente)
+                db.session.flush()  # Para obter o ID
+                logger.info(f"Agente criado automaticamente para usuário {current_user.id}")
+            else:
+                logger.warning(f"Usuário {current_user.id} não tem permissão para ser agente")
+                return error_response('Usuário não tem permissão para ser agente', 403)
 
         # Verificar se o agente pode receber mais chamados
-        if not agente.pode_receber_chamado():
-            return error_response('Você já atingiu o limite máximo de chamados simultâneos')
+        try:
+            if hasattr(agente, 'pode_receber_chamado') and not agente.pode_receber_chamado():
+                return error_response('Você já atingiu o limite máximo de chamados simultâneos', 400)
+        except Exception as e:
+            logger.warning(f"Erro ao verificar limite de chamados: {str(e)}")
+            # Continuar mesmo com erro no limite
 
         # Verificar se o chamado existe e está disponível
         chamado = Chamado.query.get(chamado_id)
         if not chamado:
+            logger.error(f"Chamado {chamado_id} não encontrado")
             return error_response('Chamado não encontrado', 404)
 
         if chamado.status not in ['Aberto']:
+            logger.warning(f"Chamado {chamado_id} não está disponível (status: {chamado.status})")
             return error_response('Chamado não está disponível para atribuição')
 
         # Verificar se já tem agente atribuído
@@ -916,6 +1088,7 @@ def atribuir_chamado_para_mim(chamado_id):
         ).first()
 
         if atribuicao_existente:
+            logger.warning(f"Chamado {chamado_id} já possui agente atribuído")
             return error_response('Chamado já possui agente atribuído')
 
         # Criar nova atribuição
@@ -928,6 +1101,8 @@ def atribuir_chamado_para_mim(chamado_id):
 
         db.session.add(nova_atribuicao)
         db.session.commit()
+
+        logger.info(f"Chamado {chamado_id} atribuído com sucesso ao agente {agente.id}")
 
         # Enviar e-mail de notificação
         try:
@@ -980,6 +1155,462 @@ Equipe de Suporte TI - Evoque Fitness
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao atribuir chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/atualizar', methods=['PUT'])
+@api_login_required
+def atualizar_chamado_agente(chamado_id):
+    """Atualiza um chamado pelo agente"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        # Verificar se o agente tem permissão para atualizar este chamado
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Verificar se o chamado está atribuído ao agente
+        atribuicao = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            agente_id=agente.id,
+            ativo=True
+        ).first()
+
+        if not atribuicao and current_user.nivel_acesso != 'Administrador':
+            return error_response('Chamado não está atribuído a você', 403)
+
+        # Atualizar status se fornecido
+        if 'status' in data:
+            novo_status = data['status']
+            if novo_status in ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']:
+                status_anterior = chamado.status
+                chamado.status = novo_status
+
+                # Atualizar campos de SLA baseado na mudança de status
+                agora_brazil = get_brazil_time()
+
+                # Se estava "Aberto" e mudou para outro status, registrar primeira resposta
+                if status_anterior == 'Aberto' and novo_status != 'Aberto' and not chamado.data_primeira_resposta:
+                    chamado.data_primeira_resposta = agora_brazil.replace(tzinfo=None)
+
+                # Se mudou para "Concluido" ou "Cancelado", registrar conclusão
+                if novo_status in ['Concluido', 'Cancelado'] and not chamado.data_conclusao:
+                    chamado.data_conclusao = agora_brazil.replace(tzinfo=None)
+
+        # Adicionar observações se fornecidas
+        observacoes = data.get('observacoes', '')
+        if observacoes:
+            # Criar registro no hist��rico do ticket
+            try:
+                historico = HistoricoTicket(
+                    chamado_id=chamado.id,
+                    acao='Atualização do agente',
+                    detalhes=observacoes,
+                    usuario_responsavel=f"{current_user.nome} {current_user.sobrenome}",
+                    data_acao=get_brazil_time().replace(tzinfo=None)
+                )
+                db.session.add(historico)
+            except Exception as hist_error:
+                logger.warning(f"Erro ao criar histórico: {str(hist_error)}")
+
+        db.session.commit()
+
+        # Registrar log da ação
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao=f'Chamado {chamado.codigo} atualizado',
+            categoria='chamados',
+            detalhes=f'Status alterado para {chamado.status}. Observações: {observacoes}',
+            recurso_afetado=str(chamado.id),
+            tipo_recurso='chamado'
+        )
+
+        # Emitir evento Socket.IO
+        try:
+            if hasattr(current_app, 'socketio'):
+                current_app.socketio.emit('chamado_atualizado', {
+                    'chamado_id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'status': chamado.status,
+                    'agente': f"{current_user.nome} {current_user.sobrenome}",
+                    'timestamp': get_brazil_time().isoformat()
+                })
+        except Exception as socket_error:
+            logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
+
+        return json_response({
+            'message': 'Chamado atualizado com sucesso',
+            'chamado': {
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'status': chamado.status
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atualizar chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/transferir', methods=['POST'])
+@api_login_required
+def transferir_chamado_agente(chamado_id):
+    """Transfere um chamado para outro agente"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        agente_destino_id = data.get('agente_destino_id')
+        if not agente_destino_id:
+            return error_response('Agente de destino é obrigatório', 400)
+
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        # Verificar se o agente atual tem permissão
+        agente_atual = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente_atual:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Verificar se agente de destino existe
+        agente_destino = AgenteSuporte.query.get(agente_destino_id)
+        if not agente_destino or not agente_destino.ativo:
+            return error_response('Agente de destino não encontrado ou inativo', 404)
+
+        # Verificar se agente de destino pode receber mais chamados
+        if not agente_destino.pode_receber_chamado():
+            return error_response('Agente de destino já atingiu o limite máximo de chamados simultâneos', 400)
+
+        # Buscar atribuição atual
+        atribuicao_atual = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if not atribuicao_atual:
+            return error_response('Chamado não possui agente atribuído', 400)
+
+        # Desativar atribuição atual
+        atribuicao_atual.ativo = False
+        atribuicao_atual.data_desatribuicao = get_brazil_time().replace(tzinfo=None)
+
+        # Criar nova atribuição
+        nova_atribuicao = ChamadoAgente(
+            chamado_id=chamado_id,
+            agente_id=agente_destino.id,
+            atribuido_por=current_user.id,
+            observacoes=data.get('observacoes', 'Transferido de outro agente')
+        )
+
+        db.session.add(nova_atribuicao)
+        db.session.commit()
+
+        # Registrar log da ação
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao=f'Chamado {chamado.codigo} transferido',
+            categoria='chamados',
+            detalhes=f'Transferido para {agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}',
+            recurso_afetado=str(chamado.id),
+            tipo_recurso='chamado'
+        )
+
+        # Emitir evento Socket.IO
+        try:
+            if hasattr(current_app, 'socketio'):
+                current_app.socketio.emit('chamado_transferido', {
+                    'chamado_id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'agente_origem_nome': f"{current_user.nome} {current_user.sobrenome}",
+                    'agente_origem_email': current_user.email,
+                    'agente_destino_nome': f"{agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}",
+                    'agente_destino_email': agente_destino.usuario.email,
+                    'timestamp': get_brazil_time().isoformat()
+                })
+        except Exception as socket_error:
+            logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
+
+        return json_response({
+            'message': f'Chamado transferido para {agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}',
+            'agente_destino': {
+                'id': agente_destino.id,
+                'nome': f"{agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}",
+                'email': agente_destino.usuario.email
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao transferir chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agentes/ativos', methods=['GET'])
+@api_login_required
+def listar_agentes_ativos():
+    """Lista agentes ativos para transferência"""
+    try:
+        agentes = db.session.query(AgenteSuporte, User).join(User).filter(
+            AgenteSuporte.ativo == True,
+            User.bloqueado == False
+        ).all()
+
+        agentes_list = []
+        for agente, usuario in agentes:
+            # Contar chamados ativos
+            chamados_ativos = ChamadoAgente.query.filter_by(
+                agente_id=agente.id,
+                ativo=True
+            ).join(Chamado).filter(
+                Chamado.status.in_(['Aberto', 'Aguardando'])
+            ).count()
+
+            agentes_list.append({
+                'id': agente.id,
+                'nome': f"{usuario.nome} {usuario.sobrenome}",
+                'usuario': usuario.usuario,
+                'email': usuario.email,
+                'nivel_experiencia': agente.nivel_experiencia,
+                'max_chamados': agente.max_chamados_simultaneos,
+                'chamados_ativos': chamados_ativos
+            })
+
+        return json_response(agentes_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao listar agentes ativos: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+# ==================== NOTIFICAÇÕES DO AGENTE ====================
+
+@painel_bp.route('/api/agente/notificacoes', methods=['GET'])
+@api_login_required
+def notificacoes_agente():
+    """Retorna notificações do agente"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Parâmetros de filtro
+        nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
+        limite = request.args.get('limite', 50, type=int)
+
+        # Simular algumas notificações para demonstração
+        agora = get_brazil_time()
+        notificacoes = [
+            {
+                'id': 1,
+                'titulo': 'Novo chamado atribuído',
+                'mensagem': 'Você tem um novo chamado de alta prioridade',
+                'tipo': 'chamado_atribuido',
+                'prioridade': 'alta',
+                'lida': False,
+                'data_criacao': (agora - timedelta(minutes=30)).strftime('%d/%m/%Y %H:%M:%S'),
+                'exibir_popup': True,
+                'som_ativo': True,
+                'chamado': {'id': 1, 'codigo': 'TI-2025-001'}
+            },
+            {
+                'id': 2,
+                'titulo': 'Chamado transferido',
+                'mensagem': 'Um chamado foi transferido para você',
+                'tipo': 'chamado_transferido',
+                'prioridade': 'normal',
+                'lida': True,
+                'data_criacao': (agora - timedelta(hours=2)).strftime('%d/%m/%Y %H:%M:%S'),
+                'exibir_popup': False,
+                'som_ativo': False,
+                'chamado': {'id': 2, 'codigo': 'TI-2025-002'}
+            },
+            {
+                'id': 3,
+                'titulo': 'Sistema atualizado',
+                'mensagem': 'O sistema foi atualizado com novas funcionalidades',
+                'tipo': 'sistema',
+                'prioridade': 'baixa',
+                'lida': True,
+                'data_criacao': (agora - timedelta(days=1)).strftime('%d/%m/%Y %H:%M:%S'),
+                'exibir_popup': False,
+                'som_ativo': False,
+                'chamado': None
+            }
+        ]
+
+        # Filtrar por não lidas se solicitado
+        if nao_lidas:
+            notificacoes = [n for n in notificacoes if not n['lida']]
+
+        # Aplicar limite
+        notificacoes = notificacoes[:limite]
+
+        return json_response(notificacoes)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar notificações: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agente/notificacoes/<int:notificacao_id>/marcar-lida', methods=['POST'])
+@api_login_required
+def marcar_notificacao_lida(notificacao_id):
+    """Marca uma notificação como lida"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Simular marcação como lida
+        return json_response({
+            'message': 'Notificação marcada como lida',
+            'notificacao_id': notificacao_id
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao marcar notificação como lida: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/auth/teste', methods=['GET'])
+def teste_autenticacao():
+    """Endpoint para testar autenticação"""
+    if current_user.is_authenticated:
+        return json_response({
+            'authenticated': True,
+            'user_id': current_user.id,
+            'user_name': current_user.nome,
+            'setor': current_user.setor
+        })
+    else:
+        return json_response({'authenticated': False}, 401)
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/auto-atribuir', methods=['POST'])
+@api_login_required
+def auto_atribuir_chamado(chamado_id):
+    """Auto-atribui um chamado ao usuário logado"""
+    try:
+        logger.info(f"Auto-atribuição do chamado {chamado_id} pelo usuário {current_user.id} ({current_user.nome})")
+
+        # Buscar o chamado
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        if chamado.status not in ['Aberto']:
+            return error_response('Chamado não está disponível para atribuição')
+
+        # Verificar se já tem agente atribuído
+        atribuicao_existente = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if atribuicao_existente:
+            return error_response('Chamado já possui agente atribuído')
+
+        # Buscar ou criar agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            # Criar agente automaticamente para admins e usuários de TI
+            if current_user.nivel_acesso == 'Administrador' or current_user.setor == 'TI':
+                agente = AgenteSuporte(
+                    usuario_id=current_user.id,
+                    ativo=True,
+                    nivel_experiencia='pleno',
+                    max_chamados_simultaneos=15
+                )
+                db.session.add(agente)
+                db.session.flush()  # Para obter o ID
+                logger.info(f"Agente criado automaticamente para usuário {current_user.id}")
+            else:
+                return error_response('Usuário não tem permissão para ser agente', 403)
+
+        # Criar atribuição
+        nova_atribuicao = ChamadoAgente(
+            chamado_id=chamado_id,
+            agente_id=agente.id,
+            atribuido_por=current_user.id,
+            observacoes='Auto-atribuição pelo agente'
+        )
+
+        db.session.add(nova_atribuicao)
+        db.session.commit()
+
+        # Enviar email
+        try:
+            from .email_service import email_service
+            email_service.notificar_agente_atribuido(chamado, agente)
+        except Exception as e:
+            logger.warning(f"Erro ao enviar email: {str(e)}")
+
+        logger.info(f"Chamado {chamado.codigo} auto-atribuído com sucesso")
+        return json_response({'message': f'Chamado {chamado.codigo} atribuído com sucesso'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na auto-atribuição: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agente/registrar', methods=['POST'])
+@api_login_required
+def registrar_como_agente():
+    """Registra o usuário atual como agente de suporte"""
+    try:
+        # Verificar se já é agente
+        agente_existente = AgenteSuporte.query.filter_by(usuario_id=current_user.id).first()
+        if agente_existente:
+            agente_existente.ativo = True
+            db.session.commit()
+            return json_response({'message': 'Agente reativado com sucesso'})
+
+        # Criar novo agente
+        agente = AgenteSuporte(
+            usuario_id=current_user.id,
+            ativo=True,
+            nivel_experiencia='pleno',
+            max_chamados_simultaneos=15
+        )
+        db.session.add(agente)
+        db.session.commit()
+
+        logger.info(f"Usuário {current_user.id} registrado como agente de suporte")
+        return json_response({'message': 'Registrado como agente com sucesso'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao registrar agente: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agente/notificacoes/marcar-todas-lidas', methods=['POST'])
+@api_login_required
+def marcar_todas_notificacoes_lidas():
+    """Marca todas as notificações como lidas"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Simular marcação de todas como lidas
+        return json_response({
+            'message': 'Todas as notificações foram marcadas como lidas'
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao marcar todas as notificações como lidas: {str(e)}")
         return error_response('Erro interno no servidor')
 
 # ==================== PROBLEMAS REPORTADOS ====================
@@ -1371,7 +2002,7 @@ def obter_estatisticas_chamados():
             stats_dict[stat.status] = stat.quantidade
             total += stat.quantidade
         
-        # Garantir que todos os status estão presentes
+        # Garantir que todos os status est��o presentes
         status_padrao = ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']
         for status in status_padrao:
             if status not in stats_dict:
@@ -1506,6 +2137,63 @@ def deletar_chamado(id):
 
 # ==================== USUÁRIOS ====================
 
+@painel_bp.route('/api/usuarios', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def listar_usuarios():
+    """Lista usuários com filtros opcionais"""
+    try:
+        busca = request.args.get('busca', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+
+        query = User.query
+
+        # Aplicar filtros de busca
+        if busca:
+            query = query.filter(
+                db.or_(
+                    User.nome.ilike(f'%{busca}%'),
+                    User.sobrenome.ilike(f'%{busca}%'),
+                    User.email.ilike(f'%{busca}%'),
+                    User.usuario.ilike(f'%{busca}%')
+                )
+            )
+
+        # Paginação
+        usuarios_pag = query.order_by(User.nome).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        usuarios_list = []
+        for user in usuarios_pag.items:
+            usuarios_list.append({
+                'id': user.id,
+                'nome': user.nome,
+                'sobrenome': user.sobrenome,
+                'email': user.email,
+                'usuario': user.usuario,
+                'nivel_acesso': user.nivel_acesso,
+                'setor': user.setor,
+                'bloqueado': getattr(user, 'bloqueado', False),
+                'ativo': getattr(user, 'ativo', True),
+                'data_cadastro': user.data_cadastro.strftime('%d/%m/%Y') if user.data_cadastro else None
+            })
+
+        return json_response({
+            'usuarios': usuarios_list,
+            'total': usuarios_pag.total,
+            'pages': usuarios_pag.pages,
+            'current_page': page,
+            'per_page': per_page,
+            'has_next': usuarios_pag.has_next,
+            'has_prev': usuarios_pag.has_prev
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao listar usuários: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 @painel_bp.route('/api/usuarios', methods=['POST'])
 @login_required
 @setor_required('Administrador')
@@ -1565,7 +2253,7 @@ def criar_usuario():
                 logger.error(f"Erro ao criar agente automaticamente: {str(e)}")
                 # Não interromper o fluxo se der erro na criação do agente
 
-        # Emitir evento Socket.IO apenas se a conexão estiver disponível
+        # Emitir evento Socket.IO apenas se a conex��o estiver disponível
         try:
             if hasattr(current_app, 'socketio'):
                 current_app.socketio.emit('usuario_criado', {
@@ -1596,19 +2284,62 @@ def criar_usuario():
         logger.error(traceback.format_exc())
         return error_response(f'Erro ao criar usuário: {str(e)}')
 
-@painel_bp.route('/api/usuarios', methods=['GET'])
+@painel_bp.route('/api/usuarios-search', methods=['GET'])
 @login_required
-def listar_usuarios():
+def buscar_usuarios_backup():
     try:
-        # Verificar se o banco de dados está disponível
-        try:
-            # Tentar uma consulta simples primeiro
-            db.session.execute(db.text('SELECT 1'))
-            db.session.commit()
-        except Exception as conn_error:
-            logger.warning(f"Banco de dados não disponível: {str(conn_error)}")
-            # Retornar dados de exemplo para permitir que a interface funcione
-            usuarios_exemplo = [
+        busca = request.args.get('busca', '').strip()
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 50, type=int)
+
+        # Buscar usuários no banco de dados
+        query = User.query
+
+        # Aplicar filtros de busca se fornecido
+        if busca:
+            query = query.filter(
+                db.or_(
+                    User.nome.ilike(f'%{busca}%'),
+                    User.sobrenome.ilike(f'%{busca}%'),
+                    User.email.ilike(f'%{busca}%'),
+                    User.usuario.ilike(f'%{busca}%')
+                )
+            )
+
+        # Paginação
+        usuarios_pag = query.order_by(User.nome).paginate(
+            page=page, per_page=per_page, error_out=False
+        )
+
+        usuarios_list = []
+        for user in usuarios_pag.items:
+            usuarios_list.append({
+                'id': user.id,
+                'nome': user.nome,
+                'sobrenome': user.sobrenome,
+                'email': user.email,
+                'usuario': user.usuario,
+                'nivel_acesso': user.nivel_acesso,
+                'setor': user.setor,
+                'bloqueado': getattr(user, 'bloqueado', False),
+                'ativo': getattr(user, 'ativo', True),
+                'data_cadastro': user.data_criacao.strftime('%d/%m/%Y') if hasattr(user, 'data_criacao') and user.data_criacao else None
+            })
+
+        return json_response({
+            'usuarios': usuarios_list,
+            'total': usuarios_pag.total,
+            'pages': usuarios_pag.pages,
+            'current_page': page,
+            'per_page': per_page,
+            'has_next': usuarios_pag.has_next,
+            'has_prev': usuarios_pag.has_prev
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar usuários: {str(e)}")
+        # Fallback: retornar usuários exemplo em caso de erro
+        usuarios_exemplo = [
                 {
                     'id': 1,
                     'nome': 'Admin',
@@ -1633,16 +2364,16 @@ def listar_usuarios():
                 }
             ]
 
-            # Aplicar filtro de busca se fornecido
-            busca = request.args.get('busca', '').strip()
-            if busca:
-                usuarios_filtrados = []
-                for u in usuarios_exemplo:
-                    if (busca.lower() in u['nome'].lower() or
-                        busca.lower() in u['sobrenome'].lower() or
-                        busca.lower() in u['usuario'].lower() or
-                        busca.lower() in u['email'].lower()):
-                        usuarios_filtrados.append(u)
+        # Aplicar filtro de busca se fornecido
+        busca = request.args.get('busca', '').strip()
+        if busca:
+            usuarios_filtrados = []
+            for u in usuarios_exemplo:
+                if (busca.lower() in u['nome'].lower() or
+                    busca.lower() in u['sobrenome'].lower() or
+                    busca.lower() in u['usuario'].lower() or
+                    busca.lower() in u['email'].lower()):
+                    usuarios_filtrados.append(u)
                 usuarios_exemplo = usuarios_filtrados
 
             return json_response({
@@ -2385,7 +3116,7 @@ def listar_setores():
         setores = [
             {'id': 'TI', 'nome': 'Setor de TI'},
             {'id': 'Compras', 'nome': 'Setor de compras'},
-            {'id': 'Manutencao', 'nome': 'Setor de manutenção'},
+            {'id': 'Manutencao', 'nome': 'Setor de manutenç��o'},
             {'id': 'Financeiro', 'nome': 'Setor financeiro'},
             {'id': 'Marketing', 'nome': 'Setor de produtos'},
             {'id': 'Comercial', 'nome': 'Setor comercial'},
@@ -2670,7 +3401,7 @@ def atualizar_agente(agente_id):
 
         data = request.get_json()
         if not data:
-            return error_response('Dados não fornecidos')
+            return error_response('Dados n��o fornecidos')
 
         # Atualizar campos
         if 'ativo' in data:
@@ -3189,7 +3920,7 @@ def analise_problemas():
 @login_required
 @setor_required('Administrador')
 def carregar_configuracoes_avancadas():
-    """Carrega configurações avançadas do sistema"""
+    """Carrega configura��ões avançadas do sistema"""
     try:
         configuracoes_avancadas = {
             'sistema': {

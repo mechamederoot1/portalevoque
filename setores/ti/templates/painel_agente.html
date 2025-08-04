@@ -66,6 +66,7 @@
         <li><a href="#historico-agente" tabindex="0"><i class="fas fa-history"></i><span>Meu Histórico</span></a></li>
         <li><a href="#estatisticas-agente" tabindex="0"><i class="fas fa-chart-bar"></i><span>Minhas Estatísticas</span></a></li>
         <li><a href="#notificacoes-agente" tabindex="0" class="notification-icon"><i class="fas fa-bell"></i><span>Notificações</span></a></li>
+        <li><a href="#gerenciar-usuarios" tabindex="0"><i class="fas fa-users-cog"></i><span>Gerenciar Usuários</span></a></li>
         <li><a href="#perfil-agente" tabindex="0"><i class="fas fa-user-cog"></i><span>Meu Perfil</span></a></li>
 
         {% if current_user.nivel_acesso == 'Administrador' %}
@@ -254,7 +255,7 @@
                       <i class="fas fa-pause me-1"></i>Aguardando
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-light" data-filter="concluidos">
-                      <i class="fas fa-check me-1"></i>Concluídos
+                      <i class="fas fa-check me-1"></i>Conclu��dos
                     </button>
                   </div>
                 </div>
@@ -474,7 +475,7 @@
       </div>
     </div>
 
-    <!-- Seção: Chamados Cancelados -->
+    <!-- Seç��o: Chamados Cancelados -->
     <div class="section-content" id="meus-chamados-cancelados" style="display: none;">
       <div class="container-fluid py-4">
         <div class="row mb-4">
@@ -730,6 +731,75 @@
       </div>
     </div>
 
+    <!-- Seção: Gerenciar Usuários -->
+    <div class="section-content" id="gerenciar-usuarios" style="display: none;">
+      <div class="container-fluid py-4">
+        <div class="row mb-4">
+          <div class="col-12">
+            <h2 class="mb-3">
+              <i class="fas fa-users-cog me-2"></i>Gerenciar Usuários
+            </h2>
+          </div>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="input-group">
+              <input type="text" class="form-control" id="buscaUsuario" placeholder="Buscar por nome, e-mail ou usuário...">
+              <button class="btn btn-primary" type="button" onclick="painelAgente.buscarUsuarios()">
+                <i class="fas fa-search"></i> Buscar
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6 text-end">
+            <button class="btn btn-success" onclick="painelAgente.abrirModalNovoUsuario()">
+              <i class="fas fa-user-plus me-1"></i>Novo Usuário
+            </button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">
+                  <i class="fas fa-users me-2"></i>Lista de Usuários
+                  <span class="badge bg-info ms-2" id="totalUsuarios">0</span>
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-dark table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Usuário</th>
+                        <th>Nível de Acesso</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabelaUsuarios">
+                      <tr><td colspan="6" class="text-center">Use a busca para listar usuários</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Paginação -->
+                <nav aria-label="Paginação de usuários" id="paginacaoUsuarios" style="display: none;">
+                  <ul class="pagination justify-content-center">
+                    <!-- Paginação será inserida via JavaScript -->
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Seção: Meu Perfil -->
     <div class="section-content" id="perfil-agente" style="display: none;">
       <div class="container-fluid py-4">
@@ -814,6 +884,181 @@
     </div>
 
   </main>
+
+  <!-- Modal Gerenciar Usuário -->
+  <div class="modal fade" id="modalGerenciarUsuario" tabindex="-1" aria-labelledby="modalGerenciarUsuarioTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content bg-dark">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalGerenciarUsuarioTitle">Gerenciar Usuário</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formGerenciarUsuario">
+            <input type="hidden" id="usuarioId">
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioNome" class="form-label">Nome *</label>
+                  <input type="text" class="form-control" id="usuarioNome" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioSobrenome" class="form-label">Sobrenome *</label>
+                  <input type="text" class="form-control" id="usuarioSobrenome" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioEmail" class="form-label">E-mail *</label>
+                  <input type="email" class="form-control" id="usuarioEmail" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioUsuario" class="form-label">Usuário *</label>
+                  <input type="text" class="form-control" id="usuarioUsuario" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioNivelAcesso" class="form-label">Nível de Acesso *</label>
+                  <select class="form-control" id="usuarioNivelAcesso" required>
+                    <option value="">Selecione...</option>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Gerente">Gerente</option>
+                    <option value="Gerente Regional">Gerente Regional</option>
+                    <option value="Gestor">Gestor</option>
+                    <option value="Agente de suporte">Agente de Suporte</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioSetores" class="form-label">Setores</label>
+                  <select class="form-control" id="usuarioSetores">
+                    <option value="TI">TI</option>
+                    <option value="Comercial">Comercial</option>
+                    <option value="Financeiro">Financeiro</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Manutenção">Manutenção</option>
+                    <option value="Produtos">Produtos</option>
+                    <option value="Compras">Compras</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row" id="novaSenhaSection" style="display: none;">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioSenha" class="form-label">Nova Senha</label>
+                  <input type="password" class="form-control" id="usuarioSenha">
+                  <small class="form-text text-muted">Deixe em branco para não alterar a senha</small>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Gerar Senha Automática</label>
+                  <div>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="painelAgente.gerarSenhaAleatoria()">
+                      <i class="fas fa-key me-1"></i>Gerar Senha
+                    </button>
+                    <span id="senhaGerada" class="ms-2 text-info"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="usuarioBloqueado">
+                  <label class="form-check-label" for="usuarioBloqueado">
+                    Usuário bloqueado
+                  </label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <div class="d-flex justify-content-between w-100">
+            <div>
+              <button type="button" class="btn btn-warning" id="btnResetarSenha" onclick="painelAgente.resetarSenhaUsuario()" style="display: none;">
+                <i class="fas fa-key"></i> Resetar Senha
+              </button>
+            </div>
+            <div>
+              <button type="button" class="btn btn-success" onclick="painelAgente.salvarUsuario()">
+                <i class="fas fa-save"></i> Salvar
+              </button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="fas fa-times"></i> Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Enviar Ticket por E-mail -->
+  <div class="modal fade" id="modalEnviarEmail" tabindex="-1" aria-labelledby="modalEnviarEmailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content bg-dark">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEnviarEmailTitle">Enviar Ticket por E-mail</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formEnviarEmail">
+            <input type="hidden" id="emailChamadoId">
+
+            <div class="mb-3">
+              <label for="emailDestino" class="form-label">E-mail de Destino *</label>
+              <input type="email" class="form-control" id="emailDestino" required>
+              <small class="form-text text-muted">Por padrão será enviado para o e-mail do solicitante</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="emailAssunto" class="form-label">Assunto *</label>
+              <input type="text" class="form-control" id="emailAssunto" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="emailMensagem" class="form-label">Mensagem *</label>
+              <textarea class="form-control" id="emailMensagem" rows="8" required placeholder="Digite sua mensagem personalizada aqui..."></textarea>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="incluirDetalhesTicket" checked>
+              <label class="form-check-label" for="incluirDetalhesTicket">
+                Incluir detalhes completos do ticket no e-mail
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="painelAgente.enviarEmailTicket()">
+            <i class="fas fa-paper-plane"></i> Enviar E-mail
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <!-- Container de Notificações -->
   <div id="notificationContainer" class="notification-container"></div>
@@ -920,6 +1165,9 @@
               <button type="button" class="btn btn-success" id="modalAtribuir" style="display: none;">
                 <i class="fas fa-user-plus"></i> Atribuir a Mim
               </button>
+              <button type="button" class="btn btn-outline-info" id="modalEnviarEmail" onclick="painelAgente.abrirModalEnviarEmailFromModal()">
+                <i class="fas fa-envelope"></i> Enviar E-mail
+              </button>
             </div>
             <div>
               <button type="button" class="btn btn-info" id="modalTransferir" style="display: none;">
@@ -990,20 +1238,89 @@
       document.querySelectorAll('.submenu-toggle').forEach(toggle => {
         toggle.addEventListener('click', function(e) {
           e.preventDefault();
+          e.stopPropagation();
+
+          const parentLi = this.closest('li.has-submenu');
           const submenu = this.nextElementSibling;
           const isExpanded = this.getAttribute('aria-expanded') === 'true';
-          
+
+          // Fechar outros submenus
+          document.querySelectorAll('.has-submenu').forEach(otherLi => {
+            if (otherLi !== parentLi) {
+              const otherToggle = otherLi.querySelector('.submenu-toggle');
+              const otherSubmenu = otherLi.querySelector('.submenu');
+              if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
+              if (otherSubmenu) {
+                otherSubmenu.style.display = 'none';
+                otherSubmenu.style.maxHeight = '0';
+              }
+              otherLi.classList.remove('open');
+            }
+          });
+
+          // Toggle submenu atual
           this.setAttribute('aria-expanded', !isExpanded);
-          submenu.style.display = isExpanded ? 'none' : 'block';
-          
-          // Rotacionar ícone
-          const icon = this.querySelector('i');
-          if (icon) {
-            icon.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
+          if (submenu) {
+            if (isExpanded) {
+              submenu.style.display = 'none';
+              submenu.style.maxHeight = '0';
+              parentLi.classList.remove('open');
+            } else {
+              submenu.style.display = 'block';
+              submenu.style.maxHeight = '300px';
+              parentLi.classList.add('open');
+            }
+          }
+
+          // Rotacionar ícone - corrigido para usar o seletor ::after
+          if (parentLi) {
+            if (isExpanded) {
+              parentLi.classList.remove('open');
+            } else {
+              parentLi.classList.add('open');
+            }
           }
         });
       });
       
+      // Configurar botão de notificações na navbar
+      const btnNotificacoes = document.getElementById('btnNotificacoes');
+      if (btnNotificacoes) {
+        btnNotificacoes.addEventListener('click', function(e) {
+          e.preventDefault();
+          showSection('notificacoes-agente');
+        });
+      }
+
+      // Configurar event listeners para botões do modal
+      const modalAtribuir = document.getElementById('modalAtribuir');
+      const modalAtualizar = document.getElementById('modalAtualizar');
+      const modalTransferir = document.getElementById('modalTransferir');
+
+      if (modalAtribuir) {
+        modalAtribuir.addEventListener('click', function() {
+          if (window.painelAgente && window.painelAgente.chamadoAtual) {
+            window.painelAgente.atribuirChamado(window.painelAgente.chamadoAtual.id);
+          }
+        });
+      }
+
+      if (modalAtualizar) {
+        modalAtualizar.addEventListener('click', function() {
+          if (window.painelAgente) {
+            window.painelAgente.atualizarChamado();
+          }
+        });
+      }
+
+      if (modalTransferir) {
+        modalTransferir.addEventListener('click', function() {
+          if (window.painelAgente) {
+            window.painelAgente.transferirChamado();
+          }
+        });
+      }
+
       // Mostrar dashboard inicialmente
       showSection('dashboard-agente');
     });
@@ -1013,7 +1330,7 @@
       constructor() {
         this.chamadoAtual = null;
         this.notificacoesNaoLidas = 0;
-        this.notificacaoSound = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQAoUXrTp66hVFApGn+DyvmEcBziY2u3AciMFl');
+        // Removido áudio problemático com CSP
         this.init();
       }
 
@@ -1096,6 +1413,9 @@
             break;
           case 'notificacoes-agente':
             this.carregarNotificacoesCompletas();
+            break;
+          case 'gerenciar-usuarios':
+            this.buscarUsuarios(''); // Carregar todos os usuários automaticamente
             break;
           case 'perfil-agente':
             this.carregarPerfilAgente();
@@ -1201,8 +1521,11 @@
             <td><span class="badge bg-${this.getPrioridadeClass(chamado.prioridade)}">${chamado.prioridade}</span></td>
             <td>${chamado.data_atribuicao}</td>
             <td>
-              <button class="btn btn-sm btn-primary" onclick="painelAgente.verDetalhes(${chamado.id})">
+              <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.verDetalhes(${chamado.id})">
                 <i class="fas fa-edit me-1"></i>Gerenciar
+              </button>
+              <button class="btn btn-sm btn-outline-info" onclick="painelAgente.abrirModalEnviarEmail(${chamado.id})" title="Enviar por e-mail">
+                <i class="fas fa-envelope"></i>
               </button>
             </td>
           </tr>
@@ -1211,35 +1534,54 @@
 
       async atribuirChamado(chamadoId) {
         try {
-          const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/atribuir-me`, {
+          // Usar o novo endpoint mais confiável
+          const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/auto-atribuir`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
           });
-          
+
           if (response.ok) {
-            this.showNotification('Chamado atribuído com sucesso!', 'success');
-            await this.carregarEstatisticas();
-            await this.carregarChamadosDisponiveis();
-            await this.carregarMeusChamados();
+            const data = await response.json();
+            this.showNotification(data.message || 'Chamado atribuído com sucesso!', 'success');
+            // Recarregar todas as listas
+            await Promise.all([
+              this.carregarEstatisticas(),
+              this.carregarChamadosDisponiveis(),
+              this.carregarMeusChamados(),
+              this.carregarDadosSecao(document.querySelector('.sidebar nav a.active')?.getAttribute('href')?.substring(1))
+            ]);
           } else {
             const error = await response.json();
             this.showNotification(error.error || 'Erro ao atribuir chamado', 'error');
           }
         } catch (error) {
           console.error('Erro ao atribuir chamado:', error);
-          this.showNotification('Erro ao atribuir chamado', 'error');
+          this.showNotification('Erro de conexão ao atribuir chamado', 'error');
         }
       }
 
       async verDetalhes(chamadoId) {
         try {
-          const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/detalhes`);
-          if (response.ok) {
-            const chamado = await response.json();
-            this.mostrarModalDetalhes(chamado);
-          } else {
-            this.showNotification('Erro ao carregar detalhes do chamado', 'error');
+          // Primeiro tentar buscar detalhes específicos
+          let response = await fetch(`/ti/painel/api/chamados/${chamadoId}/detalhes`);
+
+          if (!response.ok) {
+            // Se falhar, buscar da lista geral de chamados
+            const chamadosResponse = await fetch('/ti/painel/api/chamados');
+            if (chamadosResponse.ok) {
+              const chamados = await chamadosResponse.json();
+              const chamado = chamados.find(c => c.id === chamadoId);
+              if (chamado) {
+                this.mostrarModalDetalhes(chamado);
+                return;
+              }
+            }
+            throw new Error(`HTTP ${response.status}`);
           }
+
+          const chamado = await response.json();
+          this.mostrarModalDetalhes(chamado);
         } catch (error) {
           console.error('Erro ao carregar detalhes:', error);
           this.showNotification('Erro ao carregar detalhes do chamado', 'error');
@@ -1425,18 +1767,61 @@
 
       showNotification(message, type) {
         const notification = document.createElement('div');
-        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
-        notification.innerHTML = `
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade`;
+        notification.style.cssText = `
+          transform: translateX(100%);
+          opacity: 0;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         `;
-        
+        notification.innerHTML = `
+          <i class="fas fa-${this.getNotificationIcon(type)} me-2"></i>
+          ${message}
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
         const container = document.getElementById('notificationContainer');
         container.appendChild(notification);
-        
+
+        // Animar entrada
         setTimeout(() => {
-          notification.remove();
+          notification.classList.add('show');
+          notification.style.transform = 'translateX(0)';
+          notification.style.opacity = '1';
+        }, 100);
+
+        // Auto-remover após 5 segundos
+        setTimeout(() => {
+          this.hideNotification(notification);
         }, 5000);
+
+        // Evento de fechar manual
+        const closeBtn = notification.querySelector('.btn-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            this.hideNotification(notification);
+          });
+        }
+      }
+
+      hideNotification(notification) {
+        notification.style.transform = 'translateX(100%)';
+        notification.style.opacity = '0';
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 400);
+      }
+
+      getNotificationIcon(type) {
+        const icons = {
+          'success': 'check-circle',
+          'error': 'exclamation-triangle',
+          'warning': 'exclamation-triangle',
+          'info': 'info-circle',
+          'danger': 'exclamation-triangle'
+        };
+        return icons[type] || 'info-circle';
       }
       
       renderizarChamadosDisponiveisPage(chamados) {
@@ -1467,8 +1852,11 @@
               <button class="btn btn-sm btn-success me-1" onclick="painelAgente.atribuirChamado(${chamado.id})" title="Atribuir a mim">
                 <i class="fas fa-user-plus"></i>
               </button>
-              <button class="btn btn-sm btn-outline-info" onclick="painelAgente.verDetalhes(${chamado.id})" title="Ver detalhes">
+              <button class="btn btn-sm btn-outline-info me-1" onclick="painelAgente.verDetalhes(${chamado.id})" title="Ver detalhes">
                 <i class="fas fa-eye"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-success" onclick="painelAgente.abrirModalEnviarEmail(${chamado.id})" title="Enviar por e-mail">
+                <i class="fas fa-envelope"></i>
               </button>
             </td>
           </tr>
@@ -1518,6 +1906,9 @@
             <td>
               <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.verDetalhes(${chamado.id})" title="Gerenciar">
                 <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-success" onclick="painelAgente.abrirModalEnviarEmail(${chamado.id})" title="Enviar por e-mail">
+                <i class="fas fa-envelope"></i>
               </button>
             </td>
           </tr>
@@ -1611,6 +2002,93 @@
         }
       }
 
+      // === GERENCIAMENTO DE USUÁRIOS ===
+
+      async buscarUsuarios(busca = '') {
+        try {
+          const params = new URLSearchParams();
+          if (busca) params.append('busca', busca);
+
+          const response = await fetch(`/ti/painel/api/usuarios?${params}`);
+          if (response.ok) {
+            const data = await response.json();
+            this.renderizarUsuarios(data.usuarios || data);
+            this.atualizarContadorUsuarios(data.total || (data.usuarios ? data.usuarios.length : 0));
+          } else {
+            console.error('Erro ao buscar usuários:', response.status);
+            this.showNotification('Erro ao carregar usuários', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao buscar usuários:', error);
+          this.showNotification('Erro ao carregar usuários', 'error');
+        }
+      }
+
+      renderizarUsuarios(usuarios) {
+        const tbody = document.getElementById('tabelaUsuarios');
+        const totalElement = document.getElementById('totalUsuarios');
+
+        if (!tbody) return;
+
+        if (!usuarios || usuarios.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum usuário encontrado</td></tr>';
+          if (totalElement) totalElement.textContent = '0';
+          return;
+        }
+
+        tbody.innerHTML = usuarios.map(usuario => `
+          <tr>
+            <td>${usuario.nome} ${usuario.sobrenome}</td>
+            <td>${usuario.email}</td>
+            <td>${usuario.usuario}</td>
+            <td><span class="badge bg-info">${usuario.nivel_acesso}</span></td>
+            <td>
+              <span class="badge bg-${usuario.bloqueado ? 'danger' : 'success'}">
+                ${usuario.bloqueado ? 'Bloqueado' : 'Ativo'}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.editarUsuario(${usuario.id})" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-warning me-1" onclick="painelAgente.resetarSenhaUsuario(${usuario.id})" title="Resetar senha">
+                <i class="fas fa-key"></i>
+              </button>
+              <button class="btn btn-sm btn-${usuario.bloqueado ? 'success' : 'danger'}" onclick="painelAgente.alternarBloqueioUsuario(${usuario.id}, ${!usuario.bloqueado})" title="${usuario.bloqueado ? 'Desbloquear' : 'Bloquear'}">
+                <i class="fas fa-${usuario.bloqueado ? 'unlock' : 'lock'}"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      atualizarContadorUsuarios(total) {
+        const totalElement = document.getElementById('totalUsuarios');
+        if (totalElement) {
+          totalElement.textContent = total;
+        }
+      }
+
+      editarUsuario(userId) {
+        // Implementar edição de usuário
+        this.showNotification('Funcionalidade de edição em desenvolvimento', 'info');
+      }
+
+      resetarSenhaUsuario(userId) {
+        // Implementar reset de senha
+        this.showNotification('Funcionalidade de reset de senha em desenvolvimento', 'info');
+      }
+
+      alternarBloqueioUsuario(userId, bloquear) {
+        // Implementar bloqueio/desbloqueio
+        this.showNotification(`Funcionalidade de ${bloquear ? 'bloqueio' : 'desbloqueio'} em desenvolvimento`, 'info');
+      }
+
+      abrirModalNovoUsuario() {
+        // Implementar criação de usuário
+        this.showNotification('Funcionalidade de criação de usuário em desenvolvimento', 'info');
+      }
+
       // === SISTEMA DE NOTIFICAÇÕES ===
 
       async carregarNotificacoes() {
@@ -1623,7 +2101,7 @@
             this.renderizarNotificacoes(notificacoes);
           }
         } catch (error) {
-          console.error('Erro ao carregar notificações:', error);
+          console.error('Erro ao carregar notifica��ões:', error);
         }
       }
 
@@ -1713,10 +2191,10 @@
         const container = document.getElementById('notificacoes-container');
         container.appendChild(popup);
 
-        // Som de notificação
-        if (notificacao.som_ativo) {
-          this.notificacaoSound.play().catch(() => {});
-        }
+        // Som de notificação desabilitado devido a CSP
+        // if (notificacao.som_ativo) {
+        //   this.notificacaoSound.play().catch(() => {});
+        // }
 
         // Auto-remover após 8 segundos
         setTimeout(() => {
@@ -1753,7 +2231,9 @@
       async marcarNotificacaoLida(notificacaoId) {
         try {
           await fetch(`/ti/painel/api/agente/notificacoes/${notificacaoId}/marcar-lida`, {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
           });
           this.notificacoesNaoLidas = Math.max(0, this.notificacoesNaoLidas - 1);
           this.atualizarContadorNotificacoes();
@@ -1892,7 +2372,9 @@
       async marcarTodasNotificacoesLidas() {
         try {
           const response = await fetch('/ti/painel/api/agente/notificacoes/marcar-todas-lidas', {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
           });
 
           if (response.ok) {
@@ -1920,10 +2402,333 @@
         // Carregar histórico automaticamente com filtros padrão
         this.filtrarHistorico();
       }
+
+      // ========== GERENCIAMENTO DE USUÁRIOS ==========
+
+      async buscarUsuarios() {
+        try {
+          const busca = document.getElementById('buscaUsuario').value.trim();
+          const url = busca ? `/ti/painel/api/usuarios?busca=${encodeURIComponent(busca)}&per_page=20` : '/ti/painel/api/usuarios?per_page=20';
+
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            this.renderizarUsuarios(data.usuarios || []);
+            document.getElementById('totalUsuarios').textContent = data.pagination?.total || data.usuarios?.length || 0;
+          } else {
+            this.showNotification('Erro ao buscar usuários', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao buscar usuários:', error);
+          this.showNotification('Erro ao buscar usuários', 'error');
+        }
+      }
+
+      renderizarUsuarios(usuarios) {
+        const tbody = document.getElementById('tabelaUsuarios');
+
+        if (usuarios.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum usuário encontrado</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = usuarios.map(user => `
+          <tr>
+            <td>${user.nome} ${user.sobrenome}</td>
+            <td>${user.email}</td>
+            <td>${user.usuario}</td>
+            <td><span class="badge bg-info">${user.nivel_acesso}</span></td>
+            <td>
+              <span class="badge bg-${user.bloqueado ? 'danger' : 'success'}">
+                ${user.bloqueado ? 'Bloqueado' : 'Ativo'}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.editarUsuario(${user.id})" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-warning me-1" onclick="painelAgente.resetarSenhaUsuario(${user.id})" title="Resetar senha">
+                <i class="fas fa-key"></i>
+              </button>
+              <button class="btn btn-sm btn-${user.bloqueado ? 'success' : 'danger'}" onclick="painelAgente.toggleBloqueioUsuario(${user.id})" title="${user.bloqueado ? 'Desbloquear' : 'Bloquear'}">
+                <i class="fas fa-${user.bloqueado ? 'unlock' : 'lock'}"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      abrirModalNovoUsuario() {
+        // Limpar formulário
+        document.getElementById('formGerenciarUsuario').reset();
+        document.getElementById('usuarioId').value = '';
+        document.getElementById('modalGerenciarUsuarioTitle').textContent = 'Novo Usuário';
+        document.getElementById('novaSenhaSection').style.display = 'block';
+        document.getElementById('btnResetarSenha').style.display = 'none';
+        document.getElementById('usuarioSenha').required = true;
+
+        const modal = new bootstrap.Modal(document.getElementById('modalGerenciarUsuario'));
+        modal.show();
+      }
+
+      async editarUsuario(userId) {
+        try {
+          const response = await fetch(`/ti/painel/api/usuarios/${userId}`);
+          if (response.ok) {
+            const user = await response.json();
+
+            // Preencher formulário
+            document.getElementById('usuarioId').value = user.id;
+            document.getElementById('usuarioNome').value = user.nome;
+            document.getElementById('usuarioSobrenome').value = user.sobrenome;
+            document.getElementById('usuarioEmail').value = user.email;
+            document.getElementById('usuarioUsuario').value = user.usuario;
+            document.getElementById('usuarioNivelAcesso').value = user.nivel_acesso;
+            document.getElementById('usuarioSetores').value = user.setores || user.setor;
+            document.getElementById('usuarioBloqueado').checked = user.bloqueado;
+
+            document.getElementById('modalGerenciarUsuarioTitle').textContent = 'Editar Usuário';
+            document.getElementById('novaSenhaSection').style.display = 'block';
+            document.getElementById('btnResetarSenha').style.display = 'inline-block';
+            document.getElementById('usuarioSenha').required = false;
+
+            const modal = new bootstrap.Modal(document.getElementById('modalGerenciarUsuario'));
+            modal.show();
+          } else {
+            this.showNotification('Erro ao carregar dados do usuário', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao carregar usuário:', error);
+          this.showNotification('Erro ao carregar dados do usuário', 'error');
+        }
+      }
+
+      async salvarUsuario() {
+        try {
+          const userId = document.getElementById('usuarioId').value;
+          const isEdit = userId !== '';
+
+          const userData = {
+            nome: document.getElementById('usuarioNome').value,
+            sobrenome: document.getElementById('usuarioSobrenome').value,
+            email: document.getElementById('usuarioEmail').value,
+            usuario: document.getElementById('usuarioUsuario').value,
+            nivel_acesso: document.getElementById('usuarioNivelAcesso').value,
+            setores: document.getElementById('usuarioSetores').value,
+            bloqueado: document.getElementById('usuarioBloqueado').checked
+          };
+
+          if (!isEdit) {
+            userData.senha = document.getElementById('usuarioSenha').value;
+            if (!userData.senha) {
+              this.showNotification('Senha é obrigatória para novos usuários', 'warning');
+              return;
+            }
+          } else if (document.getElementById('usuarioSenha').value) {
+            userData.senha = document.getElementById('usuarioSenha').value;
+          }
+
+          const url = isEdit ? `/ti/painel/api/usuarios/${userId}` : '/ti/painel/api/usuarios';
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+          });
+
+          if (response.ok) {
+            this.showNotification(`Usuário ${isEdit ? 'atualizado' : 'criado'} com sucesso!`, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalGerenciarUsuario')).hide();
+            this.buscarUsuarios(); // Recarregar lista
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || `Erro ao ${isEdit ? 'atualizar' : 'criar'} usuário`, 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao salvar usuário:', error);
+          this.showNotification('Erro ao salvar usuário', 'error');
+        }
+      }
+
+      async resetarSenhaUsuario(userId = null) {
+        try {
+          const id = userId || document.getElementById('usuarioId').value;
+          if (!id) {
+            this.showNotification('ID do usuário não encontrado', 'error');
+            return;
+          }
+
+          const response = await fetch(`/ti/painel/api/usuarios/${id}/gerar-senha`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            this.showNotification(`Nova senha gerada: ${data.nova_senha}`, 'success');
+
+            // Se estiver no modal, mostrar a nova senha
+            if (!userId) {
+              document.getElementById('senhaGerada').textContent = data.nova_senha;
+              document.getElementById('usuarioSenha').value = data.nova_senha;
+            }
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || 'Erro ao resetar senha', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao resetar senha:', error);
+          this.showNotification('Erro ao resetar senha', 'error');
+        }
+      }
+
+      async toggleBloqueioUsuario(userId) {
+        try {
+          const response = await fetch(`/ti/painel/api/usuarios/${userId}/bloquear`, {
+            method: 'PUT'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            this.showNotification(data.message, 'success');
+            this.buscarUsuarios(); // Recarregar lista
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || 'Erro ao alterar status do usuário', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao alterar status:', error);
+          this.showNotification('Erro ao alterar status do usuário', 'error');
+        }
+      }
+
+      gerarSenhaAleatoria() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let senha = '';
+        for (let i = 0; i < 8; i++) {
+          senha += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        document.getElementById('usuarioSenha').value = senha;
+        document.getElementById('senhaGerada').textContent = senha;
+      }
+
+      // ========== ENVIO DE E-MAIL ==========
+
+      async abrirModalEnviarEmail(chamadoId) {
+        try {
+          // Buscar detalhes do chamado
+          const response = await fetch(`/ti/painel/api/chamados`);
+          if (response.ok) {
+            const chamados = await response.json();
+            const chamado = chamados.find(c => c.id === chamadoId);
+
+            if (!chamado) {
+              this.showNotification('Chamado não encontrado', 'error');
+              return;
+            }
+
+            // Preencher formulário
+            document.getElementById('emailChamadoId').value = chamadoId;
+            document.getElementById('emailDestino').value = chamado.email || '';
+            document.getElementById('emailAssunto').value = `Atualização do Chamado ${chamado.codigo}`;
+
+            // Mensagem padrão
+            const mensagemPadrao = `Olá ${chamado.solicitante},
+
+Estamos entrando em contato sobre o seu chamado ${chamado.codigo}.
+
+Detalhes do chamado:
+- Problema: ${chamado.problema}
+- Prioridade: ${chamado.prioridade}
+- Status: ${chamado.status}
+- Data de abertura: ${chamado.data_abertura}
+
+Em breve entraremos em contato para dar continuidade ao atendimento.
+
+Atenciosamente,
+Equipe de Suporte TI - Evoque Fitness`;
+
+            document.getElementById('emailMensagem').value = mensagemPadrao;
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEnviarEmail'));
+            modal.show();
+          }
+        } catch (error) {
+          console.error('Erro ao carregar dados do chamado:', error);
+          this.showNotification('Erro ao carregar dados do chamado', 'error');
+        }
+      }
+
+      async enviarEmailTicket() {
+        try {
+          const chamadoId = document.getElementById('emailChamadoId').value;
+          const emailData = {
+            destino: document.getElementById('emailDestino').value,
+            assunto: document.getElementById('emailAssunto').value,
+            mensagem: document.getElementById('emailMensagem').value,
+            incluir_detalhes: document.getElementById('incluirDetalhesTicket').checked
+          };
+
+          const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/enviar-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(emailData)
+          });
+
+          if (response.ok) {
+            this.showNotification('E-mail enviado com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalEnviarEmail')).hide();
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || 'Erro ao enviar e-mail', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao enviar e-mail:', error);
+          this.showNotification('Erro ao enviar e-mail', 'error');
+        }
+      }
+
+      abrirModalEnviarEmailFromModal() {
+        if (this.chamadoAtual) {
+          // Fechar modal de detalhes
+          bootstrap.Modal.getInstance(document.getElementById('modalChamado')).hide();
+
+          // Aguardar um pouco para evitar conflito de modais
+          setTimeout(() => {
+            this.abrirModalEnviarEmail(this.chamadoAtual.id);
+          }, 300);
+        }
+      }
+    }
+
+    // Função para testar autenticação
+    async function testarAutenticacao() {
+      try {
+        const response = await fetch('/ti/painel/api/auth/teste');
+        const data = await response.json();
+        if (!data.authenticated) {
+          console.error('Usuário não está autenticado');
+          alert('Sua sessão expirou. Por favor, faça login novamente.');
+          window.location.href = '/login';
+          return false;
+        }
+        console.log('Usuário autenticado:', data);
+        return true;
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        return false;
+      }
     }
 
     // Inicializar quando o DOM estiver carregado
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Verificar autenticação primeiro
+      const autenticado = await testarAutenticacao();
+      if (!autenticado) return;
+
       window.painelAgente = new PainelAgente();
       
       // Event listeners para modal
