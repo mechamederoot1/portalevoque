@@ -1906,6 +1906,17 @@
           this.showNotification('Erro ao marcar notificações como lidas', 'error');
         }
       }
+
+      carregarHistoricoInicial() {
+        // Limpar filtros ao carregar a seção
+        document.getElementById('filtroDataInicio').value = '';
+        document.getElementById('filtroDataFim').value = '';
+        document.getElementById('filtroStatus').value = '';
+
+        // Mostrar mensagem inicial
+        const tbody = document.getElementById('tabelaHistoricoAgente');
+        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Use os filtros para buscar o histórico</td></tr>';
+      }
     }
 
     // Inicializar quando o DOM estiver carregado
