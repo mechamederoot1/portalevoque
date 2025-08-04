@@ -38,13 +38,14 @@ app.config.from_object(SecurityConfig)
 
 # Configuração do Socket.IO
 socketio = SocketIO(
-    app, 
-    cors_allowed_origins="*", 
-    logger=False, 
-    engineio_logger=False, 
+    app,
+    cors_allowed_origins="*",
+    logger=False,
+    engineio_logger=False,
     async_mode='threading',
     ping_timeout=60,
-    ping_interval=25
+    ping_interval=25,
+    transports=['polling', 'websocket']
 )
 
 # INICIALIZAR MIDDLEWARE DE SEGURANÇA
