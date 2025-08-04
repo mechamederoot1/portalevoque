@@ -1908,14 +1908,17 @@
       }
 
       carregarHistoricoInicial() {
-        // Limpar filtros ao carregar a seção
-        document.getElementById('filtroDataInicio').value = '';
-        document.getElementById('filtroDataFim').value = '';
+        // Definir datas padrão (último mês)
+        const hoje = new Date();
+        const mesPassado = new Date();
+        mesPassado.setMonth(hoje.getMonth() - 1);
+
+        document.getElementById('filtroDataInicio').value = mesPassado.toISOString().split('T')[0];
+        document.getElementById('filtroDataFim').value = hoje.toISOString().split('T')[0];
         document.getElementById('filtroStatus').value = '';
 
-        // Mostrar mensagem inicial
-        const tbody = document.getElementById('tabelaHistoricoAgente');
-        tbody.innerHTML = '<tr><td colspan="7" class="text-center">Use os filtros para buscar o histórico</td></tr>';
+        // Carregar histórico automaticamente com filtros padrão
+        this.filtrarHistorico();
       }
     }
 
