@@ -924,7 +924,7 @@ document.getElementById('nivelAcesso')?.addEventListener('click', function(e) {
     e.stopPropagation();
 });
 
-// Detectar quando usuário seleciona "Agente de Suporte"
+// Detectar quando usu��rio seleciona "Agente de Suporte"
 document.getElementById('nivelAcesso')?.addEventListener('change', function(e) {
     if (this.value === 'Agente de Suporte') {
         // Automaticamente criar agente de suporte após criar o usuário
@@ -2173,7 +2173,7 @@ function inicializarSistemaPainel() {
 function initializePainel() {
     console.log('Inicializando painel.js...');
 
-    // Verificar se os elementos DOM estão disponíveis
+    // Verificar se os elementos DOM est��o disponíveis
     const sidebar = document.getElementById('sidebar');
     const sections = document.querySelectorAll('section.content-section');
 
@@ -3235,7 +3235,14 @@ let isSearching = false;
 async function filtrarListaUsuarios(termoBusca, page = 1) {
     console.log(`Filtrando usu��rios com termo: "${termoBusca}", página: ${page}`);
 
+    // Prevent multiple simultaneous requests
+    if (isSearching) {
+        console.log('Busca já em andamento, aguardando...');
+        return;
+    }
+
     try {
+        isSearching = true;
         // Atualizar variáveis globais
         currentUsuariosBusca = termoBusca;
         currentUsuariosPage = page;
@@ -4494,7 +4501,7 @@ async function confirmarAtribuicao(chamadoId) {
 
         fecharModalAgente();
 
-        // Recarregar chamados para mostrar a atribuição
+        // Recarregar chamados para mostrar a atribui��ão
         await loadChamados();
 
     } catch (error) {
