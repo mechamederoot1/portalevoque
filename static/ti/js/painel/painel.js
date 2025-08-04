@@ -36,11 +36,22 @@ let sections = null;
 function initializeNavigation() {
     console.log('Inicializando navegação...');
 
-    navLinks = document.querySelectorAll('.sidebar nav ul li a, .navbar-panel .nav-link-panel');
+    // Always re-query the DOM to ensure we have the latest elements
+    navLinks = document.querySelectorAll('.sidebar nav ul li a');
     sections = document.querySelectorAll('section.content-section');
 
     console.log('Links de navegação encontrados:', navLinks.length);
     console.log('Seções encontradas:', sections.length);
+
+    if (navLinks.length === 0) {
+        console.error('ERRO: Nenhum link de navegação encontrado!');
+        return;
+    }
+
+    if (sections.length === 0) {
+        console.error('ERRO: Nenhuma seção encontrada!');
+        return;
+    }
 
     navLinks.forEach(link => {
         link.addEventListener('click', e => {
@@ -57,17 +68,30 @@ function initializeNavigation() {
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
             if (!targetSection) {
-                console.error('Seção n��o encontrada:', targetId);
+                console.error('Seção não encontrada:', targetId);
                 return;
             }
 
-            activateSection(targetId);
-            navLinks.forEach(l => l.classList.remove('active'));
-            navLinks.forEach(l => {
-                if (l.getAttribute('href') === href) l.classList.add('active');
-            });
+            // Remove active class from all navigation links
+            document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
 
-            // Atualizar hash da URL
+            // Add active class to clicked link
+            link.classList.add('active');
+
+            // Handle submenu parent activation
+            const submenu = link.closest('.submenu');
+            if (submenu) {
+                const parentToggle = submenu.previousElementSibling;
+                if (parentToggle && parentToggle.classList.contains('submenu-toggle')) {
+                    parentToggle.classList.add('active');
+                    parentToggle.parentElement.classList.add('open');
+                }
+            }
+
+            // Activate the target section
+            activateSection(targetId);
+
+            // Update URL hash
             window.location.hash = targetId;
         });
     });
@@ -134,21 +158,32 @@ function initializeNavigation() {
 function activateSection(id) {
     console.log('Ativando seção:', id);
 
-    // Get sections dynamically if not initialized
-    const allSections = sections || document.querySelectorAll('section.content-section');
+    // Always query sections fresh to ensure we have the latest DOM state
+    const allSections = document.querySelectorAll('section.content-section');
 
     if (!allSections || allSections.length === 0) {
         console.error('Nenhuma seção encontrada!');
         return;
     }
 
+    console.log(`Encontradas ${allSections.length} seções. Procurando seção: ${id}`);
+
+    let sectionFound = false;
+
     allSections.forEach(section => {
         if (section.id === id) {
             section.classList.add('active');
             section.setAttribute('tabindex', '0');
             console.log('Seção ativada:', id);
+            sectionFound = true;
 
-            // Carregar conteúdo específico da seção
+            // Scroll to top of main content
+            const mainContent = document.getElementById('mainContent');
+            if (mainContent) {
+                mainContent.scrollTop = 0;
+            }
+
+            // Load section-specific content
             setTimeout(() => {
                 loadSectionContent(id);
             }, 50);
@@ -157,6 +192,12 @@ function activateSection(id) {
             section.removeAttribute('tabindex');
         }
     });
+
+    if (!sectionFound) {
+        console.error(`Seção com ID '${id}' não foi encontrada no DOM!`);
+        // List all available sections for debugging
+        console.log('Seções disponíveis:', Array.from(allSections).map(s => s.id));
+    }
 }
 
 // Theme toggle
