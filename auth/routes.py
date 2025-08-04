@@ -156,20 +156,20 @@ def alterar_senha():
     senha_atual = request.form.get('senha_atual')
     nova_senha = request.form.get('nova_senha')
     confirmar_senha = request.form.get('confirmar_senha')
-    
+
     if not current_user.check_password(senha_atual):
         flash('Senha atual incorreta', 'danger')
         return redirect(url_for('auth.perfil'))
-    
+
     if nova_senha != confirmar_senha:
         flash('As novas senhas não coincidem', 'danger')
         return redirect(url_for('auth.perfil'))
-    
+
     senha_valida, mensagem = validar_senha(nova_senha)
     if not senha_valida:
         flash(mensagem, 'danger')
         return redirect(url_for('auth.perfil'))
-    
+
     try:
         current_user.senha_hash = generate_password_hash(nova_senha)
         db.session.commit()
@@ -179,5 +179,30 @@ def alterar_senha():
         current_app.logger.error(f'Erro ao alterar senha: {str(e)}')
         db.session.rollback()
         flash('Erro ao alterar senha', 'danger')
-    
+
     return redirect(url_for('auth.perfil'))
+
+@auth_bp.route('/extend_session', methods=['POST'])
+@login_required
+def extend_session():
+    """Endpoint para estender a sessão do usuário"""
+    try:
+        from flask import session
+        from datetime import datetime
+
+        # Atualizar última atividade na sessão
+        session['_last_activity'] = datetime.utcnow().timestamp()
+
+        current_app.logger.info(f'Sessão estendida para usuário: {current_user.usuario}')
+
+        return jsonify({
+            'success': True,
+            'message': 'Sessão estendida com sucesso',
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        current_app.logger.error(f'Erro ao estender sessão: {str(e)}')
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao estender sessão'
+        }), 500
