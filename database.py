@@ -230,17 +230,6 @@ class SolicitacaoCompra(db.Model):
     def __repr__(self):
         return f'<SolicitacaoCompra {self.protocolo} - {self.produto}>'
 
-class ItemInternetCompleto(db.Model):
-    """Continuação da definição de ItemInternet"""
-    __tablename__ = 'item_internet'
-
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(50), nullable=False, unique=True)
-    ativo = db.Column(db.Boolean, default=True)
-
-    def __repr__(self):
-        return f'<ItemInternet {self.nome}>'
-
 class HistoricoTicket(db.Model):
     __tablename__ = 'historicos_tickets'
     
