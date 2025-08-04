@@ -3256,6 +3256,9 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
         // Extract usuarios array from API response
         const usuarios = data && data.usuarios ? data.usuarios : (Array.isArray(data) ? data : []);
 
+        // Store for global access
+        window.currentUsuariosList = usuarios;
+
         // Renderizar usuários
         renderizarUsuarios(usuarios);
 
