@@ -121,6 +121,19 @@ with app.app_context():
         # Adiciona estruturas faltantes
         if add_missing_structures():
             print("✅ Estruturas adicionais verificadas/criadas com sucesso!")
+
+            # Verificar e inserir dados iniciais
+            try:
+                from database import Unidade, ProblemaReportado, ItemInternet
+                unidades_count = Unidade.query.count()
+                if unidades_count == 0:
+                    print("🔄 Inserindo dados iniciais (unidades, problemas, itens)...")
+                    seed_unidades()
+                    print("✅ Dados iniciais inseridos com sucesso!")
+                else:
+                    print(f"✅ Dados iniciais já existem ({unidades_count} unidades)")
+            except Exception as e:
+                print(f"⚠️ Erro ao verificar/inserir dados iniciais: {str(e)}")
         else:
             print("⚠️  Algumas estruturas podem não ter sido criadas corretamente.")
         
