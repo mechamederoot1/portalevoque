@@ -12,6 +12,12 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- jsPDF -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- html2canvas -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- SheetJS for Excel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <style>
     :root {
       --primary-color: #FF6200;
@@ -472,12 +478,285 @@
       }, 1000);
     }
 
-    function exportarExcel() {
-      alert('Exportação para Excel será implementada em breve.');
+    async function exportarExcel() {
+      try {
+        const btn = event.target;
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Exportando...';
+        btn.disabled = true;
+
+        // Preparar dados para Excel
+        const dadosExcel = [
+          // Cabeçalho
+          ['RELATÓRIO DE COMPRAS - EVOQUE FITNESS'],
+          ['Gerado em: ' + new Date().toLocaleDateString('pt-BR')],
+          [''],
+          ['RESUMO EXECUTIVO'],
+          ['Total de Solicitações', document.getElementById('totalSolicitacoes').textContent],
+          ['Valor Total', document.getElementById('valorTotal').textContent],
+          ['Taxa de Aprovação', document.getElementById('aprovadas').textContent],
+          ['Tempo Médio de Entrega', document.getElementById('tempoMedio').textContent + ' dias'],
+          [''],
+          ['DETALHAMENTO DAS SOLICITAÇÕES'],
+          ['Protocolo', 'Data', 'Produto', 'Categoria', 'Valor (R$)', 'Status', 'Fornecedor']
+        ];
+
+        // Adicionar dados da tabela
+        dadosExemplo.forEach(item => {
+          dadosExcel.push([
+            item.protocolo,
+            item.data,
+            item.produto,
+            item.categoria,
+            item.valor,
+            getStatusLabel(item.status),
+            item.fornecedor
+          ]);
+        });
+
+        // Adicionar análise por categoria
+        dadosExcel.push(['']);
+        dadosExcel.push(['ANÁLISE POR CATEGORIA']);
+        dadosExcel.push(['Categoria', 'Quantidade', 'Percentual']);
+        dadosExcel.push(['Equipamentos', '15', '35%']);
+        dadosExcel.push(['Limpeza', '11', '25%']);
+        dadosExcel.push(['Manutenção', '9', '20%']);
+        dadosExcel.push(['Materiais', '9', '20%']);
+
+        // Criar workbook
+        const ws = XLSX.utils.aoa_to_sheet(dadosExcel);
+
+        // Aplicar estilos ao cabeçalho
+        ws['!merges'] = [
+          { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } }, // Título principal
+          { s: { r: 1, c: 0 }, e: { r: 1, c: 6 } }, // Data
+          { s: { r: 3, c: 0 }, e: { r: 3, c: 6 } }, // Resumo
+          { s: { r: 9, c: 0 }, e: { r: 9, c: 6 } }, // Detalhamento
+          { s: { r: dadosExcel.length - 5, c: 0 }, e: { r: dadosExcel.length - 5, c: 6 } } // Análise
+        ];
+
+        // Configurar largura das colunas
+        ws['!cols'] = [
+          { wch: 20 }, // Protocolo
+          { wch: 12 }, // Data
+          { wch: 30 }, // Produto
+          { wch: 15 }, // Categoria
+          { wch: 15 }, // Valor
+          { wch: 15 }, // Status
+          { wch: 20 }  // Fornecedor
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Relatório Compras');
+
+        // Gerar arquivo
+        const nomeArquivo = `relatorio_compras_${new Date().toISOString().split('T')[0]}.xlsx`;
+        XLSX.writeFile(wb, nomeArquivo);
+
+        // Mostrar sucesso
+        btn.innerHTML = '<i class="fas fa-check me-1"></i>Exportado!';
+        setTimeout(() => {
+          btn.innerHTML = textoOriginal;
+          btn.disabled = false;
+        }, 2000);
+
+      } catch (error) {
+        console.error('Erro ao exportar Excel:', error);
+        alert('Erro ao exportar Excel: ' + error.message);
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+      }
     }
 
-    function exportarPDF() {
-      alert('Exportação para PDF será implementada em breve.');
+    async function exportarPDF() {
+      try {
+        const btn = event.target;
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Gerando PDF...';
+        btn.disabled = true;
+
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF('l', 'mm', 'a4'); // Paisagem
+
+        let yPosition = 20;
+        const leftMargin = 15;
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const pageHeight = pdf.internal.pageSize.getHeight();
+
+        // Cabeçalho
+        pdf.setFontSize(20);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('RELATÓRIO DE COMPRAS - EVOQUE FITNESS', pageWidth/2, yPosition, { align: 'center' });
+
+        yPosition += 10;
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text('Gerado em: ' + new Date().toLocaleDateString('pt-BR'), pageWidth/2, yPosition, { align: 'center' });
+
+        yPosition += 20;
+
+        // Resumo Executivo
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('RESUMO EXECUTIVO', leftMargin, yPosition);
+        yPosition += 15;
+
+        pdf.setFontSize(11);
+        pdf.setFont('helvetica', 'normal');
+        const resumo = [
+          ['Total de Solicitações:', document.getElementById('totalSolicitacoes').textContent],
+          ['Valor Total:', document.getElementById('valorTotal').textContent],
+          ['Taxa de Aprovação:', document.getElementById('aprovadas').textContent],
+          ['Tempo Médio de Entrega:', document.getElementById('tempoMedio').textContent + ' dias']
+        ];
+
+        resumo.forEach(([label, value]) => {
+          pdf.text(label, leftMargin, yPosition);
+          pdf.text(value, leftMargin + 80, yPosition);
+          yPosition += 8;
+        });
+
+        yPosition += 10;
+
+        // Capturar gráficos
+        const graficos = ['chartMensal', 'chartCategorias', 'chartStatus', 'chartFornecedores'];
+        const titulosGraficos = ['Solicitações por Mês', 'Por Categoria', 'Status das Solicitações', 'Top 5 Fornecedores'];
+
+        for (let i = 0; i < graficos.length; i++) {
+          if (yPosition > pageHeight - 80) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+
+          pdf.setFontSize(14);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text(titulosGraficos[i], leftMargin, yPosition);
+          yPosition += 10;
+
+          try {
+            const canvas = document.getElementById(graficos[i]);
+            if (canvas) {
+              const canvasImg = canvas.toDataURL('image/png', 1.0);
+              const imgWidth = 120;
+              const imgHeight = 80;
+
+              pdf.addImage(canvasImg, 'PNG', leftMargin, yPosition, imgWidth, imgHeight);
+              yPosition += imgHeight + 15;
+            }
+          } catch (chartError) {
+            console.warn('Erro ao capturar gráfico:', chartError);
+            pdf.text('Gráfico não disponível', leftMargin, yPosition);
+            yPosition += 20;
+          }
+        }
+
+        // Nova página para tabela detalhada
+        pdf.addPage();
+        yPosition = 20;
+
+        pdf.setFontSize(16);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('DETALHAMENTO DAS SOLICITAÇÕES', leftMargin, yPosition);
+        yPosition += 15;
+
+        // Cabeçalho da tabela
+        pdf.setFontSize(9);
+        pdf.setFont('helvetica', 'bold');
+        const headers = ['Protocolo', 'Data', 'Produto', 'Categoria', 'Valor', 'Status', 'Fornecedor'];
+        const colWidths = [35, 25, 60, 25, 25, 25, 40];
+        let xPosition = leftMargin;
+
+        headers.forEach((header, index) => {
+          pdf.text(header, xPosition, yPosition);
+          xPosition += colWidths[index];
+        });
+
+        yPosition += 8;
+        pdf.line(leftMargin, yPosition, pageWidth - 15, yPosition); // Linha horizontal
+        yPosition += 5;
+
+        // Dados da tabela
+        pdf.setFont('helvetica', 'normal');
+        dadosExemplo.forEach(item => {
+          if (yPosition > pageHeight - 20) {
+            pdf.addPage();
+            yPosition = 20;
+          }
+
+          xPosition = leftMargin;
+          const rowData = [
+            item.protocolo,
+            item.data,
+            item.produto.length > 25 ? item.produto.substring(0, 25) + '...' : item.produto,
+            item.categoria,
+            'R$ ' + item.valor.toLocaleString('pt-BR'),
+            getStatusLabel(item.status),
+            item.fornecedor
+          ];
+
+          rowData.forEach((data, index) => {
+            pdf.text(String(data), xPosition, yPosition);
+            xPosition += colWidths[index];
+          });
+          yPosition += 7;
+        });
+
+        // Análise por categoria
+        yPosition += 15;
+        if (yPosition > pageHeight - 60) {
+          pdf.addPage();
+          yPosition = 20;
+        }
+
+        pdf.setFontSize(14);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('ANÁLISE POR CATEGORIA', leftMargin, yPosition);
+        yPosition += 15;
+
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        const categorias = [
+          ['Equipamentos', '15 solicitações', '35%'],
+          ['Limpeza', '11 solicitações', '25%'],
+          ['Manutenção', '9 solicitações', '20%'],
+          ['Materiais', '9 solicitações', '20%']
+        ];
+
+        categorias.forEach(([cat, qtd, perc]) => {
+          pdf.text(`${cat}: ${qtd} (${perc})`, leftMargin, yPosition);
+          yPosition += 8;
+        });
+
+        // Rodapé
+        const totalPages = pdf.internal.getNumberOfPages();
+        for (let i = 1; i <= totalPages; i++) {
+          pdf.setPage(i);
+          pdf.setFontSize(8);
+          pdf.text(
+            `Página ${i} de ${totalPages} | Evoque Fitness - Sistema de Compras`,
+            pageWidth/2,
+            pageHeight - 10,
+            { align: 'center' }
+          );
+        }
+
+        // Salvar PDF
+        const nomeArquivo = `relatorio_compras_${new Date().toISOString().split('T')[0]}.pdf`;
+        pdf.save(nomeArquivo);
+
+        // Mostrar sucesso
+        btn.innerHTML = '<i class="fas fa-check me-1"></i>PDF Gerado!';
+        setTimeout(() => {
+          btn.innerHTML = textoOriginal;
+          btn.disabled = false;
+        }, 2000);
+
+      } catch (error) {
+        console.error('Erro ao gerar PDF:', error);
+        alert('Erro ao gerar PDF: ' + error.message);
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+      }
     }
 
     // Inicializar página
