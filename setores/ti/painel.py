@@ -2070,7 +2070,7 @@ def obter_grafico_semanal():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/chamados-detalhados', methods=['GET'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def obter_chamados_detalhados_sla():
     """Retorna lista detalhada de chamados com informações de SLA"""
