@@ -219,14 +219,16 @@ class SecurityMiddleware:
             }), 429
         
         # Valida dados de entrada
-        if request.is_json:
+        if request.is_json and request.content_length and request.content_length > 0:
             try:
-                data = request.get_json()
+                data = request.get_json(force=True, silent=True)
                 if data and not self.validate_input(json.dumps(data)):
                     return jsonify({'error': 'Dados inválidos'}), 400
             except Exception as e:
-                logger.error(f"Erro ao validar JSON: {e}")
-                return jsonify({'error': 'JSON inválido'}), 400
+                # Se há Content-Type JSON mas o body não é JSON válido, só logar sem bloquear
+                if request.content_length and request.content_length > 0:
+                    logger.warning(f"Requisição com Content-Type JSON mas body inválido: {e}")
+                # Não retornar erro para permitir que endpoints processem requests sem body JSON
         
         # Valida parâmetros da URL
         for key, value in request.args.items():
