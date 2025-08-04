@@ -22,9 +22,12 @@ class Config:
     DB_PASSWORD = os.environ.get('DB_PASSWORD')
     DB_NAME = os.environ.get('DB_NAME')
     
-    # Validar se as variáveis de banco estão configuradas
+    # Verificar se as variáveis de banco estão configuradas para MySQL, se não usar SQLite
     if not all([DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
-        raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME")
+        # Usar SQLite para desenvolvimento local
+        SQLALCHEMY_DATABASE_URI = 'sqlite:///app.db'
+        print("⚠️ Usando SQLite para desenvolvimento (mysql não configurado)")
+    else:
 
     # Codifica a senha para uso na URL
     DB_PASSWORD_ENCODED = quote_plus(DB_PASSWORD)
