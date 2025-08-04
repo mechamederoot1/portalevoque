@@ -3393,6 +3393,100 @@ window.desbloquearUsuario = desbloquearUsuario;
 window.gerarNovaSenha = gerarNovaSenha;
 window.excluirUsuario = excluirUsuario;
 
+// Add event listeners for edit modal (initialize once)
+function initializeEditModalListeners() {
+    // Close modal listeners
+    const closeBtn = document.getElementById('modalEditarUsuarioClose');
+    const cancelBtn = document.getElementById('btnCancelarEdicao');
+    const modal = document.getElementById('modalEditarUsuario');
+
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+    }
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+    }
+
+    // Click outside to close
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+    }
+
+    // Save button listener
+    const saveBtn = document.getElementById('btnSalvarUsuario');
+    if (saveBtn) {
+        saveBtn.addEventListener('click', async () => {
+            const usuarioId = document.getElementById('editUsuarioId').value;
+            const nome = document.getElementById('editNomeUsuario').value.trim();
+            const sobrenome = document.getElementById('editSobrenomeUsuario').value.trim();
+            const usuario = document.getElementById('editUsuarioLogin').value.trim();
+            const email = document.getElementById('editEmailUsuario').value.trim();
+            const nivelAcesso = document.getElementById('editNivelAcesso').value;
+            const setorSelect = document.getElementById('editSetorUsuario');
+            const setores = Array.from(setorSelect.selectedOptions).map(option => option.value);
+            const bloqueado = document.getElementById('editBloqueado').checked;
+
+            try {
+                const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        nome,
+                        sobrenome,
+                        usuario,
+                        email,
+                        nivel_acesso: nivelAcesso,
+                        setores,
+                        bloqueado
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Erro ao atualizar usuário');
+                }
+
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showSuccess('Usuário Atualizado', 'Usuário atualizado com sucesso!');
+                }
+                modal.classList.remove('active');
+
+                // Refresh the users list
+                if (typeof loadUsuarios === 'function') {
+                    await loadUsuarios();
+                }
+                // Also refresh the permissions list
+                if (typeof filtrarListaUsuarios === 'function') {
+                    await filtrarListaUsuarios(currentUsuariosBusca || '', currentUsuariosPage || 1);
+                }
+            } catch (error) {
+                console.error('Erro ao atualizar usuário:', error);
+                if (window.advancedNotificationSystem) {
+                    window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+                }
+            }
+        });
+    }
+}
+
+// Initialize modal listeners when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeEditModalListeners);
+} else {
+    initializeEditModalListeners();
+}
+
 function renderizarPaginacaoUsuarios(pagination) {
     const paginationContainer = document.getElementById('usuariosPagination');
     if (!paginationContainer || pagination.pages <= 1) {
