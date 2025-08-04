@@ -122,7 +122,7 @@ def setup_database_endpoint():
         # Verificar se já existem dados de demonstração
         existing_logs = LogAcesso.query.limit(1).first()
         if existing_logs:
-            return json_response({'message': 'Dados de demonstração já existem', 'logs_count': LogAcesso.query.count()})
+            return json_response({'message': 'Dados de demonstraç��o já existem', 'logs_count': LogAcesso.query.count()})
 
         # Criar usuários de teste se não existem
         admin_user = User.query.filter_by(email='admin@demo.com').first()
@@ -1037,11 +1037,23 @@ def atribuir_chamado_para_mim(chamado_id):
     try:
         logger.info(f"Tentativa de atribuição do chamado {chamado_id} pelo usuário {current_user.id}")
 
-        # Verificar se o usuário é um agente
+        # Buscar ou criar agente automaticamente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente:
-            logger.warning(f"Usuário {current_user.id} n��o é um agente de suporte ativo")
-            return error_response('Usuário não é um agente de suporte', 403)
+            # Criar agente automaticamente para admins e usuários de TI
+            if current_user.nivel_acesso == 'Administrador' or current_user.setor == 'TI':
+                agente = AgenteSuporte(
+                    usuario_id=current_user.id,
+                    ativo=True,
+                    nivel_experiencia='pleno',
+                    max_chamados_simultaneos=15
+                )
+                db.session.add(agente)
+                db.session.flush()  # Para obter o ID
+                logger.info(f"Agente criado automaticamente para usuário {current_user.id}")
+            else:
+                logger.warning(f"Usuário {current_user.id} não tem permissão para ser agente")
+                return error_response('Usuário não tem permissão para ser agente', 403)
 
         # Verificar se o agente pode receber mais chamados
         try:
@@ -3900,7 +3912,7 @@ def analise_problemas():
 @login_required
 @setor_required('Administrador')
 def carregar_configuracoes_avancadas():
-    """Carrega configurações avançadas do sistema"""
+    """Carrega configura��ões avançadas do sistema"""
     try:
         configuracoes_avancadas = {
             'sistema': {
