@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, abort, redirect, url_for, flash, Response
 from database import Chamado, Unidade, User, db, ProblemaReportado, get_brazil_time, utc_to_brazil
-from database import HistoricoTicket, Configuracao
+from database import HistoricoTicket, Configuracao, AgenteSuporte, ChamadoAgente
 from sqlalchemy.exc import IntegrityError
 import logging
 import random
@@ -106,7 +106,7 @@ def setup_database_endpoint():
         if existing_logs:
             return json_response({'message': 'Dados de demonstração já existem', 'logs_count': LogAcesso.query.count()})
 
-        # Criar usu��rios de teste se não existem
+        # Criar usuários de teste se não existem
         admin_user = User.query.filter_by(email='admin@demo.com').first()
         if not admin_user:
             admin_user = User(
@@ -190,7 +190,7 @@ def setup_database_endpoint():
         usuarios_demo = [admin_user, test_user, agent_user]
         agora = get_brazil_time().replace(tzinfo=None)
 
-        # Criar logs de acesso dos últimos 30 dias
+        # Criar logs de acesso dos ��ltimos 30 dias
         logs_criados = 0
         for dia in range(30):
             data_log = agora - timedelta(days=dia)
@@ -277,7 +277,7 @@ def setup_database_endpoint():
             ('Usuário criado', 'usuarios', 'Novo usuário cadastrado'),
             ('Configuração alterada', 'sistema', 'Configuração do sistema modificada'),
             ('Backup realizado', 'sistema', 'Backup automático executado'),
-            ('Relatório gerado', 'relatorios', 'Relatório de atividades criado'),
+            ('Relat��rio gerado', 'relatorios', 'Relatório de atividades criado'),
             ('Logout realizado', 'autenticacao', 'Usuário fez logout')
         ]
 
@@ -481,7 +481,7 @@ def calcular_sla_chamado(chamado, config_sla):
     """Calcula informações de SLA para um chamado específico"""
     agora_brazil = get_brazil_time()
     
-    # Se não tem data de abertura, retorna valores padrão
+    # Se não tem data de abertura, retorna valores padr��o
     if not chamado.data_abertura:
         return {
             'horas_decorridas': 0,
@@ -2339,7 +2339,7 @@ def listar_setores():
         setores = [
             {'id': 'TI', 'nome': 'Setor de TI'},
             {'id': 'Compras', 'nome': 'Setor de compras'},
-            {'id': 'Manutencao', 'nome': 'Setor de manuten��ão'},
+            {'id': 'Manutencao', 'nome': 'Setor de manutenção'},
             {'id': 'Financeiro', 'nome': 'Setor financeiro'},
             {'id': 'Marketing', 'nome': 'Setor de produtos'},
             {'id': 'Comercial', 'nome': 'Setor comercial'},
