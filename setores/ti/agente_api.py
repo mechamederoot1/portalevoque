@@ -303,6 +303,29 @@ Sistema de Suporte TI
         except Exception as email_error:
             logger.warning(f"Erro ao enviar e-mails de transferência: {str(email_error)}")
 
+        # Emitir evento Socket.IO para notificação em tempo real
+        try:
+            from flask import current_app
+            if hasattr(current_app, 'socketio'):
+                current_app.socketio.emit('chamado_transferido', {
+                    'chamado_id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'protocolo': chamado.protocolo,
+                    'solicitante': chamado.solicitante,
+                    'problema': chamado.problema,
+                    'prioridade': chamado.prioridade,
+                    'agente_origem_id': agente_origem.id,
+                    'agente_origem_nome': f"{agente_origem.usuario.nome} {agente_origem.usuario.sobrenome}",
+                    'agente_destino_id': agente_destino.id,
+                    'agente_destino_nome': f"{agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}",
+                    'agente_destino_email': agente_destino.usuario.email,
+                    'transferido_por': f"{current_user.nome} {current_user.sobrenome}",
+                    'observacoes': observacoes,
+                    'timestamp': get_brazil_time().isoformat()
+                })
+        except Exception as socket_error:
+            logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
+
         logger.info(f"Chamado {chamado.codigo} transferido de {agente_origem.usuario.nome} para {agente_destino.usuario.nome}")
 
         return json_response({
