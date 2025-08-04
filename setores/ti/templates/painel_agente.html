@@ -1995,6 +1995,93 @@
         }
       }
 
+      // === GERENCIAMENTO DE USUÁRIOS ===
+
+      async buscarUsuarios(busca = '') {
+        try {
+          const params = new URLSearchParams();
+          if (busca) params.append('busca', busca);
+
+          const response = await fetch(`/ti/painel/api/usuarios?${params}`);
+          if (response.ok) {
+            const data = await response.json();
+            this.renderizarUsuarios(data.usuarios || data);
+            this.atualizarContadorUsuarios(data.total || (data.usuarios ? data.usuarios.length : 0));
+          } else {
+            console.error('Erro ao buscar usuários:', response.status);
+            this.showNotification('Erro ao carregar usuários', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao buscar usuários:', error);
+          this.showNotification('Erro ao carregar usuários', 'error');
+        }
+      }
+
+      renderizarUsuarios(usuarios) {
+        const tbody = document.getElementById('tabelaUsuarios');
+        const totalElement = document.getElementById('totalUsuarios');
+
+        if (!tbody) return;
+
+        if (!usuarios || usuarios.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum usuário encontrado</td></tr>';
+          if (totalElement) totalElement.textContent = '0';
+          return;
+        }
+
+        tbody.innerHTML = usuarios.map(usuario => `
+          <tr>
+            <td>${usuario.nome} ${usuario.sobrenome}</td>
+            <td>${usuario.email}</td>
+            <td>${usuario.usuario}</td>
+            <td><span class="badge bg-info">${usuario.nivel_acesso}</span></td>
+            <td>
+              <span class="badge bg-${usuario.bloqueado ? 'danger' : 'success'}">
+                ${usuario.bloqueado ? 'Bloqueado' : 'Ativo'}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.editarUsuario(${usuario.id})" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-warning me-1" onclick="painelAgente.resetarSenhaUsuario(${usuario.id})" title="Resetar senha">
+                <i class="fas fa-key"></i>
+              </button>
+              <button class="btn btn-sm btn-${usuario.bloqueado ? 'success' : 'danger'}" onclick="painelAgente.alternarBloqueioUsuario(${usuario.id}, ${!usuario.bloqueado})" title="${usuario.bloqueado ? 'Desbloquear' : 'Bloquear'}">
+                <i class="fas fa-${usuario.bloqueado ? 'unlock' : 'lock'}"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      atualizarContadorUsuarios(total) {
+        const totalElement = document.getElementById('totalUsuarios');
+        if (totalElement) {
+          totalElement.textContent = total;
+        }
+      }
+
+      editarUsuario(userId) {
+        // Implementar edição de usuário
+        this.showNotification('Funcionalidade de edição em desenvolvimento', 'info');
+      }
+
+      resetarSenhaUsuario(userId) {
+        // Implementar reset de senha
+        this.showNotification('Funcionalidade de reset de senha em desenvolvimento', 'info');
+      }
+
+      alternarBloqueioUsuario(userId, bloquear) {
+        // Implementar bloqueio/desbloqueio
+        this.showNotification(`Funcionalidade de ${bloquear ? 'bloqueio' : 'desbloqueio'} em desenvolvimento`, 'info');
+      }
+
+      abrirModalNovoUsuario() {
+        // Implementar criação de usuário
+        this.showNotification('Funcionalidade de criação de usuário em desenvolvimento', 'info');
+      }
+
       // === SISTEMA DE NOTIFICAÇÕES ===
 
       async carregarNotificacoes() {
