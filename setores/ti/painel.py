@@ -887,6 +887,128 @@ def meus_chamados_agente():
         logger.error(f"Erro ao buscar chamados do agente: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/chamados/<int:chamado_id>/detalhes', methods=['GET'])
+@api_login_required
+def detalhes_chamado(chamado_id):
+    """Retorna detalhes de um chamado específico"""
+    try:
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        # Buscar agente atribuído
+        agente_info = None
+        chamado_agente = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if chamado_agente and chamado_agente.agente:
+            agente_info = {
+                'id': chamado_agente.agente.id,
+                'nome': f"{chamado_agente.agente.usuario.nome} {chamado_agente.agente.usuario.sobrenome}",
+                'usuario': chamado_agente.agente.usuario.usuario,
+                'email': chamado_agente.agente.usuario.email,
+                'nivel_experiencia': chamado_agente.agente.nivel_experiencia
+            }
+
+        data_abertura_brazil = chamado.get_data_abertura_brazil()
+        data_conclusao_brazil = chamado.get_data_conclusao_brazil()
+
+        chamado_data = {
+            'id': chamado.id,
+            'codigo': chamado.codigo,
+            'protocolo': chamado.protocolo,
+            'solicitante': chamado.solicitante,
+            'email': chamado.email,
+            'telefone': chamado.telefone,
+            'unidade': chamado.unidade,
+            'problema': chamado.problema,
+            'descricao': chamado.descricao,
+            'status': chamado.status,
+            'prioridade': chamado.prioridade,
+            'data_abertura': data_abertura_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_abertura_brazil else None,
+            'data_conclusao': data_conclusao_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_conclusao_brazil else None,
+            'agente': agente_info
+        }
+
+        return json_response(chamado_data)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar detalhes do chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/enviar-email', methods=['POST'])
+@api_login_required
+def enviar_email_chamado(chamado_id):
+    """Envia e-mail relacionado a um chamado"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        destino = data.get('destino', chamado.email)
+        assunto = data.get('assunto', f'Atualização do Chamado {chamado.codigo}')
+        mensagem = data.get('mensagem', '')
+        incluir_detalhes = data.get('incluir_detalhes', True)
+
+        if not destino:
+            return error_response('E-mail de destino é obrigatório', 400)
+
+        # Montar corpo do e-mail
+        corpo_email = mensagem
+
+        if incluir_detalhes:
+            detalhes = f"""
+
+=== DETALHES DO CHAMADO ===
+Código: {chamado.codigo}
+Protocolo: {chamado.protocolo}
+Solicitante: {chamado.solicitante}
+Problema: {chamado.problema}
+Descrição: {chamado.descricao or 'Não informada'}
+Status: {chamado.status}
+Prioridade: {chamado.prioridade}
+Data de Abertura: {chamado.get_data_abertura_brazil().strftime('%d/%m/%Y %H:%M:%S') if chamado.get_data_abertura_brazil() else 'N/A'}
+"""
+            corpo_email += detalhes
+
+        # Tentar enviar e-mail
+        try:
+            from setores.ti.routes import enviar_email
+            enviar_email(assunto, corpo_email, [destino])
+
+            # Registrar log da ação
+            registrar_log_acao(
+                usuario_id=current_user.id,
+                acao=f'E-mail enviado para chamado {chamado.codigo}',
+                categoria='chamados',
+                detalhes=f'E-mail enviado para {destino} sobre o chamado {chamado.codigo}',
+                recurso_afetado=str(chamado.id),
+                tipo_recurso='chamado'
+            )
+
+            return json_response({
+                'message': 'E-mail enviado com sucesso',
+                'destino': destino,
+                'assunto': assunto
+            })
+
+        except Exception as email_error:
+            logger.error(f"Erro ao enviar e-mail: {str(email_error)}")
+            return error_response('Erro ao enviar e-mail. Verifique as configurações de e-mail.')
+
+    except Exception as e:
+        logger.error(f"Erro no endpoint de envio de e-mail: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 @painel_bp.route('/api/chamados/<int:chamado_id>/atribuir-me', methods=['POST'])
 @api_login_required
 def atribuir_chamado_para_mim(chamado_id):
@@ -1194,7 +1316,7 @@ def adicionar_unidade():
         
         nome = data['nome'].strip()
         if not nome:
-            return error_response('Nome da unidade não pode ser vazio.', 400)
+            return error_response('Nome da unidade n��o pode ser vazio.', 400)
         
         if Unidade.query.filter_by(nome=nome).first():
             return error_response('Unidade com este nome já existe.', 400)
