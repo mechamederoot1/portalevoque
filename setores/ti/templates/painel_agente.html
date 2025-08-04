@@ -694,6 +694,42 @@
       </div>
     </div>
 
+    <!-- Seção: Notificações -->
+    <div class="section-content" id="notificacoes-agente" style="display: none;">
+      <div class="container-fluid py-4">
+        <div class="row mb-4">
+          <div class="col-12">
+            <h2 class="mb-3">
+              <i class="fas fa-bell me-2"></i>Notificações
+            </h2>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                  <i class="fas fa-list me-2"></i>Minhas Notificações
+                </h5>
+                <button class="btn btn-sm btn-outline-secondary" onclick="painelAgente.marcarTodasNotificacoesLidas()">
+                  <i class="fas fa-check-double me-1"></i>Marcar Todas como Lidas
+                </button>
+              </div>
+              <div class="card-body">
+                <div id="listaNotificacoes">
+                  <div class="text-center py-4">
+                    <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+                    <p class="text-muted">Nenhuma notificação encontrada</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Seção: Meu Perfil -->
     <div class="section-content" id="perfil-agente" style="display: none;">
       <div class="container-fluid py-4">
