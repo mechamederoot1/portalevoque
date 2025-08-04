@@ -1827,6 +1827,82 @@
         };
         return cores[status] || 'secondary';
       }
+
+      async carregarNotificacoesCompletas() {
+        try {
+          const response = await fetch('/ti/painel/api/agente/notificacoes?limite=50');
+          if (response.ok) {
+            const notificacoes = await response.json();
+            this.renderizarListaNotificacoes(notificacoes);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar notificações completas:', error);
+        }
+      }
+
+      renderizarListaNotificacoes(notificacoes) {
+        const container = document.getElementById('listaNotificacoes');
+
+        if (notificacoes.length === 0) {
+          container.innerHTML = `
+            <div class="text-center py-4">
+              <i class="fas fa-bell-slash fa-3x text-muted mb-3"></i>
+              <p class="text-muted">Nenhuma notificação encontrada</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = notificacoes.map(notif => `
+          <div class="card mb-2 ${notif.lida ? 'border-secondary' : 'border-primary'}" style="opacity: ${notif.lida ? '0.7' : '1'}">
+            <div class="card-body p-3">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <h6 class="card-title mb-1 ${notif.lida ? 'text-muted' : 'text-white'}">
+                    ${notif.titulo}
+                    ${!notif.lida ? '<span class="badge bg-primary ms-2">Novo</span>' : ''}
+                  </h6>
+                  <p class="card-text small ${notif.lida ? 'text-muted' : 'text-light'}">${notif.mensagem}</p>
+                  <div class="d-flex align-items-center">
+                    <small class="text-muted me-3">
+                      <i class="fas fa-clock me-1"></i>${notif.data_criacao}
+                    </small>
+                    <span class="badge bg-${this.getTipoNotificacao(notif.tipo)} me-2">${notif.tipo.replace('_', ' ')}</span>
+                    <span class="badge bg-${notif.prioridade === 'alta' ? 'danger' : notif.prioridade === 'normal' ? 'info' : 'success'}">${notif.prioridade}</span>
+                  </div>
+                </div>
+                <div class="dropdown">
+                  <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="fas fa-ellipsis-v"></i>
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-dark">
+                    ${!notif.lida ? `<li><a class="dropdown-item" href="#" onclick="painelAgente.marcarNotificacaoLida(${notif.id})"><i class="fas fa-check me-2"></i>Marcar como Lida</a></li>` : ''}
+                    ${notif.chamado ? `<li><a class="dropdown-item" href="#" onclick="painelAgente.verDetalhes(${notif.chamado.id})"><i class="fas fa-eye me-2"></i>Ver Chamado</a></li>` : ''}
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      async marcarTodasNotificacoesLidas() {
+        try {
+          const response = await fetch('/ti/painel/api/agente/notificacoes/marcar-todas-lidas', {
+            method: 'POST'
+          });
+
+          if (response.ok) {
+            this.notificacoesNaoLidas = 0;
+            this.atualizarContadorNotificacoes();
+            this.carregarNotificacoesCompletas();
+            this.showNotification('Todas as notificações foram marcadas como lidas', 'success');
+          }
+        } catch (error) {
+          console.error('Erro ao marcar todas as notificações como lidas:', error);
+          this.showNotification('Erro ao marcar notificações como lidas', 'error');
+        }
+      }
     }
 
     // Inicializar quando o DOM estiver carregado
