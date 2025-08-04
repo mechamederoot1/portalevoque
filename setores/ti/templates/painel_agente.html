@@ -695,7 +695,7 @@
       </div>
     </div>
 
-    <!-- Se��ão: Notificações -->
+    <!-- Seção: Notificações -->
     <div class="section-content" id="notificacoes-agente" style="display: none;">
       <div class="container-fluid py-4">
         <div class="row mb-4">
@@ -2492,6 +2492,18 @@ Equipe de Suporte TI - Evoque Fitness`;
         } catch (error) {
           console.error('Erro ao enviar e-mail:', error);
           this.showNotification('Erro ao enviar e-mail', 'error');
+        }
+      }
+
+      abrirModalEnviarEmailFromModal() {
+        if (this.chamadoAtual) {
+          // Fechar modal de detalhes
+          bootstrap.Modal.getInstance(document.getElementById('modalChamado')).hide();
+
+          // Aguardar um pouco para evitar conflito de modais
+          setTimeout(() => {
+            this.abrirModalEnviarEmail(this.chamadoAtual.id);
+          }, 300);
         }
       }
     }
