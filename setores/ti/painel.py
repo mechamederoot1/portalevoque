@@ -88,12 +88,7 @@ CONFIGURACOES_PADRAO = {
 
 
 
-def error_response(message, status=500, details=None):
-    """Wrapper para respostas de erro padronizadas"""
-    error_data = {'error': message}
-    if details:
-        error_data['details'] = details
-    return json_response(error_data, status)
+
 
 @painel_bp.route('/api/setup-database', methods=['POST'])
 @login_required
