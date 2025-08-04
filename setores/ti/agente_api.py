@@ -316,6 +316,7 @@ Sistema de Suporte TI
                     'prioridade': chamado.prioridade,
                     'agente_origem_id': agente_origem.id,
                     'agente_origem_nome': f"{agente_origem.usuario.nome} {agente_origem.usuario.sobrenome}",
+                    'agente_origem_email': agente_origem.usuario.email,
                     'agente_destino_id': agente_destino.id,
                     'agente_destino_nome': f"{agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}",
                     'agente_destino_email': agente_destino.usuario.email,
