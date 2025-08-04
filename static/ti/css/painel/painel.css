@@ -271,11 +271,13 @@ a {
   border-radius: 6px;
   margin: var(--spacing-xs) 0;
   border: 1px solid rgba(255, 98, 0, 0.15);
+  display: none;
 }
 
 .sidebar nav ul li.has-submenu.open ul.submenu {
   max-height: 300px;
   padding: var(--spacing-xs) 0;
+  display: block;
 }
 
 .sidebar.collapsed .submenu {
