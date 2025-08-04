@@ -1681,7 +1681,7 @@ let usuariosBloqueadosData = [];
 const usuariosBloqueadosPerPage = 6;
 let currentBloqueadosPage = 1;
 
-// Função para carregar usuários bloqueados
+// Fun��ão para carregar usuários bloqueados
 async function loadUsuariosBloqueados() {
     try {
         const response = await fetch('/ti/painel/api/usuarios');
@@ -2904,18 +2904,9 @@ function inicializarFiltroPermissoes() {
 
     // Função para filtrar usuários
     const filtrarUsuarios = () => {
-        const termoBusca = filtroInput.value.toLowerCase().trim();
+        const termoBusca = filtroInput.value.trim();
         console.log('Executando filtro com termo:', termoBusca);
-        filtrarListaUsuarios(termoBusca);
-
-        // Feedback visual
-        if (termoBusca) {
-            filtroInput.style.backgroundColor = '#e8f4fd';
-            filtroInput.style.borderColor = '#007bff';
-        } else {
-            filtroInput.style.backgroundColor = '';
-            filtroInput.style.borderColor = '';
-        }
+        filtrarListaUsuarios(termoBusca, 1); // Sempre começar da primeira página em nova busca
     };
 
     // Event listeners para busca em tempo real
@@ -2967,101 +2958,231 @@ function inicializarFiltroPermissoes() {
     });
 
     console.log('Filtro de permissões inicializado com sucesso!');
+
+    // Carregar usuários inicialmente
+    filtrarListaUsuarios('', 1);
 }
 
-function filtrarListaUsuarios(termoBusca) {
+// Variáveis para controle de paginação de usuários
+let currentUsuariosPage = 1;
+let currentUsuariosBusca = '';
+
+async function filtrarListaUsuarios(termoBusca, page = 1) {
+    console.log(`Filtrando usuários com termo: "${termoBusca}", página: ${page}`);
+
+    try {
+        // Atualizar variáveis globais
+        currentUsuariosBusca = termoBusca;
+        currentUsuariosPage = page;
+
+        // Construir parâmetros da requisição
+        const params = new URLSearchParams({
+            page: page,
+            per_page: 12,
+            busca: termoBusca
+        });
+
+        const response = await fetch(`/ti/painel/api/usuarios?${params}`);
+        if (!response.ok) {
+            throw new Error('Erro ao buscar usuários');
+        }
+
+        const data = await response.json();
+
+        // Renderizar usuários
+        renderizarUsuarios(data.usuarios);
+
+        // Renderizar paginação
+        renderizarPaginacaoUsuarios(data.pagination);
+
+        // Feedback visual no input
+        const filtroInput = document.getElementById('filtroPermissoes');
+        if (filtroInput) {
+            if (termoBusca) {
+                filtroInput.style.backgroundColor = '#e8f4fd';
+                filtroInput.style.borderColor = '#007bff';
+            } else {
+                filtroInput.style.backgroundColor = '';
+                filtroInput.style.borderColor = '';
+            }
+        }
+
+        console.log(`Busca concluída: ${data.usuarios.length} usuário(s) encontrado(s) de ${data.pagination.total} total`);
+
+    } catch (error) {
+        console.error('Erro ao filtrar usuários:', error);
+
+        // Mostrar mensagem de erro
+        const usuariosGrid = document.getElementById('usuariosGrid');
+        if (usuariosGrid) {
+            usuariosGrid.innerHTML = `
+                <div class="col-12 text-center py-4">
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Erro ao carregar usuários: ${error.message}
+                    </div>
+                </div>
+            `;
+        }
+    }
+}
+
+function renderizarUsuarios(usuarios) {
     const usuariosGrid = document.getElementById('usuariosGrid');
     if (!usuariosGrid) {
         console.log('usuariosGrid não encontrado');
         return;
     }
 
-    // Buscar por cards específicas de usuários
-    const cards = usuariosGrid.querySelectorAll('.usuario-card');
-    let usuariosVisiveis = 0;
-
-    console.log(`Filtrando ${cards.length} cards de usuários com termo: "${termoBusca}"`);
-
-    cards.forEach(card => {
-        // Buscar elementos específicos baseados na estrutura real
-        const nomeElement = card.querySelector('.card-header h3');
-        const emailElements = card.querySelectorAll('.info-row span');
-        const statusElement = card.querySelector('.status-badge');
-
-        // Extrair textos específicos
-        const nomeUsuario = nomeElement ? nomeElement.textContent.toLowerCase() : '';
-
-        // Buscar email nos spans das info-rows
-        let emailUsuario = '';
-        let usuarioLogin = '';
-        let nivelUsuario = '';
-        let setoresUsuario = '';
-
-        emailElements.forEach((span, index) => {
-            const texto = span.textContent.toLowerCase();
-            if (texto.includes('@')) {
-                emailUsuario = texto;
-            } else {
-                // Baseado na ordem das info-rows: Usuário, E-mail, Nível, Setor(es)
-                switch(index) {
-                    case 0: usuarioLogin = texto; break;
-                    case 2: nivelUsuario = texto; break;
-                    case 3: setoresUsuario = texto; break;
-                }
-            }
-        });
-
-        const statusUsuario = statusElement ? statusElement.textContent.toLowerCase() : '';
-
-        // Verificar se algum campo contém o termo de busca
-        const encontrado = termoBusca === '' ||
-                          nomeUsuario.includes(termoBusca) ||
-                          emailUsuario.includes(termoBusca) ||
-                          usuarioLogin.includes(termoBusca) ||
-                          nivelUsuario.includes(termoBusca) ||
-                          setoresUsuario.includes(termoBusca) ||
-                          statusUsuario.includes(termoBusca);
-
-        if (encontrado) {
-            card.style.display = '';
-            card.style.transition = 'opacity 0.3s ease';
-            card.style.opacity = '1';
-            card.style.transform = 'scale(1)';
-            usuariosVisiveis++;
-        } else {
-            card.style.display = 'none';
-            card.style.opacity = '0';
-            card.style.transform = 'scale(0.95)';
-        }
-    });
-
-    // Mostrar mensagem se nenhum usuário for encontrado
-    let mensagemVazia = usuariosGrid.querySelector('#mensagemUsuariosVazia');
-    if (usuariosVisiveis === 0 && termoBusca !== '') {
-        if (!mensagemVazia) {
-            const mensagem = document.createElement('div');
-            mensagem.id = 'mensagemUsuariosVazia';
-            mensagem.className = 'text-center py-4';
-            mensagem.style.gridColumn = '1 / -1'; // Ocupar toda a largura do grid
-            mensagem.innerHTML = `
+    if (usuarios.length === 0) {
+        usuariosGrid.innerHTML = `
+            <div class="col-12 text-center py-4" id="mensagemUsuariosVazia">
                 <div class="empty-state">
                     <div class="empty-icon">
-                        <i class="fas fa-search"></i>
+                        <i class="fas fa-search fa-3x text-muted"></i>
                     </div>
                     <h4>Nenhum usuário encontrado</h4>
-                    <p>Tente usar termos de busca diferentes</p>
+                    <p class="text-muted">Tente usar termos de busca diferentes</p>
                 </div>
-            `;
-            usuariosGrid.appendChild(mensagem);
-        }
-    } else if (mensagemVazia) {
-        mensagemVazia.remove();
+            </div>
+        `;
+        return;
     }
 
-    // Mostrar contador de resultados
-    if (termoBusca) {
-        console.log(`Filtro aplicado: "${termoBusca}" - ${usuariosVisiveis} usuário(s) encontrado(s)`);
+    // Renderizar cards dos usuários
+    usuariosGrid.innerHTML = usuarios.map(usuario => `
+        <div class="card usuario-card animate__animated animate__fadeIn">
+            <div class="card-header">
+                <h3>${usuario.nome} ${usuario.sobrenome}</h3>
+                <span class="status-badge ${usuario.bloqueado ? 'bg-danger' : 'bg-success'}">
+                    ${usuario.bloqueado ? 'Bloqueado' : 'Ativo'}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="info-row">
+                    <i class="fas fa-user"></i>
+                    <span>${usuario.usuario}</span>
+                </div>
+                <div class="info-row">
+                    <i class="fas fa-envelope"></i>
+                    <span>${usuario.email}</span>
+                </div>
+                <div class="info-row">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>${usuario.nivel_acesso}</span>
+                </div>
+                <div class="info-row">
+                    <i class="fas fa-building"></i>
+                    <span>${usuario.setores || 'Não definido'}</span>
+                </div>
+                <div class="info-row">
+                    <i class="fas fa-calendar"></i>
+                    <span>${usuario.data_criacao || 'Não informado'}</span>
+                </div>
+            </div>
+            <div class="card-footer">
+                <button class="btn btn-primary btn-sm" onclick="editarUsuario(${usuario.id})">
+                    <i class="fas fa-edit"></i> Editar
+                </button>
+                ${usuario.bloqueado ?
+                    `<button class="btn btn-success btn-sm" onclick="desbloquearUsuario(${usuario.id})">
+                        <i class="fas fa-unlock"></i> Desbloquear
+                    </button>` :
+                    `<button class="btn btn-warning btn-sm" onclick="bloquearUsuario(${usuario.id})">
+                        <i class="fas fa-lock"></i> Bloquear
+                    </button>`
+                }
+                <button class="btn btn-info btn-sm" onclick="gerarNovaSenha(${usuario.id})">
+                    <i class="fas fa-key"></i> Nova Senha
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${usuario.id})">
+                    <i class="fas fa-trash"></i> Excluir
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderizarPaginacaoUsuarios(pagination) {
+    const paginationContainer = document.getElementById('usuariosPagination');
+    if (!paginationContainer || pagination.pages <= 1) {
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
     }
+
+    let paginationHTML = `
+        <nav aria-label="Paginação de usuários">
+            <ul class="pagination justify-content-center">
+    `;
+
+    // Botão anterior
+    if (pagination.has_prev) {
+        paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="filtrarListaUsuarios('${currentUsuariosBusca}', ${pagination.page - 1})">
+                    <i class="fas fa-chevron-left"></i> Anterior
+                </a>
+            </li>
+        `;
+    }
+
+    // Páginas numeradas
+    const startPage = Math.max(1, pagination.page - 2);
+    const endPage = Math.min(pagination.pages, pagination.page + 2);
+
+    if (startPage > 1) {
+        paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="filtrarListaUsuarios('${currentUsuariosBusca}', 1)">1</a>
+            </li>
+        `;
+        if (startPage > 2) {
+            paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        paginationHTML += `
+            <li class="page-item ${i === pagination.page ? 'active' : ''}">
+                <a class="page-link" href="#" onclick="filtrarListaUsuarios('${currentUsuariosBusca}', ${i})">${i}</a>
+            </li>
+        `;
+    }
+
+    if (endPage < pagination.pages) {
+        if (endPage < pagination.pages - 1) {
+            paginationHTML += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+        }
+        paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="filtrarListaUsuarios('${currentUsuariosBusca}', ${pagination.pages})">${pagination.pages}</a>
+            </li>
+        `;
+    }
+
+    // Botão próximo
+    if (pagination.has_next) {
+        paginationHTML += `
+            <li class="page-item">
+                <a class="page-link" href="#" onclick="filtrarListaUsuarios('${currentUsuariosBusca}', ${pagination.page + 1})">
+                    Próximo <i class="fas fa-chevron-right"></i>
+                </a>
+            </li>
+        `;
+    }
+
+    paginationHTML += `
+            </ul>
+        </nav>
+        <div class="text-center mt-2">
+            <small class="text-muted">
+                Página ${pagination.page} de ${pagination.pages}
+                (${pagination.total} usuário${pagination.total !== 1 ? 's' : ''} total)
+            </small>
+        </div>
+    `;
+
+    paginationContainer.innerHTML = paginationHTML;
 }
 
 // ==================== FUNCIONALIDADES DE GRUPOS ====================

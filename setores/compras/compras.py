@@ -1,7 +1,8 @@
-from flask import Blueprint, render_template, current_app
-from flask_login import login_required
+from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for, flash
+from flask_login import login_required, current_user
 from auth.auth_helpers import setor_required
 from datetime import datetime
+from database import db
 import os
 
 compras_bp = Blueprint(
@@ -12,27 +13,74 @@ compras_bp = Blueprint(
 
 @compras_bp.route('/')
 @login_required
-@setor_required('Compras')  # Ajuste para 'Compras' com maiúscula, consistente com setor definido
+@setor_required('Compras')
 def index():
     try:
-        # Debug: mostrar o caminho do template
-        base_path = os.path.dirname(__file__)
-        templates_path = os.path.join(base_path, 'templates')
-        current_app.logger.info(f"Procurando templates em: {templates_path}")
-        
-        if os.path.exists(templates_path):
-            for root, dirs, files in os.walk(templates_path):
-                current_app.logger.info(f"Pasta: {root}, Arquivos: {files}")
-        else:
-            current_app.logger.warning(f"Pasta de templates não encontrada: {templates_path}")
-        
         return render_template('compras/index.html', current_year=datetime.now().year)
-        
     except Exception as e:
-        current_app.logger.error(f"Erro ao renderizar template: {str(e)}")
-        return f"""
-        <h1>Debug - Erro no Template</h1>
-        <p>Erro: {str(e)}</p>
-        <p>Verifique se o arquivo está em: /setores/compras/templates/compras/index.html</p>
-        <a href="{url_for('main.index')}">Voltar</a>
-        """
+        current_app.logger.error(f"Erro ao renderizar template de compras: {str(e)}")
+        return redirect(url_for('main.index'))
+
+@compras_bp.route('/nova-solicitacao')
+@login_required
+@setor_required('Compras')
+def nova_solicitacao():
+    """Página para criar nova solicitação de compra"""
+    return render_template('compras/nova_solicitacao.html')
+
+@compras_bp.route('/solicitacoes')
+@login_required
+@setor_required('Compras')
+def solicitacoes():
+    """Página de listagem de solicitações"""
+    return render_template('compras/acompanhar_pedidos.html')
+
+@compras_bp.route('/acompanhar-pedidos')
+@login_required
+@setor_required('Compras')
+def acompanhar_pedidos():
+    """Página para acompanhar pedidos de compra"""
+    return render_template('compras/acompanhar_pedidos.html')
+
+@compras_bp.route('/fornecedores')
+@login_required
+@setor_required('Compras')
+def fornecedores():
+    """Página de gerenciamento de fornecedores"""
+    return render_template('compras/fornecedores.html')
+
+@compras_bp.route('/relatorios')
+@login_required
+@setor_required('Compras')
+def relatorios():
+    """Página de relatórios de compras"""
+    return render_template('compras/relatorios.html')
+
+@compras_bp.route('/api/solicitacao', methods=['POST'])
+@login_required
+@setor_required('Compras')
+def criar_solicitacao():
+    """API para criar nova solicitação de compra"""
+    try:
+        dados = request.get_json()
+
+        # Validar dados obrigatórios
+        campos_obrigatorios = ['produto', 'quantidade', 'justificativa']
+        for campo in campos_obrigatorios:
+            if not dados.get(campo):
+                return jsonify({'erro': f'Campo {campo} é obrigatório'}), 400
+
+        # Aqui você pode implementar a lógica para salvar no banco
+        # Por enquanto, apenas simular o sucesso
+
+        current_app.logger.info(f'Nova solicitação de compra criada pelo usuário {current_user.usuario}')
+
+        return jsonify({
+            'sucesso': True,
+            'mensagem': 'Solicitação criada com sucesso!',
+            'protocolo': f'COMP-{datetime.now().strftime("%Y%m%d%H%M%S")}'
+        })
+
+    except Exception as e:
+        current_app.logger.error(f'Erro ao criar solicitação: {str(e)}')
+        return jsonify({'erro': 'Erro interno do servidor'}), 500

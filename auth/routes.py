@@ -138,11 +138,19 @@ def first_login():
 @auth_bp.route('/logout')
 @login_required
 def logout():
+    reason = request.args.get('reason')
+
     if current_user.is_authenticated:
         usuario = current_user.usuario
         logout_user()
-        current_app.logger.info(f'Logout bem-sucedido: {usuario}')
-        flash('Você foi desconectado com sucesso.', 'info')
+
+        if reason == 'timeout':
+            current_app.logger.info(f'Logout por timeout de sessão: {usuario}')
+            flash('Sua sessão foi encerrada por inatividade (15 minutos). Faça login novamente.', 'warning')
+        else:
+            current_app.logger.info(f'Logout bem-sucedido: {usuario}')
+            flash('Você foi desconectado com sucesso.', 'info')
+
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/perfil')
@@ -156,20 +164,20 @@ def alterar_senha():
     senha_atual = request.form.get('senha_atual')
     nova_senha = request.form.get('nova_senha')
     confirmar_senha = request.form.get('confirmar_senha')
-    
+
     if not current_user.check_password(senha_atual):
         flash('Senha atual incorreta', 'danger')
         return redirect(url_for('auth.perfil'))
-    
+
     if nova_senha != confirmar_senha:
         flash('As novas senhas não coincidem', 'danger')
         return redirect(url_for('auth.perfil'))
-    
+
     senha_valida, mensagem = validar_senha(nova_senha)
     if not senha_valida:
         flash(mensagem, 'danger')
         return redirect(url_for('auth.perfil'))
-    
+
     try:
         current_user.senha_hash = generate_password_hash(nova_senha)
         db.session.commit()
@@ -179,5 +187,30 @@ def alterar_senha():
         current_app.logger.error(f'Erro ao alterar senha: {str(e)}')
         db.session.rollback()
         flash('Erro ao alterar senha', 'danger')
-    
+
     return redirect(url_for('auth.perfil'))
+
+@auth_bp.route('/extend_session', methods=['POST'])
+@login_required
+def extend_session():
+    """Endpoint para estender a sessão do usuário"""
+    try:
+        from flask import session
+        from datetime import datetime
+
+        # Atualizar última atividade na sessão
+        session['_last_activity'] = datetime.utcnow().timestamp()
+
+        current_app.logger.info(f'Sessão estendida para usuário: {current_user.usuario}')
+
+        return jsonify({
+            'success': True,
+            'message': 'Sessão estendida com sucesso',
+            'timestamp': datetime.utcnow().isoformat()
+        })
+    except Exception as e:
+        current_app.logger.error(f'Erro ao estender sessão: {str(e)}')
+        return jsonify({
+            'success': False,
+            'message': 'Erro ao estender sessão'
+        }), 500

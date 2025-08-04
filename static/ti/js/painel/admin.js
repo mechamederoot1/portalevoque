@@ -802,7 +802,7 @@ async function salvarConfiguracoesAvancadas() {
 
 async function carregarDashboardAvancado() {
     try {
-        const response = await fetch('/ti/admin/api/dashboard/metricas-avancadas');
+        const response = await fetch('/ti/api/dashboard/metricas-avancadas');
         if (!response.ok) {
             throw new Error('Erro ao carregar métricas avançadas');
         }

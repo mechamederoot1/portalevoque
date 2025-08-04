@@ -19,13 +19,18 @@
       --accent-color: #FF914D;
       --dark-color: #2A2F30;
       --light-color: #F8F9FA;
-      --text-color: #212529;
+      --text-color: #F8F9FA;
+      --text-light: #bfc7ca;
+      --card-bg: #2A2F30;
+      --border-color: #3A4345;
+      --shadow-color: rgba(0,0,0,0.3);
     }
-    
+
     body {
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background-color: var(--secondary-color);
-      color: var(--light-color);
+      color: var(--text-color) !important;
+      font-weight: 500;
       line-height: 1.6;
     }
     
@@ -168,14 +173,23 @@
       background-color: var(--primary-color);
     }
     
+    .nav-link {
+      color: var(--text-color) !important;
+      font-weight: 500;
+      margin: 0 8px;
+      padding: 8px 16px !important;
+      border-radius: 20px;
+      transition: all 0.3s ease;
+    }
+
     .feature-card {
-      background-color: var(--dark-color);
-      border: none;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
       transition: all 0.4s ease;
       height: 100%;
       overflow: hidden;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      box-shadow: 0 5px 15px var(--shadow-color);
       position: relative;
     }
     
@@ -218,14 +232,31 @@
     }
     
     .feature-card h5 {
-      color: white;
+      color: var(--text-color) !important;
       font-weight: 600;
       margin-bottom: 15px;
     }
-    
+
     .feature-card p {
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--text-light) !important;
       font-size: 0.95rem;
+    }
+
+    /* Garantir que todo texto seja visível */
+    * {
+      color: inherit;
+    }
+
+    p, span, div, label, input, select, textarea, h1, h2, h3, h4, h5, h6 {
+      color: var(--text-color) !important;
+    }
+
+    .hero-section h1 {
+      color: white !important;
+    }
+
+    .hero-section .lead {
+      color: white !important;
     }
     
     /* Supplier Section */
@@ -385,7 +416,7 @@
       <div class="row g-4">
         <!-- Nova Solicitação -->
         <div class="col-12 col-sm-6 col-lg-3">
-          <a href="nova-solicitacao.html" class="text-decoration-none">
+          <a href="{{ url_for('compras.nova_solicitacao') }}" class="text-decoration-none">
             <div class="card feature-card animate__animated animate__fadeInUp">
               <div class="card-body">
                 <div class="card-icon">
@@ -397,10 +428,10 @@
             </div>
           </a>
         </div>
-        
+
         <!-- Acompanhar Pedidos -->
         <div class="col-12 col-sm-6 col-lg-3">
-          <a href="acompanhar-pedidos.html" class="text-decoration-none">
+          <a href="{{ url_for('compras.acompanhar_pedidos') }}" class="text-decoration-none">
             <div class="card feature-card animate__animated animate__fadeInUp animate__delay-02s">
               <div class="card-body">
                 <div class="card-icon">
@@ -412,10 +443,10 @@
             </div>
           </a>
         </div>
-        
+
         <!-- Fornecedores -->
         <div class="col-12 col-sm-6 col-lg-3">
-          <a href="fornecedores.html" class="text-decoration-none">
+          <a href="{{ url_for('compras.fornecedores') }}" class="text-decoration-none">
             <div class="card feature-card animate__animated animate__fadeInUp animate__delay-04s">
               <div class="card-body">
                 <div class="card-icon">
@@ -427,10 +458,10 @@
             </div>
           </a>
         </div>
-        
+
         <!-- Relatórios -->
         <div class="col-12 col-sm-6 col-lg-3">
-          <a href="relatorios.html" class="text-decoration-none">
+          <a href="{{ url_for('compras.relatorios') }}" class="text-decoration-none">
             <div class="card feature-card animate__animated animate__fadeInUp animate__delay-06s">
               <div class="card-body">
                 <div class="card-icon">
