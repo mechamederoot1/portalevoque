@@ -3126,8 +3126,8 @@ function inicializarFiltroPermissoes() {
     filtrarListaUsuarios('', 1);
 }
 
-// Variáveis para controle de paginação de usuários
-let currentUsuariosPage = 1;
+// Variáveis para controle de paginação de usuários (reutilizando variável já declarada)
+// let currentUsuariosPage = 1; // REMOVIDO: Já declarado anteriormente
 let currentUsuariosBusca = '';
 
 async function filtrarListaUsuarios(termoBusca, page = 1) {
@@ -3922,7 +3922,7 @@ function verDetalhesLog(id, detalhes, erroDetalhes) {
             conteudo.innerHTML = `
                 <div class="mb-3">
                     <h6>Detalhes da Ação:</h6>
-                    <p class="text-muted">${detalhes || 'Sem detalhes disponíveis'}</p>
+                    <p class="text-muted">${detalhes || 'Sem detalhes dispon��veis'}</p>
                 </div>
                 ${erroDetalhes ? `
                     <div class="mb-3">
