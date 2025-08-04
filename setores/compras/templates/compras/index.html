@@ -387,6 +387,13 @@
           <li class="nav-item">
             <a class="nav-link active" href="{{ url_for('compras.index') }}">Compras</a>
           </li>
+          {% if current_user.is_authenticated and current_user.nivel_acesso == 'Administrador' %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('ti.painel_admin') }}">
+              <i class="fas fa-cogs me-1"></i>Painel Admin
+            </a>
+          </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
           </li>
