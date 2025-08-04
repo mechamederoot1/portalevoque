@@ -2263,16 +2263,16 @@ def buscar_usuarios():
                 }
             ]
 
-            # Aplicar filtro de busca se fornecido
-            busca = request.args.get('busca', '').strip()
-            if busca:
-                usuarios_filtrados = []
-                for u in usuarios_exemplo:
-                    if (busca.lower() in u['nome'].lower() or
-                        busca.lower() in u['sobrenome'].lower() or
-                        busca.lower() in u['usuario'].lower() or
-                        busca.lower() in u['email'].lower()):
-                        usuarios_filtrados.append(u)
+        # Aplicar filtro de busca se fornecido
+        busca = request.args.get('busca', '').strip()
+        if busca:
+            usuarios_filtrados = []
+            for u in usuarios_exemplo:
+                if (busca.lower() in u['nome'].lower() or
+                    busca.lower() in u['sobrenome'].lower() or
+                    busca.lower() in u['usuario'].lower() or
+                    busca.lower() in u['email'].lower()):
+                    usuarios_filtrados.append(u)
                 usuarios_exemplo = usuarios_filtrados
 
             return json_response({
@@ -3015,7 +3015,7 @@ def listar_setores():
         setores = [
             {'id': 'TI', 'nome': 'Setor de TI'},
             {'id': 'Compras', 'nome': 'Setor de compras'},
-            {'id': 'Manutencao', 'nome': 'Setor de manutenção'},
+            {'id': 'Manutencao', 'nome': 'Setor de manutenç��o'},
             {'id': 'Financeiro', 'nome': 'Setor financeiro'},
             {'id': 'Marketing', 'nome': 'Setor de produtos'},
             {'id': 'Comercial', 'nome': 'Setor comercial'},
@@ -3300,7 +3300,7 @@ def atualizar_agente(agente_id):
 
         data = request.get_json()
         if not data:
-            return error_response('Dados não fornecidos')
+            return error_response('Dados n��o fornecidos')
 
         # Atualizar campos
         if 'ativo' in data:
