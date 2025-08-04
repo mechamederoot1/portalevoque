@@ -83,17 +83,21 @@ def login():
                 return render_template('login.html', alterar_senha=True, usuario=user.usuario)
             
             login_user(user, remember=bool(lembrar))
-            
+
             # Registrar último acesso
             user.ultimo_acesso = datetime.utcnow()
             db.session.commit()
-            
+
             current_app.logger.info(f'Login bem-sucedido: {usuario}')
-            
+
+            # Verificar se existe uma página específica solicitada
             next_page = request.args.get('next')
             if next_page and next_page.startswith('/'):  # Previne redirect malicioso
                 return redirect(next_page)
-            return redirect(url_for('main.index'))
+
+            # Redirecionamento inteligente baseado no tipo de usuário
+            redirect_url = get_user_redirect_url(user)
+            return redirect(redirect_url)
         else:
             current_app.logger.warning(f'Tentativa de login falha: {usuario}')
             flash('Usuário ou senha inválidos', 'danger')
