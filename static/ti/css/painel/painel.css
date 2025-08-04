@@ -1029,9 +1029,16 @@ h2::after {
   border-radius: 6px;
   border: 1px solid var(--border-color);
   background: var(--card-bg);
-  color: var(--light-color);
+  color: var(--text-primary, var(--light-color));
   transition: all var(--transition-speed) ease;
   font-size: var(--font-size-small);
+}
+
+/* Garantir visibilidade do texto em inputs */
+.form-control,
+.form-control:focus,
+.form-control:active {
+  color: #ffffff !important;
 }
 
 .form-control:focus {
