@@ -40,7 +40,17 @@ function initializeNavigation() {
     sections = document.querySelectorAll('section.content-section');
 
     console.log('Links de navegação encontrados:', navLinks.length);
-    console.log('Se��ões encontradas:', sections.length);
+    console.log('🔧 DEBUG: Seções encontradas:', sections.length);
+
+    // Listar todas as seções encontradas
+    sections.forEach((section, index) => {
+        console.log(`🔧 DEBUG: Seção ${index}: ID=${section.id}, classes=${section.className}`);
+    });
+
+    // Listar todos os links encontrados
+    navLinks.forEach((link, index) => {
+        console.log(`🔧 DEBUG: Link ${index}: href=${link.getAttribute('href')}, texto=${link.textContent.trim()}`);
+    });
 
     navLinks.forEach(link => {
         link.addEventListener('click', e => {
@@ -466,7 +476,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
 
         const data = await response.json();
         
-        // Se o status foi atualizado com sucesso e é um dos status que requer notificação
+        // Se o status foi atualizado com sucesso e �� um dos status que requer notificação
         if (['Aguardando', 'Cancelado', 'Concluido'].includes(novoStatus)) {
             // Envia a notificação
             const notificacaoResponse = await fetch(`/ti/painel/api/chamados/${chamadoId}/notificar`, {
