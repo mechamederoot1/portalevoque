@@ -2022,7 +2022,16 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM carregado - inicializando painel.js');
 
     // Aguardar carregamento completo dos scripts
-    setTimeout(inicializarSistemaPainel, 100);
+    setTimeout(() => {
+        inicializarSistemaPainel();
+
+        // Inicializar Socket.IO
+        setTimeout(() => {
+            if (typeof initializeSocketIO === 'function') {
+                initializeSocketIO();
+            }
+        }, 1000);
+    }, 100);
 });
 
 // Navigation event listeners are now handled in initializeNavigation() function
