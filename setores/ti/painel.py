@@ -311,7 +311,7 @@ def setup_database_endpoint():
                 acao, categoria, detalhes = random.choice(acoes_exemplo)
                 ip = random.choice(ips_exemplo)
 
-                # Horário da ação aleatório no dia
+                # Horário da ação aleat��rio no dia
                 hora_acao = data_acao.replace(
                     hour=random.randint(8, 18),
                     minute=random.randint(0, 59),
@@ -418,7 +418,7 @@ def setup_demo_page():
     '''
 
 def carregar_configuracoes():
-    """Carrega configurações do banco de dados ou retorna padr��es"""
+    """Carrega configurações do banco de dados ou retorna padr����es"""
     try:
         config_final = CONFIGURACOES_PADRAO.copy()
 
@@ -822,6 +822,7 @@ def estatisticas_agente():
 def chamados_disponiveis():
     """Retorna chamados disponíveis para atribuição"""
     try:
+        logger.debug(f"Carregando chamados disponíveis para usuário {current_user.id} ({current_user.nome})")
         # Buscar chamados sem agente atribuído
         chamados = db.session.query(Chamado).outerjoin(ChamadoAgente).filter(
             Chamado.status.in_(['Aberto']),
