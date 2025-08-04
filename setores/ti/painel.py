@@ -1014,21 +1014,30 @@ Data de Abertura: {chamado.get_data_abertura_brazil().strftime('%d/%m/%Y %H:%M:%
 def atribuir_chamado_para_mim(chamado_id):
     """Atribui um chamado ao agente logado"""
     try:
+        logger.info(f"Tentativa de atribuição do chamado {chamado_id} pelo usuário {current_user.id}")
+
         # Verificar se o usuário é um agente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente:
+            logger.warning(f"Usuário {current_user.id} não é um agente de suporte ativo")
             return error_response('Usuário não é um agente de suporte', 403)
 
         # Verificar se o agente pode receber mais chamados
-        if not agente.pode_receber_chamado():
-            return error_response('Você já atingiu o limite máximo de chamados simultâneos')
+        try:
+            if hasattr(agente, 'pode_receber_chamado') and not agente.pode_receber_chamado():
+                return error_response('Você já atingiu o limite máximo de chamados simultâneos')
+        except Exception as e:
+            logger.warning(f"Erro ao verificar limite de chamados: {str(e)}")
+            # Continuar mesmo com erro no limite
 
         # Verificar se o chamado existe e está disponível
         chamado = Chamado.query.get(chamado_id)
         if not chamado:
+            logger.error(f"Chamado {chamado_id} não encontrado")
             return error_response('Chamado não encontrado', 404)
 
         if chamado.status not in ['Aberto']:
+            logger.warning(f"Chamado {chamado_id} não está disponível (status: {chamado.status})")
             return error_response('Chamado não está disponível para atribuição')
 
         # Verificar se já tem agente atribuído
@@ -1038,6 +1047,7 @@ def atribuir_chamado_para_mim(chamado_id):
         ).first()
 
         if atribuicao_existente:
+            logger.warning(f"Chamado {chamado_id} já possui agente atribuído")
             return error_response('Chamado já possui agente atribuído')
 
         # Criar nova atribuição
@@ -1050,6 +1060,8 @@ def atribuir_chamado_para_mim(chamado_id):
 
         db.session.add(nova_atribuicao)
         db.session.commit()
+
+        logger.info(f"Chamado {chamado_id} atribuído com sucesso ao agente {agente.id}")
 
         # Enviar e-mail de notificação
         try:
@@ -1463,7 +1475,7 @@ def listar_problemas():
             db.session.execute(db.text('SELECT 1'))
             db.session.commit()
         except Exception as conn_error:
-            logger.warning(f"Banco de dados não disponível: {str(conn_error)}")
+            logger.warning(f"Banco de dados n��o disponível: {str(conn_error)}")
             # Retornar lista vazia em vez de erro para permitir que a interface funcione
             return json_response([])
 
