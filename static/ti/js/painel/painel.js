@@ -2180,8 +2180,45 @@ function initializeFilterListeners() {
 
 // Função para verificar se uma seção existe
 function sectionExists(id) {
-    return Array.from(sections).some(section => section.id === id);
+    const allSections = document.querySelectorAll('section.content-section');
+    return Array.from(allSections).some(section => section.id === id);
 }
+
+// Global functions for debugging and manual control
+window.debugPainel = {
+    activateSection: function(id) {
+        console.log('Ativação manual da seção:', id);
+        activateSection(id);
+    },
+    listSections: function() {
+        const sections = document.querySelectorAll('section.content-section');
+        console.log('Seções disponíveis:', Array.from(sections).map(s => s.id));
+        return Array.from(sections).map(s => s.id);
+    },
+    listNavLinks: function() {
+        const links = document.querySelectorAll('.sidebar nav ul li a');
+        console.log('Links de navegação:', Array.from(links).map(l => l.getAttribute('href')));
+        return Array.from(links).map(l => l.getAttribute('href'));
+    },
+    reinitialize: function() {
+        console.log('Reinicializando sistema...');
+        initializeNavigation();
+    },
+    testNavigation: function(sectionId) {
+        console.log('Testando navegação para:', sectionId);
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            activateSection(sectionId);
+            console.log('Navegação executada com sucesso');
+        } else {
+            console.error('Seção não encontrada:', sectionId);
+        }
+    }
+};
+
+// Make key functions globally available
+window.activateSection = activateSection;
+window.loadSectionContent = loadSectionContent;
 
 // Section initialization is now handled in inicializarSistemaPainel()
 
