@@ -64,38 +64,17 @@ def add_missing_structures():
     Função para adicionar tabelas e colunas faltantes automaticamente
     """
     try:
-        with db.engine.connect() as connection:
-            print("🔄 Verificando estrutura do banco de dados...")
-            
-            # Lista de tabelas que devem existir
-            tabelas_necessarias = [
-                'user',
-                'chamado', 
-                'unidade',
-                'problema_reportado',
-                'item_internet',
-                'historicos_tickets',
-                'configuracoes'
-            ]
-            
-            for tabela in tabelas_necessarias:
-                result = connection.execute(db.text(
-                    "SELECT COUNT(*) FROM information_schema.tables "
-                    "WHERE table_schema = 'infra' AND table_name = :tabela"
-                ), {"tabela": tabela})
-                
-                if result.scalar() == 0:
-                    print(f"⚠️  Tabela {tabela} não encontrada. Será criada pelo SQLAlchemy.")
-            
-            # Verificação de colunas (mantido igual ao original)
-            # ... [restante do código de add_missing_structures permanece igual]
-            
-            print("✅ Verificação e atualização da estrutura do banco concluída!")
-            
+        print("🔄 Verificando estrutura do banco de dados...")
+
+        # Criar todas as tabelas se não existirem
+        db.create_all()
+
+        print("✅ Verificação e atualização da estrutura do banco concluída!")
+
     except Exception as e:
         print(f"❌ Erro geral ao verificar/atualizar estrutura do banco: {str(e)}")
         return False
-    
+
     return True
 
 # MIDDLEWARE DE SEGURANÇA DE SESSÃO
