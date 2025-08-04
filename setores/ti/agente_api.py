@@ -706,3 +706,191 @@ Equipe de Suporte TI - Evoque Fitness
         logger.error(f"Erro ao atribuir chamado: {str(e)}")
         logger.error(traceback.format_exc())
         return error_response('Erro interno no servidor')
+
+@agente_api_bp.route('/api/agente/notificacoes', methods=['GET'])
+@api_login_required
+def listar_notificacoes():
+    """Lista notificações do agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Buscar notificações não lidas
+        nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
+        limite = int(request.args.get('limite', 20))
+
+        query = NotificacaoAgente.query.filter_by(agente_id=agente.id)
+
+        if nao_lidas:
+            query = query.filter_by(lida=False)
+
+        notificacoes = query.order_by(NotificacaoAgente.data_criacao.desc()).limit(limite).all()
+
+        notificacoes_list = []
+        for notif in notificacoes:
+            notif_data = {
+                'id': notif.id,
+                'titulo': notif.titulo,
+                'mensagem': notif.mensagem,
+                'tipo': notif.tipo,
+                'lida': notif.lida,
+                'prioridade': notif.prioridade,
+                'data_criacao': notif.data_criacao.strftime('%d/%m/%Y %H:%M'),
+                'exibir_popup': notif.exibir_popup,
+                'som_ativo': notif.som_ativo
+            }
+
+            # Adicionar dados do chamado se existir
+            if notif.chamado_id:
+                notif_data['chamado'] = {
+                    'id': notif.chamado.id,
+                    'codigo': notif.chamado.codigo,
+                    'protocolo': notif.chamado.protocolo
+                }
+
+            # Adicionar metadados
+            metadados = notif.get_metadados()
+            if metadados:
+                notif_data['metadados'] = metadados
+
+            notificacoes_list.append(notif_data)
+
+        return json_response(notificacoes_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao listar notificações: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@agente_api_bp.route('/api/agente/notificacoes/<int:notificacao_id>/marcar-lida', methods=['POST'])
+@api_login_required
+def marcar_notificacao_lida(notificacao_id):
+    """Marca uma notificação como lida"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Buscar notificação
+        notificacao = NotificacaoAgente.query.filter_by(
+            id=notificacao_id,
+            agente_id=agente.id
+        ).first()
+
+        if not notificacao:
+            return error_response('Notificação não encontrada', 404)
+
+        notificacao.marcar_como_lida()
+
+        return json_response({'message': 'Notificação marcada como lida'})
+
+    except Exception as e:
+        logger.error(f"Erro ao marcar notificação como lida: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@agente_api_bp.route('/api/agente/notificacoes/marcar-todas-lidas', methods=['POST'])
+@api_login_required
+def marcar_todas_notificacoes_lidas():
+    """Marca todas as notificações como lidas"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Marcar todas como lidas
+        NotificacaoAgente.query.filter_by(
+            agente_id=agente.id,
+            lida=False
+        ).update({
+            'lida': True,
+            'data_leitura': get_brazil_time().replace(tzinfo=None)
+        })
+
+        db.session.commit()
+
+        return json_response({'message': 'Todas as notificações foram marcadas como lidas'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao marcar todas as notificações como lidas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@agente_api_bp.route('/api/agente/historico', methods=['GET'])
+@api_login_required
+def historico_atendimentos():
+    """Lista histórico de atendimentos do agente com filtros"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Parâmetros de filtro
+        data_inicio = request.args.get('data_inicio')
+        data_fim = request.args.get('data_fim')
+        status = request.args.get('status')
+        limite = int(request.args.get('limite', 50))
+
+        # Base query
+        query = HistoricoAtendimento.query.filter_by(agente_id=agente.id)
+
+        # Aplicar filtros
+        if data_inicio:
+            try:
+                data_inicio_dt = datetime.strptime(data_inicio, '%Y-%m-%d')
+                query = query.filter(HistoricoAtendimento.data_atribuicao >= data_inicio_dt)
+            except ValueError:
+                return error_response('Formato de data início inválido. Use YYYY-MM-DD', 400)
+
+        if data_fim:
+            try:
+                data_fim_dt = datetime.strptime(data_fim, '%Y-%m-%d')
+                # Adicionar 1 dia para incluir todo o dia
+                data_fim_dt = data_fim_dt.replace(hour=23, minute=59, second=59)
+                query = query.filter(HistoricoAtendimento.data_atribuicao <= data_fim_dt)
+            except ValueError:
+                return error_response('Formato de data fim inválido. Use YYYY-MM-DD', 400)
+
+        if status and status != 'Todos':
+            query = query.filter(HistoricoAtendimento.status_final == status)
+
+        historico = query.order_by(HistoricoAtendimento.data_atribuicao.desc()).limit(limite).all()
+
+        historico_list = []
+        for hist in historico:
+            hist_data = {
+                'id': hist.id,
+                'chamado': {
+                    'id': hist.chamado.id,
+                    'codigo': hist.chamado.codigo,
+                    'protocolo': hist.chamado.protocolo,
+                    'solicitante': hist.chamado.solicitante,
+                    'problema': hist.chamado.problema
+                },
+                'status_inicial': hist.status_inicial,
+                'status_final': hist.status_final or 'Em Andamento',
+                'data_atribuicao': hist.data_atribuicao.strftime('%d/%m/%Y %H:%M'),
+                'data_conclusao': hist.data_conclusao.strftime('%d/%m/%Y %H:%M') if hist.data_conclusao else None,
+                'tempo_resolucao_min': hist.tempo_total_resolucao_min,
+                'observacoes_finais': hist.observacoes_finais,
+                'solucao_aplicada': hist.solucao_aplicada,
+                'avaliacao_cliente': hist.avaliacao_cliente
+            }
+
+            # Adicionar informações de transferência se houver
+            if hist.transferido_de:
+                hist_data['transferido_de'] = f"{hist.transferido_de.usuario.nome} {hist.transferido_de.usuario.sobrenome}"
+            if hist.transferido_para:
+                hist_data['transferido_para'] = f"{hist.transferido_para.usuario.nome} {hist.transferido_para.usuario.sobrenome}"
+                hist_data['motivo_transferencia'] = hist.motivo_transferencia
+
+            historico_list.append(hist_data)
+
+        return json_response(historico_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar histórico de atendimentos: {str(e)}")
+        return error_response('Erro interno no servidor')
