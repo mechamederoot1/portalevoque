@@ -52,7 +52,7 @@ function initializeNavigation() {
             }
 
             const targetId = href.substring(1);
-            console.log('🔗 CLICK: Navegando para seção:', targetId);
+            console.log('Navegando para seção:', targetId);
 
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
@@ -1814,7 +1814,7 @@ function loadSectionContent(sectionId) {
             }
             break;
         case 'sla-dashboard':
-            // Carregar dados SLA se a função existir
+            // Carregar dados SLA se a fun��ão existir
             if (typeof carregarSLA === 'function') {
                 carregarSLA();
             }
@@ -1980,7 +1980,7 @@ function inicializarSistemaPainel() {
         setTimeout(() => {
             console.log('Carregando dados iniciais do sistema...');
 
-            // Carregar chamados para métricas
+            // Carregar chamados para m��tricas
             if (typeof loadChamados === 'function') {
                 console.log('Carregando chamados...');
                 loadChamados();
