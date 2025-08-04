@@ -83,7 +83,7 @@ def enviar_email(assunto, corpo, destinatarios=None):
     try:
         response = requests.post(ENDPOINT, headers=headers, json=email_data)
         if response.status_code == 202:
-            current_app.logger.info("🎉 E-mail enviado com sucesso!")
+            current_app.logger.info("�� E-mail enviado com sucesso!")
             return True
         else:
             current_app.logger.error(f"❌ Falha ao enviar e-mail. Status: {response.status_code}")
@@ -148,6 +148,21 @@ def painel():
         flash('Você não tem permissão para acessar o painel administrativo.', 'danger')
         return redirect(url_for('ti.index'))
     return render_template('painel.html')
+
+@ti_bp.route('/painel-agente')
+@login_required
+@setor_required('ti')
+def painel_agente():
+    """Painel específico para agentes de suporte"""
+    # Verificar se o usuário é um agente de suporte
+    from database import AgenteSuporte
+    agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+
+    if not agente:
+        flash('Você não está registrado como agente de suporte.', 'warning')
+        return redirect(url_for('ti.index'))
+
+    return render_template('painel_agente.html', agente=agente)
 
 @ti_bp.route('/abrir-chamado', methods=['GET', 'POST'])
 @login_required
