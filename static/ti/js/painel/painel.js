@@ -1843,7 +1843,7 @@ function loadSectionContent(sectionId) {
                         console.log('Função carregarAgentes encontrada no retry, executando...');
                         carregarAgentes();
                     } else {
-                        console.error('Função carregarAgentes ainda não disponível. Verifique o carregamento dos scripts.');
+                        console.error('Função carregarAgentes ainda n��o disponível. Verifique o carregamento dos scripts.');
                     }
                 }, 100);
             }
@@ -1952,10 +1952,7 @@ function inicializarSistemaPainel() {
     console.log('=== INICIALIZANDO SISTEMA DO PAINEL ===');
 
     try {
-        // 1. Inicializar navegação
-        initializeNavigation();
-
-        // 2. Verificar elementos essenciais da interface
+        // 1. Verificar elementos essenciais da interface primeiro
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const allSections = document.querySelectorAll('section.content-section');
@@ -1966,7 +1963,20 @@ function inicializarSistemaPainel() {
             sections: allSections.length
         });
 
-        // 3. Ativar seção inicial
+        if (allSections.length === 0) {
+            console.error('ERRO: Nenhuma seção content-section encontrada!');
+            return;
+        }
+
+        // 2. Inicializar navegação
+        initializeNavigation();
+
+        // 3. Garantir que apenas uma seção esteja ativa
+        allSections.forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // 4. Ativar seção inicial
         const hash = window.location.hash.substring(1);
         if (hash && document.getElementById(hash)) {
             console.log('Ativando seção do hash:', hash);
