@@ -1570,6 +1570,226 @@
           this.showNotification('Erro ao transferir chamado', 'error');
         }
       }
+
+      // === SISTEMA DE NOTIFICAÇÕES ===
+
+      async carregarNotificacoes() {
+        try {
+          const response = await fetch('/ti/painel/api/agente/notificacoes?nao_lidas=true&limite=10');
+          if (response.ok) {
+            const notificacoes = await response.json();
+            this.notificacoesNaoLidas = notificacoes.length;
+            this.atualizarContadorNotificacoes();
+            this.renderizarNotificacoes(notificacoes);
+          }
+        } catch (error) {
+          console.error('Erro ao carregar notificações:', error);
+        }
+      }
+
+      atualizarContadorNotificacoes() {
+        // Criar badge de notificações se não existir
+        let badge = document.querySelector('.notification-badge');
+        if (!badge && this.notificacoesNaoLidas > 0) {
+          badge = document.createElement('span');
+          badge.className = 'notification-badge';
+          badge.style.cssText = `
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            min-width: 20px;
+            height: 20px;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+          `;
+
+          // Adicionar ao ícone de notificações (assumindo que há um)
+          const notificationIcon = document.querySelector('.notification-icon');
+          if (notificationIcon) {
+            notificationIcon.style.position = 'relative';
+            notificationIcon.appendChild(badge);
+          }
+        }
+
+        if (badge) {
+          if (this.notificacoesNaoLidas > 0) {
+            badge.textContent = this.notificacoesNaoLidas > 99 ? '99+' : this.notificacoesNaoLidas;
+            badge.style.display = 'flex';
+          } else {
+            badge.style.display = 'none';
+          }
+        }
+      }
+
+      renderizarNotificacoes(notificacoes) {
+        // Criar container de notificações se não existir
+        let container = document.getElementById('notificacoes-container');
+        if (!container) {
+          container = document.createElement('div');
+          container.id = 'notificacoes-container';
+          container.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            max-width: 350px;
+          `;
+          document.body.appendChild(container);
+        }
+
+        // Renderizar notificações recentes
+        notificacoes.slice(0, 3).forEach(notif => {
+          if (notif.exibir_popup) {
+            this.exibirNotificacaoPopup(notif);
+          }
+        });
+      }
+
+      exibirNotificacaoPopup(notificacao) {
+        const popup = document.createElement('div');
+        popup.className = `alert alert-${this.getTipoNotificacao(notificacao.tipo)} alert-dismissible fade show mb-2`;
+        popup.style.cssText = `
+          box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+          border-left: 4px solid ${this.getCorNotificacao(notificacao.prioridade)};
+        `;
+
+        popup.innerHTML = `
+          <div class="d-flex">
+            <div class="flex-grow-1">
+              <strong>${notificacao.titulo}</strong>
+              <div class="small">${notificacao.mensagem}</div>
+              <div class="text-muted small">${notificacao.data_criacao}</div>
+            </div>
+            <button type="button" class="btn-close btn-close-white" onclick="this.parentElement.parentElement.remove()"></button>
+          </div>
+        `;
+
+        const container = document.getElementById('notificacoes-container');
+        container.appendChild(popup);
+
+        // Som de notificação
+        if (notificacao.som_ativo) {
+          this.notificacaoSound.play().catch(() => {});
+        }
+
+        // Auto-remover após 8 segundos
+        setTimeout(() => {
+          if (popup.parentNode) {
+            popup.remove();
+          }
+        }, 8000);
+
+        // Marcar como lida após exibir
+        setTimeout(() => {
+          this.marcarNotificacaoLida(notificacao.id);
+        }, 2000);
+      }
+
+      getTipoNotificacao(tipo) {
+        const tipos = {
+          'chamado_atribuido': 'info',
+          'chamado_transferido': 'warning',
+          'sistema': 'secondary',
+          'urgente': 'danger'
+        };
+        return tipos[tipo] || 'info';
+      }
+
+      getCorNotificacao(prioridade) {
+        const cores = {
+          'alta': '#dc3545',
+          'normal': '#0d6efd',
+          'baixa': '#198754'
+        };
+        return cores[prioridade] || '#0d6efd';
+      }
+
+      async marcarNotificacaoLida(notificacaoId) {
+        try {
+          await fetch(`/ti/painel/api/agente/notificacoes/${notificacaoId}/marcar-lida`, {
+            method: 'POST'
+          });
+          this.notificacoesNaoLidas = Math.max(0, this.notificacoesNaoLidas - 1);
+          this.atualizarContadorNotificacoes();
+        } catch (error) {
+          console.error('Erro ao marcar notificação como lida:', error);
+        }
+      }
+
+      iniciarVerificacaoNotificacoes() {
+        // Verificar novas notificações a cada 30 segundos
+        setInterval(async () => {
+          await this.carregarNotificacoes();
+        }, 30000);
+      }
+
+      async filtrarHistorico() {
+        const dataInicio = document.getElementById('filtroDataInicio').value;
+        const dataFim = document.getElementById('filtroDataFim').value;
+        const status = document.getElementById('filtroStatus').value;
+
+        try {
+          let url = '/ti/painel/api/agente/historico?limite=100';
+
+          if (dataInicio) url += `&data_inicio=${dataInicio}`;
+          if (dataFim) url += `&data_fim=${dataFim}`;
+          if (status && status !== 'Todos') url += `&status=${status}`;
+
+          const response = await fetch(url);
+          if (response.ok) {
+            const historico = await response.json();
+            this.renderizarHistorico(historico);
+          } else {
+            this.showNotification('Erro ao filtrar histórico', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao filtrar histórico:', error);
+          this.showNotification('Erro ao filtrar histórico', 'error');
+        }
+      }
+
+      renderizarHistorico(historico) {
+        const tbody = document.getElementById('tabelaHistoricoAgente');
+
+        if (historico.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" class="text-center">Nenhum registro encontrado</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = historico.map(item => `
+          <tr>
+            <td>${item.chamado.codigo}</td>
+            <td>${item.chamado.solicitante}</td>
+            <td>${item.chamado.problema}</td>
+            <td>
+              <span class="badge bg-${this.getStatusColor(item.status_final)}">${item.status_final}</span>
+            </td>
+            <td>${item.data_atribuicao}</td>
+            <td>${item.data_conclusao || '-'}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-info" onclick="painelAgente.verDetalhes(${item.chamado.id})">
+                <i class="fas fa-eye"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      getStatusColor(status) {
+        const cores = {
+          'Concluido': 'success',
+          'Cancelado': 'secondary',
+          'Em Andamento': 'primary',
+          'Aguardando': 'warning'
+        };
+        return cores[status] || 'secondary';
+      }
     }
 
     // Inicializar quando o DOM estiver carregado
