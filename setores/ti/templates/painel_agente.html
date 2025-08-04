@@ -885,6 +885,181 @@
 
   </main>
 
+  <!-- Modal Gerenciar Usuário -->
+  <div class="modal fade" id="modalGerenciarUsuario" tabindex="-1" aria-labelledby="modalGerenciarUsuarioTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content bg-dark">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalGerenciarUsuarioTitle">Gerenciar Usuário</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formGerenciarUsuario">
+            <input type="hidden" id="usuarioId">
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioNome" class="form-label">Nome *</label>
+                  <input type="text" class="form-control" id="usuarioNome" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioSobrenome" class="form-label">Sobrenome *</label>
+                  <input type="text" class="form-control" id="usuarioSobrenome" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioEmail" class="form-label">E-mail *</label>
+                  <input type="email" class="form-control" id="usuarioEmail" required>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioUsuario" class="form-label">Usuário *</label>
+                  <input type="text" class="form-control" id="usuarioUsuario" required>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioNivelAcesso" class="form-label">Nível de Acesso *</label>
+                  <select class="form-control" id="usuarioNivelAcesso" required>
+                    <option value="">Selecione...</option>
+                    <option value="Administrador">Administrador</option>
+                    <option value="Gerente">Gerente</option>
+                    <option value="Gerente Regional">Gerente Regional</option>
+                    <option value="Gestor">Gestor</option>
+                    <option value="Agente de suporte">Agente de Suporte</option>
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioSetores" class="form-label">Setores</label>
+                  <select class="form-control" id="usuarioSetores">
+                    <option value="TI">TI</option>
+                    <option value="Comercial">Comercial</option>
+                    <option value="Financeiro">Financeiro</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Manutenção">Manutenção</option>
+                    <option value="Produtos">Produtos</option>
+                    <option value="Compras">Compras</option>
+                    <option value="Outros">Outros</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="row" id="novaSenhaSection" style="display: none;">
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label for="usuarioSenha" class="form-label">Nova Senha</label>
+                  <input type="password" class="form-control" id="usuarioSenha">
+                  <small class="form-text text-muted">Deixe em branco para não alterar a senha</small>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="mb-3">
+                  <label class="form-label">Gerar Senha Automática</label>
+                  <div>
+                    <button type="button" class="btn btn-outline-info btn-sm" onclick="painelAgente.gerarSenhaAleatoria()">
+                      <i class="fas fa-key me-1"></i>Gerar Senha
+                    </button>
+                    <span id="senhaGerada" class="ms-2 text-info"></span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="usuarioBloqueado">
+                  <label class="form-check-label" for="usuarioBloqueado">
+                    Usuário bloqueado
+                  </label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <div class="d-flex justify-content-between w-100">
+            <div>
+              <button type="button" class="btn btn-warning" id="btnResetarSenha" onclick="painelAgente.resetarSenhaUsuario()" style="display: none;">
+                <i class="fas fa-key"></i> Resetar Senha
+              </button>
+            </div>
+            <div>
+              <button type="button" class="btn btn-success" onclick="painelAgente.salvarUsuario()">
+                <i class="fas fa-save"></i> Salvar
+              </button>
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                <i class="fas fa-times"></i> Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Enviar Ticket por E-mail -->
+  <div class="modal fade" id="modalEnviarEmail" tabindex="-1" aria-labelledby="modalEnviarEmailTitle" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content bg-dark">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEnviarEmailTitle">Enviar Ticket por E-mail</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <form id="formEnviarEmail">
+            <input type="hidden" id="emailChamadoId">
+
+            <div class="mb-3">
+              <label for="emailDestino" class="form-label">E-mail de Destino *</label>
+              <input type="email" class="form-control" id="emailDestino" required>
+              <small class="form-text text-muted">Por padrão será enviado para o e-mail do solicitante</small>
+            </div>
+
+            <div class="mb-3">
+              <label for="emailAssunto" class="form-label">Assunto *</label>
+              <input type="text" class="form-control" id="emailAssunto" required>
+            </div>
+
+            <div class="mb-3">
+              <label for="emailMensagem" class="form-label">Mensagem *</label>
+              <textarea class="form-control" id="emailMensagem" rows="8" required placeholder="Digite sua mensagem personalizada aqui..."></textarea>
+            </div>
+
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" id="incluirDetalhesTicket" checked>
+              <label class="form-check-label" for="incluirDetalhesTicket">
+                Incluir detalhes completos do ticket no e-mail
+              </label>
+            </div>
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" onclick="painelAgente.enviarEmailTicket()">
+            <i class="fas fa-paper-plane"></i> Enviar E-mail
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times"></i> Cancelar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Container de Notificações -->
   <div id="notificationContainer" class="notification-container"></div>
 
