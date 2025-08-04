@@ -1534,38 +1534,29 @@
 
       async atribuirChamado(chamadoId) {
         try {
-          const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/atribuir-me`, {
+          // Usar o novo endpoint mais confiável
+          const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/auto-atribuir`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' }
           });
 
           if (response.ok) {
-            this.showNotification('Chamado atribuído com sucesso!', 'success');
-            await this.carregarEstatisticas();
-            await this.carregarChamadosDisponiveis();
-            await this.carregarMeusChamados();
-          } else if (response.status === 403) {
-            // Usuário não é agente, tentar registrar automaticamente
-            const registroResponse = await fetch('/ti/painel/api/agente/registrar', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' }
-            });
-
-            if (registroResponse.ok) {
-              this.showNotification('Registrado como agente! Tentando atribuir novamente...', 'info');
-              // Tentar atribuir novamente
-              setTimeout(() => this.atribuirChamado(chamadoId), 1000);
-            } else {
-              const error = await response.json();
-              this.showNotification(error.error || 'Erro: Você não tem permissão para ser um agente', 'error');
-            }
+            const data = await response.json();
+            this.showNotification(data.message || 'Chamado atribuído com sucesso!', 'success');
+            // Recarregar todas as listas
+            await Promise.all([
+              this.carregarEstatisticas(),
+              this.carregarChamadosDisponiveis(),
+              this.carregarMeusChamados(),
+              this.carregarDadosSecao(document.querySelector('.sidebar nav a.active')?.getAttribute('href')?.substring(1))
+            ]);
           } else {
             const error = await response.json();
             this.showNotification(error.error || 'Erro ao atribuir chamado', 'error');
           }
         } catch (error) {
           console.error('Erro ao atribuir chamado:', error);
-          this.showNotification('Erro ao atribuir chamado', 'error');
+          this.showNotification('Erro de conexão ao atribuir chamado', 'error');
         }
       }
 
