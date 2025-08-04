@@ -220,7 +220,7 @@
       </div>
     </section>
 
-    <!-- Nova Seção SLA & Métricas -->
+    <!-- Nova Se��ão SLA & Métricas -->
     <section id="sla-dashboard" class="content-section" tabindex="0" aria-label="SLA & Métricas">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2><i class="fas fa-chart-line me-2"></i>SLA & M��tricas de Desempenho</h2>
@@ -1455,6 +1455,72 @@
     </section>
 
     <!-- ==================== SEÇÕES EXISTENTES ==================== -->
+
+    <!-- Monitoramento de Catraca -->
+    <section id="monitoramento-catraca" class="content-section" tabindex="0" aria-label="Monitoramento de Catraca">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-door-open me-2"></i>Monitoramento de Catraca</h2>
+        <button class="btn btn-primary" id="btnAtualizarCatracas">
+          <i class="fas fa-sync-alt me-1"></i>Atualizar Status
+        </button>
+      </div>
+
+      <!-- Status das Catracas -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              <h6 class="card-title">Catracas Online</h6>
+              <h3 id="catracasOnline">0</h3>
+              <small>Em funcionamento</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-danger text-white">
+            <div class="card-body">
+              <h6 class="card-title">Catracas Offline</h6>
+              <h3 id="catracasOffline">0</h3>
+              <small>Fora de operação</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-warning text-white">
+            <div class="card-body">
+              <h6 class="card-title">Catracas com Alerta</h6>
+              <h3 id="catracasAlerta">0</h3>
+              <small>Requerem atenção</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              <h6 class="card-title">Total de Catracas</h6>
+              <h3 id="totalCatracas">0</h3>
+              <small>Cadastradas</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lista de Catracas -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Status por Unidade</h5>
+        </div>
+        <div class="card-body">
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Esta funcionalidade está em desenvolvimento. Em breve você poderá monitorar o status das catracas em tempo real.
+          </div>
+          <div id="listaCatracas">
+            <!-- Lista será carregada dinamicamente -->
+          </div>
+        </div>
+      </div>
+    </section>
 
     <!-- Adicionar Unidade -->
     <section id="adicionar-unidade" class="content-section" tabindex="0" aria-label="Adicionar Unidade">

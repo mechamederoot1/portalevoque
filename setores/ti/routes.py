@@ -83,7 +83,7 @@ def enviar_email(assunto, corpo, destinatarios=None):
     try:
         response = requests.post(ENDPOINT, headers=headers, json=email_data)
         if response.status_code == 202:
-            current_app.logger.info("🎉 E-mail enviado com sucesso!")
+            current_app.logger.info("���� E-mail enviado com sucesso!")
             return True
         else:
             current_app.logger.error(f"❌ Falha ao enviar e-mail. Status: {response.status_code}")
@@ -149,6 +149,21 @@ def painel():
         return redirect(url_for('ti.index'))
     return render_template('painel.html')
 
+@ti_bp.route('/painel-agente')
+@login_required
+@setor_required('ti')
+def painel_agente():
+    """Painel específico para agentes de suporte"""
+    # Verificar se o usuário é um agente de suporte
+    from database import AgenteSuporte
+    agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+
+    if not agente:
+        flash('Você não está registrado como agente de suporte.', 'warning')
+        return redirect(url_for('ti.index'))
+
+    return render_template('painel_agente.html', agente=agente)
+
 @ti_bp.route('/abrir-chamado', methods=['GET', 'POST'])
 @login_required
 @setor_required('ti')
@@ -156,13 +171,26 @@ def abrir_chamado():
     try:
         unidades = Unidade.query.order_by(Unidade.nome).all()
         problemas = ProblemaReportado.query.filter_by(ativo=True).order_by(ProblemaReportado.nome).all()
-        itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
-        
+        # Filtro ativo opcional para ItemInternet (pode não existir em dados antigos)
+        try:
+            itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
+        except:
+            itens_internet = ItemInternet.query.order_by(ItemInternet.nome).all()
+
+        # Log de debug
+        current_app.logger.info(f"📊 Dados carregados - Unidades: {len(unidades)}, Problemas: {len(problemas)}, Itens: {len(itens_internet)}")
+
         if not unidades:
+            current_app.logger.info("🔄 Nenhuma unidade encontrada, executando seed_unidades()")
             seed_unidades()
             unidades = Unidade.query.order_by(Unidade.nome).all()
             problemas = ProblemaReportado.query.filter_by(ativo=True).order_by(ProblemaReportado.nome).all()
-            itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
+            # Filtro ativo opcional para ItemInternet (pode não existir em dados antigos)
+            try:
+                itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
+            except:
+                itens_internet = ItemInternet.query.order_by(ItemInternet.nome).all()
+            current_app.logger.info(f"📊 Após seed - Unidades: {len(unidades)}, Problemas: {len(problemas)}, Itens: {len(itens_internet)}")
             
         if request.method == 'POST':
             try:
@@ -472,10 +500,42 @@ from .agentes import agentes_bp
 from .grupos import grupos_bp
 from .auditoria import auditoria_bp
 from .rotas import rotas_bp
+from .agente_api import agente_api_bp
 ti_bp.register_blueprint(agentes_bp, url_prefix='/painel')
 ti_bp.register_blueprint(grupos_bp, url_prefix='/painel')
 ti_bp.register_blueprint(auditoria_bp, url_prefix='/painel')
 ti_bp.register_blueprint(rotas_bp, url_prefix='/painel')
+ti_bp.register_blueprint(agente_api_bp, url_prefix='/painel')
+
+@ti_bp.route('/debug/dados')
+@login_required
+@setor_required('ti')
+def debug_dados():
+    """Rota de debug para verificar dados do banco"""
+    try:
+        unidades = Unidade.query.all()
+        problemas = ProblemaReportado.query.all()
+        itens_internet = ItemInternet.query.all()
+
+        dados_debug = {
+            'unidades': {
+                'total': len(unidades),
+                'lista': [{'id': u.id, 'nome': u.nome} for u in unidades[:5]]  # Primeiras 5
+            },
+            'problemas': {
+                'total': len(problemas),
+                'lista': [{'id': p.id, 'nome': p.nome, 'prioridade': p.prioridade_padrao, 'ativo': p.ativo} for p in problemas]
+            },
+            'itens_internet': {
+                'total': len(itens_internet),
+                'lista': [{'id': i.id, 'nome': i.nome, 'ativo': i.ativo} for i in itens_internet]
+            }
+        }
+
+        return jsonify(dados_debug)
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
 
 @ti_bp.route('/api/chamados/recentes')
 @login_required

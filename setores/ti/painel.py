@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, abort, redirect, url_for, flash, Response
 from database import Chamado, Unidade, User, db, ProblemaReportado, get_brazil_time, utc_to_brazil
-from database import HistoricoTicket, Configuracao
+from database import HistoricoTicket, Configuracao, AgenteSuporte, ChamadoAgente
 from sqlalchemy.exc import IntegrityError
 import logging
 import random
@@ -22,6 +22,28 @@ painel_bp = Blueprint('painel', __name__, template_folder='templates')
 # Configurar logging
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
+
+def api_login_required(f):
+    """Decorador que retorna erro JSON se não autenticado"""
+    from functools import wraps
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
+def json_response(data, status=200):
+    """Retorna resposta JSON padronizada"""
+    response = jsonify(data)
+    response.status_code = status
+    response.headers['Content-Type'] = 'application/json'
+    return response
+
+def error_response(message, status=400):
+    """Retorna erro JSON padronizado"""
+    return json_response({'error': message}, status)
 
 # Timezone do Brasil
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
@@ -64,24 +86,9 @@ CONFIGURACOES_PADRAO = {
     }
 }
 
-def json_response(data, status=200):
-    """Wrapper para garantir resposta JSON válida"""
-    try:
-        response = jsonify(data)
-        response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return response, status
-    except Exception as e:
-        logger.error(f"Erro ao criar resposta JSON: {str(e)}")
-        error_response = jsonify({'error': 'Erro interno de serialização'})
-        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return error_response, 500
 
-def error_response(message, status=500, details=None):
-    """Wrapper para respostas de erro padronizadas"""
-    error_data = {'error': message}
-    if details:
-        error_data['details'] = details
-    return json_response(error_data, status)
+
+
 
 @painel_bp.route('/api/setup-database', methods=['POST'])
 @login_required
@@ -183,7 +190,7 @@ def setup_database_endpoint():
         usuarios_demo = [admin_user, test_user, agent_user]
         agora = get_brazil_time().replace(tzinfo=None)
 
-        # Criar logs de acesso dos últimos 30 dias
+        # Criar logs de acesso dos ��ltimos 30 dias
         logs_criados = 0
         for dia in range(30):
             data_log = agora - timedelta(days=dia)
@@ -270,7 +277,7 @@ def setup_database_endpoint():
             ('Usuário criado', 'usuarios', 'Novo usuário cadastrado'),
             ('Configuração alterada', 'sistema', 'Configuração do sistema modificada'),
             ('Backup realizado', 'sistema', 'Backup automático executado'),
-            ('Relatório gerado', 'relatorios', 'Relatório de atividades criado'),
+            ('Relat��rio gerado', 'relatorios', 'Relatório de atividades criado'),
             ('Logout realizado', 'autenticacao', 'Usuário fez logout')
         ]
 
@@ -474,7 +481,7 @@ def calcular_sla_chamado(chamado, config_sla):
     """Calcula informações de SLA para um chamado específico"""
     agora_brazil = get_brazil_time()
     
-    # Se não tem data de abertura, retorna valores padrão
+    # Se não tem data de abertura, retorna valores padr��o
     if not chamado.data_abertura:
         return {
             'horas_decorridas': 0,
@@ -744,10 +751,241 @@ def carregar_configuracoes_notificacoes():
         logger.error(f"Erro ao carregar configurações de notificações: {str(e)}")
         return error_response(f'Erro ao carregar configurações de notificações: {str(e)}')
 
+# ==================== APIS PARA AGENTES DE SUPORTE ====================
+
+@painel_bp.route('/api/agente/estatisticas', methods=['GET'])
+@api_login_required
+def estatisticas_agente():
+    """Retorna estatísticas do agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Buscar chamados atribuídos ativos
+        chamados_atribuidos = ChamadoAgente.query.filter_by(
+            agente_id=agente.id,
+            ativo=True
+        ).join(Chamado).filter(
+            Chamado.status.in_(['Aberto', 'Aguardando'])
+        ).count()
+
+        # Buscar chamados concluídos hoje
+        hoje = get_brazil_time().date()
+        concluidos_hoje = ChamadoAgente.query.filter_by(
+            agente_id=agente.id
+        ).join(Chamado).filter(
+            Chamado.status == 'Concluido',
+            func.date(Chamado.data_conclusao) == hoje
+        ).count()
+
+        # Buscar chamados disponíveis (sem agente)
+        disponiveis = Chamado.query.outerjoin(ChamadoAgente).filter(
+            Chamado.status.in_(['Aberto']),
+            ChamadoAgente.id.is_(None)
+        ).count()
+
+        estatisticas = {
+            'atribuidos': chamados_atribuidos,
+            'concluidos_hoje': concluidos_hoje,
+            'disponiveis': disponiveis,
+            'tempo_medio': '2.5h'  # Placeholder - implementar cálculo real
+        }
+
+        return json_response(estatisticas)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar estatísticas do agente: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/disponiveis', methods=['GET'])
+@api_login_required
+def chamados_disponiveis():
+    """Retorna chamados disponíveis para atribuição"""
+    try:
+        # Buscar chamados sem agente atribuído
+        chamados = db.session.query(Chamado).outerjoin(ChamadoAgente).filter(
+            Chamado.status.in_(['Aberto']),
+            ChamadoAgente.id.is_(None)
+        ).order_by(Chamado.data_abertura.desc()).limit(10).all()
+
+        chamados_list = []
+        for chamado in chamados:
+            data_abertura_brazil = chamado.get_data_abertura_brazil()
+            chamados_list.append({
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'solicitante': chamado.solicitante,
+                'problema': chamado.problema,
+                'prioridade': chamado.prioridade,
+                'data_abertura': data_abertura_brazil.strftime('%d/%m %H:%M') if data_abertura_brazil else 'N/A'
+            })
+
+        return json_response(chamados_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar chamados disponíveis: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agente/meus-chamados', methods=['GET'])
+@api_login_required
+def meus_chamados_agente():
+    """Retorna chamados do agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        filtro = request.args.get('filtro', 'ativos')
+
+        query = db.session.query(ChamadoAgente, Chamado).join(Chamado).filter(
+            ChamadoAgente.agente_id == agente.id
+        )
+
+        if filtro == 'ativos':
+            query = query.filter(
+                ChamadoAgente.ativo == True,
+                Chamado.status.in_(['Aberto', 'Aguardando'])
+            )
+        elif filtro == 'aguardando':
+            query = query.filter(
+                ChamadoAgente.ativo == True,
+                Chamado.status == 'Aguardando'
+            )
+        elif filtro == 'concluidos':
+            query = query.filter(
+                Chamado.status == 'Concluido'
+            )
+        elif filtro == 'cancelados':
+            query = query.filter(
+                Chamado.status == 'Cancelado'
+            )
+
+        atribuicoes = query.order_by(ChamadoAgente.data_atribuicao.desc()).limit(20).all()
+
+        chamados_list = []
+        for atribuicao, chamado in atribuicoes:
+            data_atribuicao_brazil = atribuicao.data_atribuicao
+            if data_atribuicao_brazil:
+                data_atribuicao_brazil = utc_to_brazil(data_atribuicao_brazil)
+
+            chamados_list.append({
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'solicitante': chamado.solicitante,
+                'problema': chamado.problema,
+                'status': chamado.status,
+                'prioridade': chamado.prioridade,
+                'data_atribuicao': data_atribuicao_brazil.strftime('%d/%m %H:%M') if data_atribuicao_brazil else 'N/A'
+            })
+
+        return json_response(chamados_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar chamados do agente: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/atribuir-me', methods=['POST'])
+@api_login_required
+def atribuir_chamado_para_mim(chamado_id):
+    """Atribui um chamado ao agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Verificar se o agente pode receber mais chamados
+        if not agente.pode_receber_chamado():
+            return error_response('Você já atingiu o limite máximo de chamados simultâneos')
+
+        # Verificar se o chamado existe e está disponível
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        if chamado.status not in ['Aberto']:
+            return error_response('Chamado não está disponível para atribuição')
+
+        # Verificar se já tem agente atribuído
+        atribuicao_existente = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if atribuicao_existente:
+            return error_response('Chamado já possui agente atribuído')
+
+        # Criar nova atribuição
+        nova_atribuicao = ChamadoAgente(
+            chamado_id=chamado_id,
+            agente_id=agente.id,
+            atribuido_por=current_user.id,
+            observacoes='Auto-atribuição pelo agente'
+        )
+
+        db.session.add(nova_atribuicao)
+        db.session.commit()
+
+        # Enviar e-mail de notificação
+        try:
+            from setores.ti.routes import enviar_email
+            assunto = f"Chamado {chamado.codigo} - Agente Atribuído"
+            corpo = f"""
+Olá {chamado.solicitante},
+
+Seu chamado {chamado.codigo} foi atribuído ao agente {current_user.nome} {current_user.sobrenome}.
+
+Detalhes do chamado:
+- Problema: {chamado.problema}
+- Prioridade: {chamado.prioridade}
+- Agente responsável: {current_user.nome} {current_user.sobrenome}
+- E-mail do agente: {current_user.email}
+
+Em breve você receberá um contato para resolução do seu problema.
+
+Atenciosamente,
+Equipe de Suporte TI - Evoque Fitness
+"""
+            enviar_email(assunto, corpo, [chamado.email])
+        except Exception as email_error:
+            logger.warning(f"Erro ao enviar e-mail de atribuição: {str(email_error)}")
+
+        # Emitir evento Socket.IO para notificação em tempo real
+        try:
+            if hasattr(current_app, 'socketio'):
+                current_app.socketio.emit('chamado_atribuido', {
+                    'chamado_id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'protocolo': chamado.protocolo,
+                    'solicitante': chamado.solicitante,
+                    'problema': chamado.problema,
+                    'prioridade': chamado.prioridade,
+                    'agente_id': agente.id,
+                    'agente_nome': f"{current_user.nome} {current_user.sobrenome}",
+                    'agente_email': current_user.email,
+                    'timestamp': get_brazil_time().isoformat()
+                })
+        except Exception as socket_error:
+            logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
+
+        logger.info(f"Chamado {chamado.codigo} auto-atribuído ao agente {current_user.nome}")
+
+        return json_response({
+            'message': f'Chamado {chamado.codigo} atribuído com sucesso'
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atribuir chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 # ==================== PROBLEMAS REPORTADOS ====================
 
 @painel_bp.route('/api/problemas', methods=['GET'])
-@login_required
+@api_login_required
 def listar_problemas():
     """Lista todos os problemas reportados"""
     try:
@@ -1916,7 +2154,7 @@ def notificacoes_recentes():
 # ==================== SLA ENDPOINTS ====================
 
 @painel_bp.route('/api/sla/metricas', methods=['GET'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def obter_metricas_sla():
     """Retorna métricas gerais de SLA"""
@@ -2003,7 +2241,7 @@ def obter_metricas_sla():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/grafico-semanal', methods=['GET'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def obter_grafico_semanal():
     """Retorna dados para gráfico semanal de chamados"""
@@ -2059,7 +2297,7 @@ def obter_grafico_semanal():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/chamados-detalhados', methods=['GET'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def obter_chamados_detalhados_sla():
     """Retorna lista detalhada de chamados com informações de SLA"""
@@ -2562,7 +2800,7 @@ def atribuir_chamado(chamado_id):
             if email_enviado:
                 logger.info(f"Email de notificação enviado para {chamado.email}")
             else:
-                logger.warning(f"Falha ao enviar email de notificação para {chamado.email}")
+                logger.warning(f"Falha ao enviar email de notificaç��o para {chamado.email}")
         except Exception as e:
             logger.warning(f"Erro ao enviar email de notificação: {str(e)}")
 

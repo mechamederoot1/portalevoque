@@ -206,6 +206,26 @@ class AdvancedNotificationSystem {
                 });
             });
 
+            this.socket.on('chamado_atribuido', (data) => {
+                this.showNotification({
+                    type: 'info',
+                    title: 'Chamado Atribuído',
+                    message: `Chamado ${data.codigo} foi atribuído a ${data.agente_nome}`,
+                    data: data,
+                    sound: this.settings.soundEnabled
+                });
+            });
+
+            this.socket.on('chamado_transferido', (data) => {
+                this.showNotification({
+                    type: 'info',
+                    title: 'Chamado Transferido',
+                    message: `Chamado ${data.codigo} foi transferido de ${data.agente_origem_nome} para ${data.agente_destino_nome}`,
+                    data: data,
+                    sound: this.settings.soundEnabled
+                });
+            });
+
             this.socket.on('ticket_enviado', (data) => {
                 this.showNotification({
                     type: 'success',

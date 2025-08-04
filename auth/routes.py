@@ -1,12 +1,32 @@
 from flask import render_template, redirect, url_for, flash, request, jsonify, current_app
 from flask_login import login_user, logout_user, current_user, login_required
-from database import db, User, Chamado, Unidade
+from database import db, User, Chamado, Unidade, AgenteSuporte
 from werkzeug.security import generate_password_hash, check_password_hash
 from functools import wraps
 import secrets
 import string
 from datetime import datetime
 from . import auth_bp
+
+def get_user_redirect_url(user):
+    """
+    Determina para onde redirecionar o usuário após o login baseado no seu perfil
+    """
+    # 1. Administradores vão para o painel administrativo
+    if user.nivel_acesso == 'Administrador':
+        return url_for('ti.painel')
+
+    # 2. Verificar se é agente de suporte ativo
+    agente = AgenteSuporte.query.filter_by(usuario_id=user.id, ativo=True).first()
+    if agente:
+        return url_for('ti.painel_agente')
+
+    # 3. Usuários do setor de TI vão para a página do TI
+    if 'TI' in user.setores:
+        return url_for('ti.index')
+
+    # 4. Outros usuários vão para a página inicial
+    return url_for('main.index')
 
 def nivel_acesso_requerido(nivel_minimo):
     """
@@ -83,17 +103,21 @@ def login():
                 return render_template('login.html', alterar_senha=True, usuario=user.usuario)
             
             login_user(user, remember=bool(lembrar))
-            
+
             # Registrar último acesso
             user.ultimo_acesso = datetime.utcnow()
             db.session.commit()
-            
+
             current_app.logger.info(f'Login bem-sucedido: {usuario}')
-            
+
+            # Verificar se existe uma página específica solicitada
             next_page = request.args.get('next')
             if next_page and next_page.startswith('/'):  # Previne redirect malicioso
                 return redirect(next_page)
-            return redirect(url_for('main.index'))
+
+            # Redirecionamento inteligente baseado no tipo de usuário
+            redirect_url = get_user_redirect_url(user)
+            return redirect(redirect_url)
         else:
             current_app.logger.warning(f'Tentativa de login falha: {usuario}')
             flash('Usuário ou senha inválidos', 'danger')

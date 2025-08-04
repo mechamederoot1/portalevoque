@@ -2516,6 +2516,40 @@ function initializeSocketIO() {
             }
         });
 
+        socket.on('chamado_atribuido', function(data) {
+            console.log('Chamado atribuído:', data);
+
+            // Recarregar dados da seção atual se estiver em gerenciar chamados
+            const currentSection = document.querySelector('section.content-section[style*="block"], section.content-section:not([style*="none"])');
+            if (currentSection && currentSection.id === 'gerenciar-chamados') {
+                // Atualizar tabela de chamados
+                if (window.currentTable && window.currentTable.chamados) {
+                    window.currentTable.chamados.reload();
+                }
+                // Atualizar estatísticas
+                if (typeof carregarEstatisticasChamados === 'function') {
+                    carregarEstatisticasChamados();
+                }
+            }
+        });
+
+        socket.on('chamado_transferido', function(data) {
+            console.log('Chamado transferido:', data);
+
+            // Recarregar dados da seção atual se estiver em gerenciar chamados
+            const currentSection = document.querySelector('section.content-section[style*="block"], section.content-section:not([style*="none"])');
+            if (currentSection && currentSection.id === 'gerenciar-chamados') {
+                // Atualizar tabela de chamados
+                if (window.currentTable && window.currentTable.chamados) {
+                    window.currentTable.chamados.reload();
+                }
+                // Atualizar estatísticas
+                if (typeof carregarEstatisticasChamados === 'function') {
+                    carregarEstatisticasChamados();
+                }
+            }
+        });
+
         socket.on('pong', function(data) {
             console.log('Pong recebido:', data.timestamp);
         });
