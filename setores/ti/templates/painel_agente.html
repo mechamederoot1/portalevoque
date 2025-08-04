@@ -1537,7 +1537,8 @@
           // Usar o novo endpoint mais confiável
           const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/auto-atribuir`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' }
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
           });
 
           if (response.ok) {
