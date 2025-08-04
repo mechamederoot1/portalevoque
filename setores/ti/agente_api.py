@@ -4,6 +4,7 @@ from database import db, Chamado, AgenteSuporte, ChamadoAgente, User, get_brazil
 from sqlalchemy import func
 import logging
 import traceback
+import pytz
 
 agente_api_bp = Blueprint('agente_api', __name__)
 
