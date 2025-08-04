@@ -1282,7 +1282,7 @@ document.getElementById('btnFecharCredenciais')?.addEventListener('click', funct
     document.getElementById('modalCredenciais').classList.remove('active');
 });
 
-// Funç��o para excluir chamado
+// Função para excluir chamado
 async function excluirChamado(chamadoId) {
     if (!confirm('Tem certeza que deseja excluir este chamado? Esta ação não pode ser desfeita.')) {
         return false; // Retorna false se o usuário cancelar
@@ -1861,7 +1861,7 @@ function loadSectionContent(sectionId) {
                 console.log('Funções de grupos não encontradas, tentando novamente em 100ms...');
                 setTimeout(() => {
                     if (typeof inicializarGrupos === 'function') {
-                        console.log('Função inicializarGrupos encontrada no retry, executando...');
+                        console.log('Funç��o inicializarGrupos encontrada no retry, executando...');
                         inicializarGrupos();
                     } else if (typeof carregarGrupos === 'function') {
                         console.log('Função carregarGrupos encontrada no retry, executando...');
@@ -2904,18 +2904,9 @@ function inicializarFiltroPermissoes() {
 
     // Função para filtrar usuários
     const filtrarUsuarios = () => {
-        const termoBusca = filtroInput.value.toLowerCase().trim();
+        const termoBusca = filtroInput.value.trim();
         console.log('Executando filtro com termo:', termoBusca);
-        filtrarListaUsuarios(termoBusca);
-
-        // Feedback visual
-        if (termoBusca) {
-            filtroInput.style.backgroundColor = '#e8f4fd';
-            filtroInput.style.borderColor = '#007bff';
-        } else {
-            filtroInput.style.backgroundColor = '';
-            filtroInput.style.borderColor = '';
-        }
+        filtrarListaUsuarios(termoBusca, 1); // Sempre começar da primeira página em nova busca
     };
 
     // Event listeners para busca em tempo real
