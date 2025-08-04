@@ -1481,7 +1481,7 @@ def teste_autenticacao():
 def auto_atribuir_chamado(chamado_id):
     """Auto-atribui um chamado ao usuário logado"""
     try:
-        logger.info(f"Auto-atribuição do chamado {chamado_id} pelo usuário {current_user.id}")
+        logger.info(f"Auto-atribuição do chamado {chamado_id} pelo usuário {current_user.id} ({current_user.nome})")
 
         # Buscar o chamado
         chamado = Chamado.query.get(chamado_id)
@@ -1807,7 +1807,7 @@ def adicionar_unidade():
             return error_response('Nome da unidade não pode ser vazio.', 400)
         
         if Unidade.query.filter_by(nome=nome).first():
-            return error_response('Unidade com este nome j�� existe.', 400)
+            return error_response('Unidade com este nome já existe.', 400)
         
         id_unidade = data.get('id')
         if id_unidade:
