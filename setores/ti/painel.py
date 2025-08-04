@@ -1463,6 +1463,36 @@ def marcar_notificacao_lida(notificacao_id):
         logger.error(f"Erro ao marcar notificação como lida: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/agente/registrar', methods=['POST'])
+@api_login_required
+def registrar_como_agente():
+    """Registra o usuário atual como agente de suporte"""
+    try:
+        # Verificar se já é agente
+        agente_existente = AgenteSuporte.query.filter_by(usuario_id=current_user.id).first()
+        if agente_existente:
+            agente_existente.ativo = True
+            db.session.commit()
+            return json_response({'message': 'Agente reativado com sucesso'})
+
+        # Criar novo agente
+        agente = AgenteSuporte(
+            usuario_id=current_user.id,
+            ativo=True,
+            nivel_experiencia='pleno',
+            max_chamados_simultaneos=15
+        )
+        db.session.add(agente)
+        db.session.commit()
+
+        logger.info(f"Usuário {current_user.id} registrado como agente de suporte")
+        return json_response({'message': 'Registrado como agente com sucesso'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao registrar agente: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 @painel_bp.route('/api/agente/notificacoes/marcar-todas-lidas', methods=['POST'])
 @api_login_required
 def marcar_todas_notificacoes_lidas():
