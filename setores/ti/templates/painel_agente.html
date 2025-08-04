@@ -731,6 +731,75 @@
       </div>
     </div>
 
+    <!-- Seção: Gerenciar Usuários -->
+    <div class="section-content" id="gerenciar-usuarios" style="display: none;">
+      <div class="container-fluid py-4">
+        <div class="row mb-4">
+          <div class="col-12">
+            <h2 class="mb-3">
+              <i class="fas fa-users-cog me-2"></i>Gerenciar Usuários
+            </h2>
+          </div>
+        </div>
+
+        <!-- Filtros e Busca -->
+        <div class="row mb-4">
+          <div class="col-md-6">
+            <div class="input-group">
+              <input type="text" class="form-control" id="buscaUsuario" placeholder="Buscar por nome, e-mail ou usuário...">
+              <button class="btn btn-primary" type="button" onclick="painelAgente.buscarUsuarios()">
+                <i class="fas fa-search"></i> Buscar
+              </button>
+            </div>
+          </div>
+          <div class="col-md-6 text-end">
+            <button class="btn btn-success" onclick="painelAgente.abrirModalNovoUsuario()">
+              <i class="fas fa-user-plus me-1"></i>Novo Usuário
+            </button>
+          </div>
+        </div>
+
+        <div class="row">
+          <div class="col-12">
+            <div class="card">
+              <div class="card-header">
+                <h5 class="card-title mb-0">
+                  <i class="fas fa-users me-2"></i>Lista de Usuários
+                  <span class="badge bg-info ms-2" id="totalUsuarios">0</span>
+                </h5>
+              </div>
+              <div class="card-body">
+                <div class="table-responsive">
+                  <table class="table table-dark table-striped table-hover">
+                    <thead>
+                      <tr>
+                        <th>Nome</th>
+                        <th>E-mail</th>
+                        <th>Usuário</th>
+                        <th>Nível de Acesso</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody id="tabelaUsuarios">
+                      <tr><td colspan="6" class="text-center">Use a busca para listar usuários</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <!-- Paginação -->
+                <nav aria-label="Paginação de usuários" id="paginacaoUsuarios" style="display: none;">
+                  <ul class="pagination justify-content-center">
+                    <!-- Paginação será inserida via JavaScript -->
+                  </ul>
+                </nav>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Seção: Meu Perfil -->
     <div class="section-content" id="perfil-agente" style="display: none;">
       <div class="container-fluid py-4">
