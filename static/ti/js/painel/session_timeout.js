@@ -280,7 +280,10 @@ class SessionTimeoutManager {
 
 // Inicializar o gerenciador de sessão quando o DOM estiver carregado
 document.addEventListener('DOMContentLoaded', function() {
-    window.sessionManager = new SessionTimeoutManager();
+    // Verificar se já existe uma instância ativa
+    if (!window.sessionManager || window.sessionManager.isActive === false) {
+        window.sessionManager = new SessionTimeoutManager();
+    }
 });
 
 // Limpar quando a página for descarregada
