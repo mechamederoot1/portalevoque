@@ -500,10 +500,12 @@ from .agentes import agentes_bp
 from .grupos import grupos_bp
 from .auditoria import auditoria_bp
 from .rotas import rotas_bp
+from .agente_api import agente_api_bp
 ti_bp.register_blueprint(agentes_bp, url_prefix='/painel')
 ti_bp.register_blueprint(grupos_bp, url_prefix='/painel')
 ti_bp.register_blueprint(auditoria_bp, url_prefix='/painel')
 ti_bp.register_blueprint(rotas_bp, url_prefix='/painel')
+ti_bp.register_blueprint(agente_api_bp, url_prefix='/painel')
 
 @ti_bp.route('/debug/dados')
 @login_required
