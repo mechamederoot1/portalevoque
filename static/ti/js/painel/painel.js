@@ -1061,7 +1061,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
                     }
                 } else {
                     if (window.advancedNotificationSystem) {
-                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usu��rio ${data.nome} criado, mas houve erro ao registrar como agente.`);
+                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usuário ${data.nome} criado, mas houve erro ao registrar como agente.`);
                     }
                 }
             } catch (agenteError) {
@@ -2055,7 +2055,7 @@ function inicializarSistemaPainel() {
             console.log('Ativando seção do hash:', hash);
             activateSection(hash);
         } else {
-            console.log('Ativando seção padrão: visao-geral');
+            console.log('Ativando seç��o padrão: visao-geral');
             activateSection('visao-geral');
         }
 
@@ -3155,7 +3155,7 @@ function inicializarFiltroPermissoes() {
         }
     });
 
-    // Mostrar/esconder ícone de limpeza
+    // Mostrar/esconder ��cone de limpeza
     filtroInput.addEventListener('input', function() {
         const parentGroup = filtroInput.closest('.input-group');
         if (parentGroup) {
@@ -3211,11 +3211,14 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
 
         const data = await response.json();
 
+        // Extract usuarios array from API response
+        const usuarios = data && data.usuarios ? data.usuarios : (Array.isArray(data) ? data : []);
+
         // Renderizar usuários
-        renderizarUsuarios(data.usuarios);
+        renderizarUsuarios(usuarios);
 
         // Renderizar paginação
-        renderizarPaginacaoUsuarios(data.pagination);
+        renderizarPaginacaoUsuarios(data.pagination || {});
 
         // Feedback visual no input
         const filtroInput = document.getElementById('filtroPermissoes');
