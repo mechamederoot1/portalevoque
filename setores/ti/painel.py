@@ -1045,7 +1045,7 @@ def atribuir_chamado_para_mim(chamado_id):
         # Verificar se o agente pode receber mais chamados
         try:
             if hasattr(agente, 'pode_receber_chamado') and not agente.pode_receber_chamado():
-                return error_response('Você já atingiu o limite máximo de chamados simultâneos')
+                return error_response('Você já atingiu o limite máximo de chamados simultâneos', 400)
         except Exception as e:
             logger.warning(f"Erro ao verificar limite de chamados: {str(e)}")
             # Continuar mesmo com erro no limite
