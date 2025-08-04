@@ -62,7 +62,7 @@ function initializeNavigation() {
             }
 
             const targetId = href.substring(1);
-            console.log('Navegando para seção:', targetId);
+            console.log('🔗 CLICK: Navegando para seção:', targetId);
 
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
@@ -476,7 +476,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
 
         const data = await response.json();
         
-        // Se o status foi atualizado com sucesso e �� um dos status que requer notificação
+        // Se o status foi atualizado com sucesso e é um dos status que requer notificação
         if (['Aguardando', 'Cancelado', 'Concluido'].includes(novoStatus)) {
             // Envia a notificação
             const notificacaoResponse = await fetch(`/ti/painel/api/chamados/${chamadoId}/notificar`, {
@@ -4096,7 +4096,7 @@ async function atribuirAgente(chamadoId) {
         document.body.insertAdjacentHTML('beforeend', modalContent);
 
     } catch (error) {
-        console.error('Erro ao abrir modal de atribuição:', error);
+        console.error('Erro ao abrir modal de atribui��ão:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
         }
