@@ -772,8 +772,10 @@ def listar_problemas():
                 {'id': 1, 'nome': 'Problema de Hardware', 'prioridade_padrao': 'Normal', 'requer_item_internet': False},
                 {'id': 2, 'nome': 'Problema de Software', 'prioridade_padrao': 'Normal', 'requer_item_internet': False},
                 {'id': 3, 'nome': 'Problema de Rede', 'prioridade_padrao': 'Alto', 'requer_item_internet': True},
-                {'id': 4, 'nome': 'Problema de Sistema', 'prioridade_padrao': 'Normal', 'requer_item_internet': False}
+                {'id': 4, 'nome': 'Problema de Sistema', 'prioridade_padrao': 'Normal', 'requer_item_internet': False},
+                {'id': 5, 'nome': 'Problema de Impressora', 'prioridade_padrao': 'Normal', 'requer_item_internet': False}
             ]
+            logger.info(f"Retornando {len(problemas_padrao)} problemas padrão")
             return json_response(problemas_padrao)
 
         problemas = ProblemaReportado.query.filter_by(ativo=True).all()
