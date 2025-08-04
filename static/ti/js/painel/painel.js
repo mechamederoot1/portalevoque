@@ -40,17 +40,7 @@ function initializeNavigation() {
     sections = document.querySelectorAll('section.content-section');
 
     console.log('Links de navegação encontrados:', navLinks.length);
-    console.log('🔧 DEBUG: Seções encontradas:', sections.length);
-
-    // Listar todas as seções encontradas
-    sections.forEach((section, index) => {
-        console.log(`🔧 DEBUG: Seção ${index}: ID=${section.id}, classes=${section.className}`);
-    });
-
-    // Listar todos os links encontrados
-    navLinks.forEach((link, index) => {
-        console.log(`🔧 DEBUG: Link ${index}: href=${link.getAttribute('href')}, texto=${link.textContent.trim()}`);
-    });
+    console.log('Seções encontradas:', sections.length);
 
     navLinks.forEach(link => {
         link.addEventListener('click', e => {
