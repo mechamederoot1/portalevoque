@@ -1125,7 +1125,7 @@ document.getElementById('emailUsuario')?.addEventListener('input', function() {
     }
 });
 
-// Validação em tempo real para campos obrigatórios
+// Validaç��o em tempo real para campos obrigatórios
 ['nomeUsuario', 'sobrenomeUsuario', 'nivelAcesso', 'setorUsuario'].forEach(id => {
     const elemento = document.getElementById(id);
     if (elemento) {
@@ -3173,8 +3173,8 @@ function inicializarFiltroPermissoes() {
         filtrarListaUsuarios(termoBusca, 1); // Sempre começar da primeira página em nova busca
     };
 
-    // Event listeners para busca em tempo real
-    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 100));
+    // Event listeners para busca em tempo real (increased debounce to reduce flickering)
+    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 300));
     btnFiltrar.addEventListener('click', filtrarUsuarios);
 
     // Filtrar ao pressionar Enter
@@ -3265,15 +3265,13 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
         // Renderizar paginação
         renderizarPaginacaoUsuarios(data.pagination || {});
 
-        // Feedback visual no input
+        // Feedback visual no input (using CSS classes instead of inline styles)
         const filtroInput = document.getElementById('filtroPermissoes');
         if (filtroInput) {
             if (termoBusca) {
-                filtroInput.style.backgroundColor = '#e8f4fd';
-                filtroInput.style.borderColor = '#007bff';
+                filtroInput.classList.add('searching');
             } else {
-                filtroInput.style.backgroundColor = '';
-                filtroInput.style.borderColor = '';
+                filtroInput.classList.remove('searching');
             }
         }
 
