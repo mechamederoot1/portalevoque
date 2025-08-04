@@ -1869,6 +1869,18 @@ function loadSectionContent(sectionId) {
                     console.warn('Erro ao carregar prioridades (não crítico):', error);
                 }
             }
+            // Carregar problemas e configurações de notificações
+            setTimeout(() => {
+                if (typeof carregarProblemas === 'function') {
+                    carregarProblemas();
+                }
+                if (typeof carregarConfiguracaoNotificacoes === 'function') {
+                    carregarConfiguracaoNotificacoes();
+                }
+                if (typeof carregarConfiguracoes === 'function') {
+                    carregarConfiguracoes();
+                }
+            }, 300);
             atualizarContadoresVisaoGeral();
             break;
         case 'agentes-suporte':
@@ -3922,7 +3934,7 @@ function verDetalhesLog(id, detalhes, erroDetalhes) {
             conteudo.innerHTML = `
                 <div class="mb-3">
                     <h6>Detalhes da Ação:</h6>
-                    <p class="text-muted">${detalhes || 'Sem detalhes dispon��veis'}</p>
+                    <p class="text-muted">${detalhes || 'Sem detalhes disponíveis'}</p>
                 </div>
                 ${erroDetalhes ? `
                     <div class="mb-3">
