@@ -1603,7 +1603,6 @@ def gerar_nova_senha(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>', methods=['PUT'])
 @login_required
-@setor_required('Administrador')
 def atualizar_usuario(user_id):
     try:
         if not request.is_json:
@@ -2687,7 +2686,7 @@ def listar_categorias_logs_acoes():
 @login_required
 @setor_required('Administrador')
 def estatisticas_logs_acoes():
-    """Retorna estatísticas dos logs de a��ões"""
+    """Retorna estatísticas dos logs de ações"""
     try:
         from database import LogAcao
 
