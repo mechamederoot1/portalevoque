@@ -1037,6 +1037,14 @@ def atribuir_chamado_para_mim(chamado_id):
     try:
         logger.info(f"Tentativa de atribuição do chamado {chamado_id} pelo usuário {current_user.id}")
 
+        # Processar dados JSON se fornecidos
+        data = {}
+        if request.is_json:
+            try:
+                data = request.get_json() or {}
+            except Exception as e:
+                logger.warning(f"Erro ao processar JSON: {e}")
+
         # Buscar ou criar agente automaticamente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente:
