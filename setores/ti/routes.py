@@ -83,7 +83,7 @@ def enviar_email(assunto, corpo, destinatarios=None):
     try:
         response = requests.post(ENDPOINT, headers=headers, json=email_data)
         if response.status_code == 202:
-            current_app.logger.info("�� E-mail enviado com sucesso!")
+            current_app.logger.info("���� E-mail enviado com sucesso!")
             return True
         else:
             current_app.logger.error(f"❌ Falha ao enviar e-mail. Status: {response.status_code}")
@@ -171,7 +171,11 @@ def abrir_chamado():
     try:
         unidades = Unidade.query.order_by(Unidade.nome).all()
         problemas = ProblemaReportado.query.filter_by(ativo=True).order_by(ProblemaReportado.nome).all()
-        itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
+        # Filtro ativo opcional para ItemInternet (pode não existir em dados antigos)
+        try:
+            itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
+        except:
+            itens_internet = ItemInternet.query.order_by(ItemInternet.nome).all()
 
         # Log de debug
         current_app.logger.info(f"📊 Dados carregados - Unidades: {len(unidades)}, Problemas: {len(problemas)}, Itens: {len(itens_internet)}")
@@ -181,7 +185,11 @@ def abrir_chamado():
             seed_unidades()
             unidades = Unidade.query.order_by(Unidade.nome).all()
             problemas = ProblemaReportado.query.filter_by(ativo=True).order_by(ProblemaReportado.nome).all()
-            itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
+            # Filtro ativo opcional para ItemInternet (pode não existir em dados antigos)
+            try:
+                itens_internet = ItemInternet.query.filter_by(ativo=True).order_by(ItemInternet.nome).all()
+            except:
+                itens_internet = ItemInternet.query.order_by(ItemInternet.nome).all()
             current_app.logger.info(f"📊 Após seed - Unidades: {len(unidades)}, Problemas: {len(problemas)}, Itens: {len(itens_internet)}")
             
         if request.method == 'POST':
