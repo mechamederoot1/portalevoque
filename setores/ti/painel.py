@@ -41,6 +41,24 @@ def json_response(data, status=200):
     response.headers['Content-Type'] = 'application/json'
     return response
 
+def verificar_ou_criar_agente(usuario):
+    """Verifica se o usuário é um agente ou cria um se necessário"""
+    agente = AgenteSuporte.query.filter_by(usuario_id=usuario.id, ativo=True).first()
+    if not agente:
+        # Verificar se é administrador ou tem acesso ao TI
+        if usuario.nivel_acesso == 'Administrador' or usuario.setor == 'TI':
+            # Criar registro de agente automaticamente
+            agente = AgenteSuporte(
+                usuario_id=usuario.id,
+                ativo=True,
+                nivel_experiencia='pleno',
+                max_chamados_simultaneos=15
+            )
+            db.session.add(agente)
+            db.session.commit()
+            logger.info(f"Agente criado automaticamente para usuário {usuario.id}")
+    return agente
+
 def error_response(message, status=400):
     """Retorna erro JSON padronizado"""
     return json_response({'error': message}, status)
@@ -688,7 +706,7 @@ def salvar_configuracoes_notificacoes():
         if not data:
             return error_response('Dados não fornecidos', 400)
         
-        logger.info(f"Salvando configurações de notificações: {data}")
+        logger.info(f"Salvando configurações de notificaç��es: {data}")
         
         # Validar campos obrigatórios
         campos_esperados = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
