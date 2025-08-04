@@ -3127,13 +3127,16 @@ async function salvarConfiguracoesChamados() {
     }
 }
 
-// Adicione esta chamada no DOMContentLoaded
-document.addEventListener('DOMContentLoaded', function() {
-    // ... outros event listeners ...
+// Configuration loading moved to painel.js loadSectionContent()
+// Event listeners setup
+function configurarEventosConfiguracoes() {
     configurarEventosChamados();
-    
-    // REMOVED: Navigation listener moved to painel.js loadSectionContent()
-});
+}
+
+// Call this when the configuracoes section is loaded
+if (typeof window.configurarEventosConfiguracoes !== 'function') {
+    window.configurarEventosConfiguracoes = configurarEventosConfiguracoes;
+}
 
 async function carregarConfiguracoes() {
     try {
