@@ -447,7 +447,7 @@ def salvar_configuracoes_db(config):
             logger.error("Configuração inválida para salvar")
             return False
         
-        # Carregar configuraç��es existentes
+        # Carregar configurações existentes
         config_existente = carregar_configuracoes()
         
         # Atualizar apenas as seções fornecidas
@@ -2014,7 +2014,7 @@ def obter_metricas_sla():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/grafico-semanal', methods=['GET'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def obter_grafico_semanal():
     """Retorna dados para gráfico semanal de chamados"""
