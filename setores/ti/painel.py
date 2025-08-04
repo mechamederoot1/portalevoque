@@ -444,7 +444,7 @@ def salvar_configuracoes_db(config):
     try:
         # Validar estrutura antes de salvar
         if not isinstance(config, dict):
-            logger.error("Configuração inválida para salvar")
+            logger.error("Configuraç��o inválida para salvar")
             return False
         
         # Carregar configurações existentes
@@ -758,7 +758,7 @@ def carregar_configuracoes_notificacoes():
 # ==================== PROBLEMAS REPORTADOS ====================
 
 @painel_bp.route('/api/problemas', methods=['GET'])
-@login_required
+@api_login_required
 def listar_problemas():
     """Lista todos os problemas reportados"""
     try:
@@ -2490,7 +2490,7 @@ def excluir_agente(agente_id):
         # Verificar se há chamados ativos atribuídos
         chamados_ativos = agente.get_chamados_ativos()
         if chamados_ativos > 0:
-            return error_response(f'Não �� possível excluir agente com {chamados_ativos} chamado(s) ativo(s)')
+            return error_response(f'Não é possível excluir agente com {chamados_ativos} chamado(s) ativo(s)')
 
         nome_agente = agente.usuario.nome
 
