@@ -40,7 +40,7 @@ function initializeNavigation() {
     sections = document.querySelectorAll('section.content-section');
 
     console.log('Links de navegação encontrados:', navLinks.length);
-    console.log('Se��ões encontradas:', sections.length);
+    console.log('Seções encontradas:', sections.length);
 
     navLinks.forEach(link => {
         link.addEventListener('click', e => {
@@ -57,7 +57,7 @@ function initializeNavigation() {
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
             if (!targetSection) {
-                console.error('Seção não encontrada:', targetId);
+                console.error('Seção n��o encontrada:', targetId);
                 return;
             }
 
@@ -207,7 +207,7 @@ async function loadChamados() {
     }
 }
 
-// Funç��o para popular filtros com dados dinâmicos
+// Funç���o para popular filtros com dados dinâmicos
 function popularFiltrosDinamicos() {
     // Popular filtro de unidades
     const filtroUnidade = document.getElementById('filtroUnidade');
@@ -1814,7 +1814,7 @@ function loadSectionContent(sectionId) {
             }
             break;
         case 'sla-dashboard':
-            // Carregar dados SLA se a função existir
+            // Carregar dados SLA se a fun��ão existir
             if (typeof carregarSLA === 'function') {
                 carregarSLA();
             }
@@ -1843,7 +1843,7 @@ function loadSectionContent(sectionId) {
                         console.log('Função carregarAgentes encontrada no retry, executando...');
                         carregarAgentes();
                     } else {
-                        console.error('Função carregarAgentes ainda não disponível. Verifique o carregamento dos scripts.');
+                        console.error('Função carregarAgentes ainda n��o disponível. Verifique o carregamento dos scripts.');
                     }
                 }, 100);
             }
@@ -1952,10 +1952,7 @@ function inicializarSistemaPainel() {
     console.log('=== INICIALIZANDO SISTEMA DO PAINEL ===');
 
     try {
-        // 1. Inicializar navegação
-        initializeNavigation();
-
-        // 2. Verificar elementos essenciais da interface
+        // 1. Verificar elementos essenciais da interface primeiro
         const sidebar = document.getElementById('sidebar');
         const mainContent = document.getElementById('mainContent');
         const allSections = document.querySelectorAll('section.content-section');
@@ -1966,7 +1963,20 @@ function inicializarSistemaPainel() {
             sections: allSections.length
         });
 
-        // 3. Ativar seção inicial
+        if (allSections.length === 0) {
+            console.error('ERRO: Nenhuma seção content-section encontrada!');
+            return;
+        }
+
+        // 2. Inicializar navegação
+        initializeNavigation();
+
+        // 3. Garantir que apenas uma seção esteja ativa
+        allSections.forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // 4. Ativar seção inicial
         const hash = window.location.hash.substring(1);
         if (hash && document.getElementById(hash)) {
             console.log('Ativando seção do hash:', hash);
@@ -1980,7 +1990,7 @@ function inicializarSistemaPainel() {
         setTimeout(() => {
             console.log('Carregando dados iniciais do sistema...');
 
-            // Carregar chamados para métricas
+            // Carregar chamados para m��tricas
             if (typeof loadChamados === 'function') {
                 console.log('Carregando chamados...');
                 loadChamados();
@@ -2022,8 +2032,77 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log('DOM carregado - inicializando painel.js');
 
     // Aguardar carregamento completo dos scripts
-    setTimeout(inicializarSistemaPainel, 100);
+    setTimeout(() => {
+        inicializarSistemaPainel();
+
+        // Inicializar Socket.IO
+        setTimeout(() => {
+            if (typeof initializeSocketIO === 'function') {
+                initializeSocketIO();
+            }
+        }, 1000);
+
+        // Inicializar event listeners de filtros
+        initializeFilterListeners();
+    }, 100);
 });
+
+// Função para inicializar listeners de filtros
+function initializeFilterListeners() {
+    // Botão filtrar chamados
+    const btnFiltrarChamados = document.getElementById('btnFiltrarChamados');
+    if (btnFiltrarChamados) {
+        btnFiltrarChamados.addEventListener('click', function() {
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    // Botão limpar filtros
+    const btnLimparFiltros = document.getElementById('btnLimparFiltros');
+    if (btnLimparFiltros) {
+        btnLimparFiltros.addEventListener('click', function() {
+            // Limpar todos os campos de filtro
+            const filtroSolicitante = document.getElementById('filtroSolicitante');
+            const filtroProblema = document.getElementById('filtroProblema');
+            const filtroPrioridade = document.getElementById('filtroPrioridade');
+            const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+            const filtroUnidade = document.getElementById('filtroUnidade');
+            const filtroDataInicio = document.getElementById('filtroDataInicio');
+            const filtroDataFim = document.getElementById('filtroDataFim');
+
+            if (filtroSolicitante) filtroSolicitante.value = '';
+            if (filtroProblema) filtroProblema.value = '';
+            if (filtroPrioridade) filtroPrioridade.value = '';
+            if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
+            if (filtroUnidade) filtroUnidade.value = '';
+            if (filtroDataInicio) filtroDataInicio.value = '';
+            if (filtroDataFim) filtroDataFim.value = '';
+
+            // Renderizar novamente
+            currentPage = 1;
+            renderChamadosPage(currentPage);
+        });
+    }
+
+    // Botão para reconectar Socket.IO
+    const btnReconectarSocket = document.getElementById('btnReconectarSocket');
+    if (btnReconectarSocket) {
+        btnReconectarSocket.addEventListener('click', function() {
+            console.log('Tentando reconectar Socket.IO...');
+            updateSocketStatus('Reconectando...', 'warning');
+
+            if (socket) {
+                socket.disconnect();
+                setTimeout(() => {
+                    socket.connect();
+                }, 1000);
+            } else {
+                initializeSocketIO();
+            }
+        });
+    }
+}
 
 // Navigation event listeners are now handled in initializeNavigation() function
 // which is called after DOM is loaded
@@ -2269,27 +2348,7 @@ function updateSocketStatus(status, type) {
 }
 
 // Inicializar Socket.IO quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', function() {
-    // Aguardar um pouco para garantir que tudo esteja carregado
-    setTimeout(() => {
-        initializeSocketIO();
-    }, 1000);
-    
-    // Botão para reconectar Socket.IO
-    document.getElementById('btnReconectarSocket')?.addEventListener('click', function() {
-        console.log('Tentando reconectar Socket.IO...');
-        updateSocketStatus('Reconectando...', 'warning');
-        
-        if (socket) {
-            socket.disconnect();
-            setTimeout(() => {
-                socket.connect();
-            }, 1000);
-        } else {
-            initializeSocketIO();
-        }
-    });
-});
+// REMOVIDO: DOMContentLoaded duplicado - Socket.IO e botões já são inicializados no principal
 
 // ==================== FUNCIONALIDADES DE AGENTES ====================
 // agentesData is declared in agentes.js
@@ -2968,7 +3027,7 @@ let currentUsuariosPage = 1;
 let currentUsuariosBusca = '';
 
 async function filtrarListaUsuarios(termoBusca, page = 1) {
-    console.log(`Filtrando usuários com termo: "${termoBusca}", página: ${page}`);
+    console.log(`Filtrando usu��rios com termo: "${termoBusca}", página: ${page}`);
 
     try {
         // Atualizar variáveis globais
@@ -4059,7 +4118,7 @@ async function atribuirAgente(chamadoId) {
         document.body.insertAdjacentHTML('beforeend', modalContent);
 
     } catch (error) {
-        console.error('Erro ao abrir modal de atribuição:', error);
+        console.error('Erro ao abrir modal de atribui��ão:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
         }

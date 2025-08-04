@@ -222,7 +222,7 @@
     
     .feature-card .card-icon {
       font-size: 2.5rem;
-      color: var(--primary-color);
+      color: #FF6200; /* Orange color explicitly set */
       margin-bottom: 20px;
       transition: all 0.3s ease;
     }
@@ -387,6 +387,13 @@
           <li class="nav-item">
             <a class="nav-link active" href="{{ url_for('compras.index') }}">Compras</a>
           </li>
+          {% if current_user.is_authenticated and current_user.nivel_acesso == 'Administrador' %}
+          <li class="nav-item">
+            <a class="nav-link" href="{{ url_for('compras.painel_admin') }}">
+              <i class="fas fa-cogs me-1"></i>Painel Admin
+            </a>
+          </li>
+          {% endif %}
           <li class="nav-item">
             <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
           </li>
@@ -473,6 +480,23 @@
             </div>
           </a>
         </div>
+
+        <!-- Painel Admin (apenas para administradores) -->
+        {% if current_user.is_authenticated and current_user.nivel_acesso == 'Administrador' %}
+        <div class="col-12 col-sm-6 col-lg-3">
+          <a href="{{ url_for('compras.painel_admin') }}" class="text-decoration-none">
+            <div class="card feature-card animate__animated animate__fadeInUp animate__delay-08s">
+              <div class="card-body">
+                <div class="card-icon">
+                  <i class="fas fa-cogs"></i>
+                </div>
+                <h5>Painel Admin</h5>
+                <p>Acesso ao painel administrativo de compras.</p>
+              </div>
+            </div>
+          </a>
+        </div>
+        {% endif %}
       </div>
     </div>
   </section>
