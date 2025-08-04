@@ -199,6 +199,10 @@ class ProblemaReportado(db.Model):
 class ItemInternet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(50), nullable=False, unique=True)
+    ativo = db.Column(db.Boolean, default=True)
+
+    def __repr__(self):
+        return f'<ItemInternet {self.nome}>'
 
 class SolicitacaoCompra(db.Model):
     """Modelo para solicitações de compra"""
