@@ -1400,6 +1400,10 @@
             tbody = document.getElementById('tabelaMeusChamadosConcluidosPage');
             count = document.getElementById('countConcluidosPage');
             break;
+          case 'cancelados':
+            tbody = document.getElementById('tabelaMeusChamadosCanceladosPage');
+            count = document.getElementById('countCanceladosPage');
+            break;
         }
         
         if (!tbody || !count) return;
