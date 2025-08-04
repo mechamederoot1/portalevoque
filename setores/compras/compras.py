@@ -1,8 +1,10 @@
 from flask import Blueprint, render_template, request, jsonify, current_app, redirect, url_for, flash
 from flask_login import login_required, current_user
 from auth.auth_helpers import setor_required
-from datetime import datetime
-from database import db
+from datetime import datetime, date
+from database import db, SolicitacaoCompra, User
+from setores.ti.email_service import email_service
+from jinja2 import Template
 import os
 
 compras_bp = Blueprint(
@@ -25,7 +27,7 @@ def index():
 @login_required
 @setor_required('Compras')
 def nova_solicitacao():
-    """Página para criar nova solicitação de compra"""
+    """P��gina para criar nova solicitação de compra"""
     return render_template('compras/nova_solicitacao.html')
 
 @compras_bp.route('/solicitacoes')
