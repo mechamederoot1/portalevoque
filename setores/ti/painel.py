@@ -925,6 +925,30 @@ def atribuir_chamado_para_mim(chamado_id):
         db.session.add(nova_atribuicao)
         db.session.commit()
 
+        # Enviar e-mail de notificação
+        try:
+            from setores.ti.routes import enviar_email
+            assunto = f"Chamado {chamado.codigo} - Agente Atribuído"
+            corpo = f"""
+Olá {chamado.solicitante},
+
+Seu chamado {chamado.codigo} foi atribuído ao agente {current_user.nome} {current_user.sobrenome}.
+
+Detalhes do chamado:
+- Problema: {chamado.problema}
+- Prioridade: {chamado.prioridade}
+- Agente responsável: {current_user.nome} {current_user.sobrenome}
+- E-mail do agente: {current_user.email}
+
+Em breve você receberá um contato para resolução do seu problema.
+
+Atenciosamente,
+Equipe de Suporte TI - Evoque Fitness
+"""
+            enviar_email(assunto, corpo, [chamado.email])
+        except Exception as email_error:
+            logger.warning(f"Erro ao enviar e-mail de atribuição: {str(email_error)}")
+
         logger.info(f"Chamado {chamado.codigo} auto-atribuído ao agente {current_user.nome}")
 
         return json_response({
