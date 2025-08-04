@@ -484,14 +484,14 @@
         <!-- Painel Admin (apenas para administradores) -->
         {% if current_user.is_authenticated and current_user.nivel_acesso == 'Administrador' %}
         <div class="col-12 col-sm-6 col-lg-3">
-          <a href="{{ url_for('ti.painel_admin') }}" class="text-decoration-none">
+          <a href="{{ url_for('compras.painel_admin') }}" class="text-decoration-none">
             <div class="card feature-card animate__animated animate__fadeInUp animate__delay-08s">
               <div class="card-body">
                 <div class="card-icon">
                   <i class="fas fa-cogs"></i>
                 </div>
                 <h5>Painel Admin</h5>
-                <p>Acesso ao painel administrativo do sistema.</p>
+                <p>Acesso ao painel administrativo de compras.</p>
               </div>
             </div>
           </a>
