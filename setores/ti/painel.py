@@ -1435,6 +1435,7 @@ def listar_usuarios():
                 db.or_(
                     User.nome.ilike(like_term),
                     User.sobrenome.ilike(like_term),
+                    db.func.concat(User.nome, ' ', User.sobrenome).ilike(like_term),
                     User.usuario.ilike(like_term),
                     User.email.ilike(like_term),
                     User.nivel_acesso.ilike(like_term),
