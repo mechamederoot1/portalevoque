@@ -36,6 +36,50 @@ def error_response(message, status=400):
     """Retorna erro JSON padronizado"""
     return json_response({'error': message}, status)
 
+def criar_notificacao_agente(agente_id, titulo, mensagem, tipo, chamado_id=None, metadados=None, prioridade='normal'):
+    """Cria uma nova notificação para o agente"""
+    try:
+        notificacao = NotificacaoAgente(
+            agente_id=agente_id,
+            titulo=titulo,
+            mensagem=mensagem,
+            tipo=tipo,
+            chamado_id=chamado_id,
+            prioridade=prioridade
+        )
+
+        if metadados:
+            notificacao.set_metadados(metadados)
+
+        db.session.add(notificacao)
+        db.session.commit()
+
+        return notificacao
+    except Exception as e:
+        logger.error(f"Erro ao criar notificação: {str(e)}")
+        db.session.rollback()
+        return None
+
+def criar_historico_atendimento(chamado_id, agente_id, status_inicial='Aguardando', observacoes=None):
+    """Cria um registro de histórico para um atendimento"""
+    try:
+        historico = HistoricoAtendimento(
+            chamado_id=chamado_id,
+            agente_id=agente_id,
+            data_atribuicao=get_brazil_time().replace(tzinfo=None),
+            status_inicial=status_inicial,
+            observacoes_iniciais=observacoes
+        )
+
+        db.session.add(historico)
+        db.session.commit()
+
+        return historico
+    except Exception as e:
+        logger.error(f"Erro ao criar histórico de atendimento: {str(e)}")
+        db.session.rollback()
+        return None
+
 @agente_api_bp.route('/api/chamados/<int:chamado_id>/detalhes', methods=['GET'])
 @api_login_required
 def detalhes_chamado(chamado_id):
