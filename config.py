@@ -133,6 +133,10 @@ class TestingConfig(Config):
     WTF_CSRF_ENABLED = False
     SQLALCHEMY_ENGINE_OPTIONS = {}  # Remove MySQL-specific options for SQLite
 
+    def __init__(self):
+        # Override database validation for testing
+        pass
+
 # Dicionário de configurações
 config = {
     'development': DevelopmentConfig,
