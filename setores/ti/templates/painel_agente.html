@@ -2101,7 +2101,7 @@
             this.renderizarNotificacoes(notificacoes);
           }
         } catch (error) {
-          console.error('Erro ao carregar notificações:', error);
+          console.error('Erro ao carregar notifica��ões:', error);
         }
       }
 
@@ -2704,8 +2704,31 @@ Equipe de Suporte TI - Evoque Fitness`;
       }
     }
 
+    // Função para testar autenticação
+    async function testarAutenticacao() {
+      try {
+        const response = await fetch('/ti/painel/api/auth/teste');
+        const data = await response.json();
+        if (!data.authenticated) {
+          console.error('Usuário não está autenticado');
+          alert('Sua sessão expirou. Por favor, faça login novamente.');
+          window.location.href = '/login';
+          return false;
+        }
+        console.log('Usuário autenticado:', data);
+        return true;
+      } catch (error) {
+        console.error('Erro ao verificar autenticação:', error);
+        return false;
+      }
+    }
+
     // Inicializar quando o DOM estiver carregado
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Verificar autenticação primeiro
+      const autenticado = await testarAutenticacao();
+      if (!autenticado) return;
+
       window.painelAgente = new PainelAgente();
       
       // Event listeners para modal
