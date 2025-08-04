@@ -198,6 +198,36 @@ class ProblemaReportado(db.Model):
 class ItemInternet(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(50), nullable=False, unique=True)
+
+class SolicitacaoCompra(db.Model):
+    """Modelo para solicitações de compra"""
+    __tablename__ = 'solicitacao_compra'
+
+    id = db.Column(db.Integer, primary_key=True)
+    protocolo = db.Column(db.String(20), unique=True, nullable=False)
+    solicitante_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    produto = db.Column(db.String(255), nullable=False)
+    quantidade = db.Column(db.Integer, nullable=False)
+    categoria = db.Column(db.String(50), nullable=True)
+    prioridade = db.Column(db.String(20), default='Normal')
+    valor_estimado = db.Column(db.Decimal(10, 2), nullable=True)
+    data_entrega_desejada = db.Column(db.Date, nullable=True)
+    justificativa = db.Column(db.Text, nullable=False)
+    observacoes = db.Column(db.Text, nullable=True)
+    urgente = db.Column(db.Boolean, default=False)
+    status = db.Column(db.String(30), default='Pendente')
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_atualizacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    aprovado_por = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    data_aprovacao = db.Column(db.DateTime, nullable=True)
+    motivo_rejeicao = db.Column(db.Text, nullable=True)
+
+    # Relacionamentos
+    solicitante = db.relationship('User', foreign_keys=[solicitante_id], backref='solicitacoes_compra')
+    aprovador = db.relationship('User', foreign_keys=[aprovado_por])
+
+    def __repr__(self):
+        return f'<SolicitacaoCompra {self.protocolo} - {self.produto}>'
     ativo = db.Column(db.Boolean, default=True)
 
     def __repr__(self):
