@@ -86,17 +86,7 @@ CONFIGURACOES_PADRAO = {
     }
 }
 
-def json_response(data, status=200):
-    """Wrapper para garantir resposta JSON válida"""
-    try:
-        response = jsonify(data)
-        response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return response, status
-    except Exception as e:
-        logger.error(f"Erro ao criar resposta JSON: {str(e)}")
-        error_response = jsonify({'error': 'Erro interno de serialização'})
-        error_response.headers['Content-Type'] = 'application/json; charset=utf-8'
-        return error_response, 500
+
 
 def error_response(message, status=500, details=None):
     """Wrapper para respostas de erro padronizadas"""
@@ -2584,7 +2574,7 @@ def atribuir_chamado(chamado_id):
             if email_enviado:
                 logger.info(f"Email de notificação enviado para {chamado.email}")
             else:
-                logger.warning(f"Falha ao enviar email de notificação para {chamado.email}")
+                logger.warning(f"Falha ao enviar email de notificaç��o para {chamado.email}")
         except Exception as e:
             logger.warning(f"Erro ao enviar email de notificação: {str(e)}")
 
