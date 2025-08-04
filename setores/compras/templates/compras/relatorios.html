@@ -93,15 +93,30 @@
     
     .form-control, .form-select {
       background-color: var(--secondary-color);
-      border-color: #3A4345;
-      color: var(--light-color);
+      border: 1px solid var(--border-color);
+      color: var(--text-color) !important;
+      font-weight: 500;
     }
-    
+
     .form-control:focus, .form-select:focus {
       background-color: var(--secondary-color);
       border-color: var(--primary-color);
       box-shadow: 0 0 0 0.2rem rgba(255, 98, 0, 0.25);
-      color: var(--light-color);
+      color: var(--text-color) !important;
+    }
+
+    /* Garantir que todo texto seja visível */
+    * {
+      color: inherit;
+    }
+
+    p, span, div, label, input, select, textarea, h1, h2, h3, h4, h5, h6, td, th {
+      color: var(--text-color) !important;
+    }
+
+    .table-dark {
+      --bs-table-bg: var(--card-bg);
+      --bs-table-color: var(--text-color);
     }
     
     .btn-primary {
@@ -228,7 +243,7 @@
           <div class="card">
             <div class="card-header">
               <h5 class="card-title mb-0">
-                <i class="fas fa-chart-line me-2"></i>Solicitações por Mês
+                <i class="fas fa-chart-line me-2"></i>Solicitaç��es por Mês
               </h5>
             </div>
             <div class="card-body">
