@@ -223,7 +223,7 @@ let currentFilter = 'all';
 const chamadosGrid = document.getElementById('chamadosGrid');
 const pagination = document.getElementById('pagination');
 
-// Função para carregar os chamados da API
+// Fun��ão para carregar os chamados da API
 async function loadChamados() {
     try {
         const response = await fetch('/ti/painel/api/chamados');
@@ -3230,6 +3230,7 @@ function inicializarFiltroPermissoes() {
 // Variáveis para controle de paginação de usuários (reutilizando variável já declarada)
 // let currentUsuariosPage = 1; // REMOVIDO: Já declarado anteriormente
 let currentUsuariosBusca = '';
+let isSearching = false;
 
 async function filtrarListaUsuarios(termoBusca, page = 1) {
     console.log(`Filtrando usu��rios com termo: "${termoBusca}", página: ${page}`);
