@@ -1731,18 +1731,61 @@
 
       showNotification(message, type) {
         const notification = document.createElement('div');
-        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade show`;
-        notification.innerHTML = `
-          ${message}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade`;
+        notification.style.cssText = `
+          transform: translateX(100%);
+          opacity: 0;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         `;
-        
+        notification.innerHTML = `
+          <i class="fas fa-${this.getNotificationIcon(type)} me-2"></i>
+          ${message}
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+
         const container = document.getElementById('notificationContainer');
         container.appendChild(notification);
-        
+
+        // Animar entrada
         setTimeout(() => {
-          notification.remove();
+          notification.classList.add('show');
+          notification.style.transform = 'translateX(0)';
+          notification.style.opacity = '1';
+        }, 100);
+
+        // Auto-remover após 5 segundos
+        setTimeout(() => {
+          this.hideNotification(notification);
         }, 5000);
+
+        // Evento de fechar manual
+        const closeBtn = notification.querySelector('.btn-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', () => {
+            this.hideNotification(notification);
+          });
+        }
+      }
+
+      hideNotification(notification) {
+        notification.style.transform = 'translateX(100%)';
+        notification.style.opacity = '0';
+        setTimeout(() => {
+          if (notification.parentNode) {
+            notification.remove();
+          }
+        }, 400);
+      }
+
+      getNotificationIcon(type) {
+        const icons = {
+          'success': 'check-circle',
+          'error': 'exclamation-triangle',
+          'warning': 'exclamation-triangle',
+          'info': 'info-circle',
+          'danger': 'exclamation-triangle'
+        };
+        return icons[type] || 'info-circle';
       }
       
       renderizarChamadosDisponiveisPage(chamados) {
