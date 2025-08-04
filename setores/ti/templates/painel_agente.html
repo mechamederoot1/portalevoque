@@ -1415,7 +1415,7 @@
             this.carregarNotificacoesCompletas();
             break;
           case 'gerenciar-usuarios':
-            // Não carregar automaticamente, aguardar busca do usuário
+            this.buscarUsuarios(''); // Carregar todos os usuários automaticamente
             break;
           case 'perfil-agente':
             this.carregarPerfilAgente();
@@ -2173,7 +2173,7 @@
             this.showNotification('Erro ao filtrar histórico', 'error');
           }
         } catch (error) {
-          console.error('Erro ao filtrar hist��rico:', error);
+          console.error('Erro ao filtrar histórico:', error);
           this.showNotification('Erro ao filtrar histórico', 'error');
         }
       }
