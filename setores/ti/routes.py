@@ -497,6 +497,36 @@ ti_bp.register_blueprint(grupos_bp, url_prefix='/painel')
 ti_bp.register_blueprint(auditoria_bp, url_prefix='/painel')
 ti_bp.register_blueprint(rotas_bp, url_prefix='/painel')
 
+@ti_bp.route('/debug/dados')
+@login_required
+@setor_required('ti')
+def debug_dados():
+    """Rota de debug para verificar dados do banco"""
+    try:
+        unidades = Unidade.query.all()
+        problemas = ProblemaReportado.query.all()
+        itens_internet = ItemInternet.query.all()
+
+        dados_debug = {
+            'unidades': {
+                'total': len(unidades),
+                'lista': [{'id': u.id, 'nome': u.nome} for u in unidades[:5]]  # Primeiras 5
+            },
+            'problemas': {
+                'total': len(problemas),
+                'lista': [{'id': p.id, 'nome': p.nome, 'prioridade': p.prioridade_padrao, 'ativo': p.ativo} for p in problemas]
+            },
+            'itens_internet': {
+                'total': len(itens_internet),
+                'lista': [{'id': i.id, 'nome': i.nome, 'ativo': i.ativo} for i in itens_internet]
+            }
+        }
+
+        return jsonify(dados_debug)
+
+    except Exception as e:
+        return jsonify({'error': str(e)})
+
 @ti_bp.route('/api/chamados/recentes')
 @login_required
 @setor_required('ti')
