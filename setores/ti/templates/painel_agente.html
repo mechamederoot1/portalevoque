@@ -790,7 +790,7 @@
                 <!-- Paginação -->
                 <nav aria-label="Paginação de usuários" id="paginacaoUsuarios" style="display: none;">
                   <ul class="pagination justify-content-center">
-                    <!-- Paginaç��o será inserida via JavaScript -->
+                    <!-- Paginação será inserida via JavaScript -->
                   </ul>
                 </nav>
               </div>
@@ -2204,6 +2204,292 @@
 
         // Carregar histórico automaticamente com filtros padrão
         this.filtrarHistorico();
+      }
+
+      // ========== GERENCIAMENTO DE USUÁRIOS ==========
+
+      async buscarUsuarios() {
+        try {
+          const busca = document.getElementById('buscaUsuario').value.trim();
+          const url = busca ? `/ti/painel/api/usuarios?busca=${encodeURIComponent(busca)}&per_page=20` : '/ti/painel/api/usuarios?per_page=20';
+
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            this.renderizarUsuarios(data.usuarios || []);
+            document.getElementById('totalUsuarios').textContent = data.pagination?.total || data.usuarios?.length || 0;
+          } else {
+            this.showNotification('Erro ao buscar usuários', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao buscar usuários:', error);
+          this.showNotification('Erro ao buscar usuários', 'error');
+        }
+      }
+
+      renderizarUsuarios(usuarios) {
+        const tbody = document.getElementById('tabelaUsuarios');
+
+        if (usuarios.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum usuário encontrado</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = usuarios.map(user => `
+          <tr>
+            <td>${user.nome} ${user.sobrenome}</td>
+            <td>${user.email}</td>
+            <td>${user.usuario}</td>
+            <td><span class="badge bg-info">${user.nivel_acesso}</span></td>
+            <td>
+              <span class="badge bg-${user.bloqueado ? 'danger' : 'success'}">
+                ${user.bloqueado ? 'Bloqueado' : 'Ativo'}
+              </span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.editarUsuario(${user.id})" title="Editar">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-sm btn-warning me-1" onclick="painelAgente.resetarSenhaUsuario(${user.id})" title="Resetar senha">
+                <i class="fas fa-key"></i>
+              </button>
+              <button class="btn btn-sm btn-${user.bloqueado ? 'success' : 'danger'}" onclick="painelAgente.toggleBloqueioUsuario(${user.id})" title="${user.bloqueado ? 'Desbloquear' : 'Bloquear'}">
+                <i class="fas fa-${user.bloqueado ? 'unlock' : 'lock'}"></i>
+              </button>
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      abrirModalNovoUsuario() {
+        // Limpar formulário
+        document.getElementById('formGerenciarUsuario').reset();
+        document.getElementById('usuarioId').value = '';
+        document.getElementById('modalGerenciarUsuarioTitle').textContent = 'Novo Usuário';
+        document.getElementById('novaSenhaSection').style.display = 'block';
+        document.getElementById('btnResetarSenha').style.display = 'none';
+        document.getElementById('usuarioSenha').required = true;
+
+        const modal = new bootstrap.Modal(document.getElementById('modalGerenciarUsuario'));
+        modal.show();
+      }
+
+      async editarUsuario(userId) {
+        try {
+          const response = await fetch(`/ti/painel/api/usuarios/${userId}`);
+          if (response.ok) {
+            const user = await response.json();
+
+            // Preencher formulário
+            document.getElementById('usuarioId').value = user.id;
+            document.getElementById('usuarioNome').value = user.nome;
+            document.getElementById('usuarioSobrenome').value = user.sobrenome;
+            document.getElementById('usuarioEmail').value = user.email;
+            document.getElementById('usuarioUsuario').value = user.usuario;
+            document.getElementById('usuarioNivelAcesso').value = user.nivel_acesso;
+            document.getElementById('usuarioSetores').value = user.setores || user.setor;
+            document.getElementById('usuarioBloqueado').checked = user.bloqueado;
+
+            document.getElementById('modalGerenciarUsuarioTitle').textContent = 'Editar Usuário';
+            document.getElementById('novaSenhaSection').style.display = 'block';
+            document.getElementById('btnResetarSenha').style.display = 'inline-block';
+            document.getElementById('usuarioSenha').required = false;
+
+            const modal = new bootstrap.Modal(document.getElementById('modalGerenciarUsuario'));
+            modal.show();
+          } else {
+            this.showNotification('Erro ao carregar dados do usuário', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao carregar usuário:', error);
+          this.showNotification('Erro ao carregar dados do usuário', 'error');
+        }
+      }
+
+      async salvarUsuario() {
+        try {
+          const userId = document.getElementById('usuarioId').value;
+          const isEdit = userId !== '';
+
+          const userData = {
+            nome: document.getElementById('usuarioNome').value,
+            sobrenome: document.getElementById('usuarioSobrenome').value,
+            email: document.getElementById('usuarioEmail').value,
+            usuario: document.getElementById('usuarioUsuario').value,
+            nivel_acesso: document.getElementById('usuarioNivelAcesso').value,
+            setores: document.getElementById('usuarioSetores').value,
+            bloqueado: document.getElementById('usuarioBloqueado').checked
+          };
+
+          if (!isEdit) {
+            userData.senha = document.getElementById('usuarioSenha').value;
+            if (!userData.senha) {
+              this.showNotification('Senha é obrigatória para novos usuários', 'warning');
+              return;
+            }
+          } else if (document.getElementById('usuarioSenha').value) {
+            userData.senha = document.getElementById('usuarioSenha').value;
+          }
+
+          const url = isEdit ? `/ti/painel/api/usuarios/${userId}` : '/ti/painel/api/usuarios';
+          const method = isEdit ? 'PUT' : 'POST';
+
+          const response = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(userData)
+          });
+
+          if (response.ok) {
+            this.showNotification(`Usuário ${isEdit ? 'atualizado' : 'criado'} com sucesso!`, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalGerenciarUsuario')).hide();
+            this.buscarUsuarios(); // Recarregar lista
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || `Erro ao ${isEdit ? 'atualizar' : 'criar'} usuário`, 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao salvar usuário:', error);
+          this.showNotification('Erro ao salvar usuário', 'error');
+        }
+      }
+
+      async resetarSenhaUsuario(userId = null) {
+        try {
+          const id = userId || document.getElementById('usuarioId').value;
+          if (!id) {
+            this.showNotification('ID do usuário não encontrado', 'error');
+            return;
+          }
+
+          const response = await fetch(`/ti/painel/api/usuarios/${id}/gerar-senha`, {
+            method: 'POST'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            this.showNotification(`Nova senha gerada: ${data.nova_senha}`, 'success');
+
+            // Se estiver no modal, mostrar a nova senha
+            if (!userId) {
+              document.getElementById('senhaGerada').textContent = data.nova_senha;
+              document.getElementById('usuarioSenha').value = data.nova_senha;
+            }
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || 'Erro ao resetar senha', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao resetar senha:', error);
+          this.showNotification('Erro ao resetar senha', 'error');
+        }
+      }
+
+      async toggleBloqueioUsuario(userId) {
+        try {
+          const response = await fetch(`/ti/painel/api/usuarios/${userId}/bloquear`, {
+            method: 'PUT'
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            this.showNotification(data.message, 'success');
+            this.buscarUsuarios(); // Recarregar lista
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || 'Erro ao alterar status do usuário', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao alterar status:', error);
+          this.showNotification('Erro ao alterar status do usuário', 'error');
+        }
+      }
+
+      gerarSenhaAleatoria() {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let senha = '';
+        for (let i = 0; i < 8; i++) {
+          senha += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+
+        document.getElementById('usuarioSenha').value = senha;
+        document.getElementById('senhaGerada').textContent = senha;
+      }
+
+      // ========== ENVIO DE E-MAIL ==========
+
+      async abrirModalEnviarEmail(chamadoId) {
+        try {
+          // Buscar detalhes do chamado
+          const response = await fetch(`/ti/painel/api/chamados`);
+          if (response.ok) {
+            const chamados = await response.json();
+            const chamado = chamados.find(c => c.id === chamadoId);
+
+            if (!chamado) {
+              this.showNotification('Chamado não encontrado', 'error');
+              return;
+            }
+
+            // Preencher formulário
+            document.getElementById('emailChamadoId').value = chamadoId;
+            document.getElementById('emailDestino').value = chamado.email || '';
+            document.getElementById('emailAssunto').value = `Atualização do Chamado ${chamado.codigo}`;
+
+            // Mensagem padrão
+            const mensagemPadrao = `Olá ${chamado.solicitante},
+
+Estamos entrando em contato sobre o seu chamado ${chamado.codigo}.
+
+Detalhes do chamado:
+- Problema: ${chamado.problema}
+- Prioridade: ${chamado.prioridade}
+- Status: ${chamado.status}
+- Data de abertura: ${chamado.data_abertura}
+
+Em breve entraremos em contato para dar continuidade ao atendimento.
+
+Atenciosamente,
+Equipe de Suporte TI - Evoque Fitness`;
+
+            document.getElementById('emailMensagem').value = mensagemPadrao;
+
+            const modal = new bootstrap.Modal(document.getElementById('modalEnviarEmail'));
+            modal.show();
+          }
+        } catch (error) {
+          console.error('Erro ao carregar dados do chamado:', error);
+          this.showNotification('Erro ao carregar dados do chamado', 'error');
+        }
+      }
+
+      async enviarEmailTicket() {
+        try {
+          const chamadoId = document.getElementById('emailChamadoId').value;
+          const emailData = {
+            destino: document.getElementById('emailDestino').value,
+            assunto: document.getElementById('emailAssunto').value,
+            mensagem: document.getElementById('emailMensagem').value,
+            incluir_detalhes: document.getElementById('incluirDetalhesTicket').checked
+          };
+
+          const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/enviar-email`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(emailData)
+          });
+
+          if (response.ok) {
+            this.showNotification('E-mail enviado com sucesso!', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('modalEnviarEmail')).hide();
+          } else {
+            const error = await response.json();
+            this.showNotification(error.error || 'Erro ao enviar e-mail', 'error');
+          }
+        } catch (error) {
+          console.error('Erro ao enviar e-mail:', error);
+          this.showNotification('Erro ao enviar e-mail', 'error');
+        }
       }
     }
 
