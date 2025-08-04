@@ -440,7 +440,7 @@ def carregar_configuracoes():
                     if config.chave in ['versao_database', 'data_criacao', 'sistema_inicializado']:
                         config_final[config.chave] = config.valor
                     else:
-                        logger.error(f"Erro ao decodificar configuração {config.chave}")
+                        logger.error(f"Erro ao decodificar configuraç��o {config.chave}")
                     continue
 
         except Exception as db_error:
@@ -1461,6 +1461,73 @@ def marcar_notificacao_lida(notificacao_id):
 
     except Exception as e:
         logger.error(f"Erro ao marcar notificação como lida: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/auto-atribuir', methods=['POST'])
+@api_login_required
+def auto_atribuir_chamado(chamado_id):
+    """Auto-atribui um chamado ao usuário logado"""
+    try:
+        logger.info(f"Auto-atribuição do chamado {chamado_id} pelo usuário {current_user.id}")
+
+        # Buscar o chamado
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        if chamado.status not in ['Aberto']:
+            return error_response('Chamado não está disponível para atribuição')
+
+        # Verificar se já tem agente atribuído
+        atribuicao_existente = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if atribuicao_existente:
+            return error_response('Chamado já possui agente atribuído')
+
+        # Buscar ou criar agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            # Criar agente automaticamente para admins e usuários de TI
+            if current_user.nivel_acesso == 'Administrador' or current_user.setor == 'TI':
+                agente = AgenteSuporte(
+                    usuario_id=current_user.id,
+                    ativo=True,
+                    nivel_experiencia='pleno',
+                    max_chamados_simultaneos=15
+                )
+                db.session.add(agente)
+                db.session.flush()  # Para obter o ID
+                logger.info(f"Agente criado automaticamente para usuário {current_user.id}")
+            else:
+                return error_response('Usuário não tem permissão para ser agente', 403)
+
+        # Criar atribuição
+        nova_atribuicao = ChamadoAgente(
+            chamado_id=chamado_id,
+            agente_id=agente.id,
+            atribuido_por=current_user.id,
+            observacoes='Auto-atribuição pelo agente'
+        )
+
+        db.session.add(nova_atribuicao)
+        db.session.commit()
+
+        # Enviar email
+        try:
+            from .email_service import email_service
+            email_service.notificar_agente_atribuido(chamado, agente)
+        except Exception as e:
+            logger.warning(f"Erro ao enviar email: {str(e)}")
+
+        logger.info(f"Chamado {chamado.codigo} auto-atribuído com sucesso")
+        return json_response({'message': f'Chamado {chamado.codigo} atribuído com sucesso'})
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na auto-atribuição: {str(e)}")
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/agente/registrar', methods=['POST'])
