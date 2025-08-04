@@ -1665,7 +1665,6 @@ def atualizar_usuario(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>', methods=['DELETE'])
 @login_required
-@setor_required('Administrador')
 def deletar_usuario(user_id):
     try:
         usuario = User.query.get(user_id)
