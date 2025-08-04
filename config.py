@@ -65,7 +65,7 @@ class Config:
     PASSWORD_MIN_LENGTH = int(os.environ.get('PASSWORD_MIN_LENGTH', 6))
     PERMANENT_SESSION_LIFETIME = timedelta(minutes=SESSION_TIMEOUT)
     
-    # Configurações de logs
+    # Configura��ões de logs
     LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
     LOG_FILE_PATH = os.environ.get('LOG_FILE_PATH', 'logs/app.log')
     
@@ -110,6 +110,48 @@ class DevelopmentConfig(Config):
     """Configuração para desenvolvimento"""
     DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
+
+class DevelopmentSQLiteConfig:
+    """Configuração para desenvolvimento com SQLite (sem dependências MySQL)"""
+    DEBUG = True
+    FLASK_ENV = 'development'
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
+    SQLALCHEMY_DATABASE_URI = 'sqlite:///dev_database.db'
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {}
+
+    # Configurações de email (desabilitadas para dev)
+    EMAIL_SISTEMA = 'sistema@dev.local'
+    EMAIL_TI = 'ti@dev.local'
+
+    # Configurações de segurança
+    MAX_LOGIN_ATTEMPTS = 5
+    SESSION_TIMEOUT = 30
+    PASSWORD_MIN_LENGTH = 6
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=30)
+
+    # Configurações de logs
+    LOG_LEVEL = 'INFO'
+    LOG_FILE_PATH = 'logs/app.log'
+
+    # Configurações de backup
+    BACKUP_PATH = 'backups/'
+    BACKUP_RETENTION_DAYS = 30
+
+    # Configurações de upload
+    UPLOAD_FOLDER = 'uploads/'
+    MAX_CONTENT_LENGTH = 16777216  # 16MB
+
+    # Configurações de timezone
+    TIMEZONE = 'America/Sao_Paulo'
+
+    # Configurações de cache
+    CACHE_TYPE = 'simple'
+    CACHE_DEFAULT_TIMEOUT = 300
+
+    # Configurações específicas do Flask
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = None
 
 class ProductionConfig(Config):
     """Configuração para produção"""
