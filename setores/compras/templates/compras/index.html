@@ -232,14 +232,31 @@
     }
     
     .feature-card h5 {
-      color: white;
+      color: var(--text-color) !important;
       font-weight: 600;
       margin-bottom: 15px;
     }
-    
+
     .feature-card p {
-      color: rgba(255, 255, 255, 0.8);
+      color: var(--text-light) !important;
       font-size: 0.95rem;
+    }
+
+    /* Garantir que todo texto seja visível */
+    * {
+      color: inherit;
+    }
+
+    p, span, div, label, input, select, textarea, h1, h2, h3, h4, h5, h6 {
+      color: var(--text-color) !important;
+    }
+
+    .hero-section h1 {
+      color: white !important;
+    }
+
+    .hero-section .lead {
+      color: white !important;
     }
     
     /* Supplier Section */
