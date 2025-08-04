@@ -3021,20 +3021,8 @@
         });
       });
 
-      // Carregar problemas ao entrar na seção de configurações
-      document.querySelector('a[href="#configuracoes"]')?.addEventListener('click', function() {
-        setTimeout(() => {
-          carregarProblemas();
-          carregarConfiguracaoNotificacoes();
-        }, 300);
-      });
-
-      // Carregar lista ao entrar na seção "Adicionar ao Banco"
-      document.querySelector('a[href="#adicionar-problema"]')?.addEventListener('click', function() {
-        setTimeout(() => {
-          carregarListaProblemasExistentes();
-        }, 300);
-      });
+      // REMOVED: Navigation listeners to avoid conflicts with painel.js
+      // Section loading is now handled by loadSectionContent() in painel.js
     });
 
     // Função para executar backup
@@ -3144,12 +3132,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // ... outros event listeners ...
     configurarEventosChamados();
     
-    // Carregar configurações ao entrar na seção
-    document.querySelector('a[href="#configuracoes"]')?.addEventListener('click', function() {
-        setTimeout(() => {
-            carregarConfiguracoes();
-        }, 300);
-    });
+    // REMOVED: Navigation listener moved to painel.js loadSectionContent()
 });
 
 async function carregarConfiguracoes() {
