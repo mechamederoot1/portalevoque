@@ -1457,6 +1457,51 @@ select option:checked {
   z-index: 9999;
   max-width: 400px;
   pointer-events: none;
+  animation: slideInRight 0.3s ease-out;
+}
+
+/* Notificações Bootstrap suaves */
+.notification-container .alert {
+  pointer-events: all;
+  margin-bottom: 0.75rem;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  backdrop-filter: blur(10px);
+  animation: slideInRight 0.4s ease-out;
+  transform: translateX(0);
+  opacity: 1;
+  transition: all 0.3s ease;
+}
+
+.notification-container .alert.alert-dismissible {
+  padding-right: 3rem;
+}
+
+.notification-container .alert.fade {
+  animation: slideOutRight 0.3s ease-in forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
 }
 
 .advanced-notification-container {
