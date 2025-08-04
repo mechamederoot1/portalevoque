@@ -282,7 +282,7 @@ function popularFiltrosDinamicos() {
             }, [])
             .sort((a, b) => a.nome.localeCompare(b.nome));
 
-        // Limpar opções existentes (exceto a primeira)
+        // Limpar opç��es existentes (exceto a primeira)
         while (filtroAgenteResponsavel.children.length > 1) {
             filtroAgenteResponsavel.removeChild(filtroAgenteResponsavel.lastChild);
         }
@@ -1977,6 +1977,14 @@ function loadSectionContent(sectionId) {
             if (typeof carregarDashboardAvancado === 'function') {
                 carregarDashboardAvancado();
             }
+            break;
+        case 'adicionar-problema':
+            // Carregar lista de problemas existentes
+            setTimeout(() => {
+                if (typeof carregarListaProblemasExistentes === 'function') {
+                    carregarListaProblemasExistentes();
+                }
+            }, 300);
             break;
     }
 }
