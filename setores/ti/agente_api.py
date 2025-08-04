@@ -1,10 +1,11 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
-from database import db, Chamado, AgenteSuporte, ChamadoAgente, User, get_brazil_time
+from database import db, Chamado, AgenteSuporte, ChamadoAgente, User, get_brazil_time, NotificacaoAgente, HistoricoAtendimento
 from sqlalchemy import func
 import logging
 import traceback
 import pytz
+import json
 
 agente_api_bp = Blueprint('agente_api', __name__)
 
