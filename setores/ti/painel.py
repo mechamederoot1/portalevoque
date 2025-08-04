@@ -1104,6 +1104,243 @@ Equipe de Suporte TI - Evoque Fitness
         logger.error(f"Erro ao atribuir chamado: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/chamados/<int:chamado_id>/atualizar', methods=['PUT'])
+@api_login_required
+def atualizar_chamado_agente(chamado_id):
+    """Atualiza um chamado pelo agente"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        # Verificar se o agente tem permissão para atualizar este chamado
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Verificar se o chamado está atribuído ao agente
+        atribuicao = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            agente_id=agente.id,
+            ativo=True
+        ).first()
+
+        if not atribuicao and current_user.nivel_acesso != 'Administrador':
+            return error_response('Chamado não está atribuído a você', 403)
+
+        # Atualizar status se fornecido
+        if 'status' in data:
+            novo_status = data['status']
+            if novo_status in ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']:
+                status_anterior = chamado.status
+                chamado.status = novo_status
+
+                # Atualizar campos de SLA baseado na mudança de status
+                agora_brazil = get_brazil_time()
+
+                # Se estava "Aberto" e mudou para outro status, registrar primeira resposta
+                if status_anterior == 'Aberto' and novo_status != 'Aberto' and not chamado.data_primeira_resposta:
+                    chamado.data_primeira_resposta = agora_brazil.replace(tzinfo=None)
+
+                # Se mudou para "Concluido" ou "Cancelado", registrar conclusão
+                if novo_status in ['Concluido', 'Cancelado'] and not chamado.data_conclusao:
+                    chamado.data_conclusao = agora_brazil.replace(tzinfo=None)
+
+        # Adicionar observações se fornecidas
+        observacoes = data.get('observacoes', '')
+        if observacoes:
+            # Criar registro no histórico do ticket
+            try:
+                historico = HistoricoTicket(
+                    chamado_id=chamado.id,
+                    acao='Atualização do agente',
+                    detalhes=observacoes,
+                    usuario_responsavel=f"{current_user.nome} {current_user.sobrenome}",
+                    data_acao=get_brazil_time().replace(tzinfo=None)
+                )
+                db.session.add(historico)
+            except Exception as hist_error:
+                logger.warning(f"Erro ao criar histórico: {str(hist_error)}")
+
+        db.session.commit()
+
+        # Registrar log da ação
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao=f'Chamado {chamado.codigo} atualizado',
+            categoria='chamados',
+            detalhes=f'Status alterado para {chamado.status}. Observações: {observacoes}',
+            recurso_afetado=str(chamado.id),
+            tipo_recurso='chamado'
+        )
+
+        # Emitir evento Socket.IO
+        try:
+            if hasattr(current_app, 'socketio'):
+                current_app.socketio.emit('chamado_atualizado', {
+                    'chamado_id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'status': chamado.status,
+                    'agente': f"{current_user.nome} {current_user.sobrenome}",
+                    'timestamp': get_brazil_time().isoformat()
+                })
+        except Exception as socket_error:
+            logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
+
+        return json_response({
+            'message': 'Chamado atualizado com sucesso',
+            'chamado': {
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'status': chamado.status
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao atualizar chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/chamados/<int:chamado_id>/transferir', methods=['POST'])
+@api_login_required
+def transferir_chamado_agente(chamado_id):
+    """Transfere um chamado para outro agente"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        agente_destino_id = data.get('agente_destino_id')
+        if not agente_destino_id:
+            return error_response('Agente de destino é obrigatório', 400)
+
+        chamado = Chamado.query.get(chamado_id)
+        if not chamado:
+            return error_response('Chamado não encontrado', 404)
+
+        # Verificar se o agente atual tem permissão
+        agente_atual = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente_atual:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Verificar se agente de destino existe
+        agente_destino = AgenteSuporte.query.get(agente_destino_id)
+        if not agente_destino or not agente_destino.ativo:
+            return error_response('Agente de destino não encontrado ou inativo', 404)
+
+        # Verificar se agente de destino pode receber mais chamados
+        if not agente_destino.pode_receber_chamado():
+            return error_response('Agente de destino já atingiu o limite máximo de chamados simultâneos', 400)
+
+        # Buscar atribuição atual
+        atribuicao_atual = ChamadoAgente.query.filter_by(
+            chamado_id=chamado_id,
+            ativo=True
+        ).first()
+
+        if not atribuicao_atual:
+            return error_response('Chamado não possui agente atribuído', 400)
+
+        # Desativar atribuição atual
+        atribuicao_atual.ativo = False
+        atribuicao_atual.data_desatribuicao = get_brazil_time().replace(tzinfo=None)
+
+        # Criar nova atribuição
+        nova_atribuicao = ChamadoAgente(
+            chamado_id=chamado_id,
+            agente_id=agente_destino.id,
+            atribuido_por=current_user.id,
+            observacoes=data.get('observacoes', 'Transferido de outro agente')
+        )
+
+        db.session.add(nova_atribuicao)
+        db.session.commit()
+
+        # Registrar log da ação
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao=f'Chamado {chamado.codigo} transferido',
+            categoria='chamados',
+            detalhes=f'Transferido para {agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}',
+            recurso_afetado=str(chamado.id),
+            tipo_recurso='chamado'
+        )
+
+        # Emitir evento Socket.IO
+        try:
+            if hasattr(current_app, 'socketio'):
+                current_app.socketio.emit('chamado_transferido', {
+                    'chamado_id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'agente_origem_nome': f"{current_user.nome} {current_user.sobrenome}",
+                    'agente_origem_email': current_user.email,
+                    'agente_destino_nome': f"{agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}",
+                    'agente_destino_email': agente_destino.usuario.email,
+                    'timestamp': get_brazil_time().isoformat()
+                })
+        except Exception as socket_error:
+            logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
+
+        return json_response({
+            'message': f'Chamado transferido para {agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}',
+            'agente_destino': {
+                'id': agente_destino.id,
+                'nome': f"{agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}",
+                'email': agente_destino.usuario.email
+            }
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao transferir chamado: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agentes/ativos', methods=['GET'])
+@api_login_required
+def listar_agentes_ativos():
+    """Lista agentes ativos para transferência"""
+    try:
+        agentes = db.session.query(AgenteSuporte, User).join(User).filter(
+            AgenteSuporte.ativo == True,
+            User.bloqueado == False
+        ).all()
+
+        agentes_list = []
+        for agente, usuario in agentes:
+            # Contar chamados ativos
+            chamados_ativos = ChamadoAgente.query.filter_by(
+                agente_id=agente.id,
+                ativo=True
+            ).join(Chamado).filter(
+                Chamado.status.in_(['Aberto', 'Aguardando'])
+            ).count()
+
+            agentes_list.append({
+                'id': agente.id,
+                'nome': f"{usuario.nome} {usuario.sobrenome}",
+                'usuario': usuario.usuario,
+                'email': usuario.email,
+                'nivel_experiencia': agente.nivel_experiencia,
+                'max_chamados': agente.max_chamados_simultaneos,
+                'chamados_ativos': chamados_ativos
+            })
+
+        return json_response(agentes_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao listar agentes ativos: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 # ==================== PROBLEMAS REPORTADOS ====================
 
 @painel_bp.route('/api/problemas', methods=['GET'])
@@ -1316,7 +1553,7 @@ def adicionar_unidade():
         
         nome = data['nome'].strip()
         if not nome:
-            return error_response('Nome da unidade n��o pode ser vazio.', 400)
+            return error_response('Nome da unidade não pode ser vazio.', 400)
         
         if Unidade.query.filter_by(nome=nome).first():
             return error_response('Unidade com este nome já existe.', 400)
