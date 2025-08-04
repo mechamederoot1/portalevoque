@@ -1362,10 +1362,39 @@ def criar_usuario():
 @setor_required('Administrador')
 def listar_usuarios():
     try:
-        usuarios = User.query.order_by(User.data_criacao.desc()).all()
+        # Parâmetros de busca e paginação
+        busca = request.args.get('busca', '').strip()
+        page = int(request.args.get('page', 1))
+        per_page = int(request.args.get('per_page', 20))
+
+        # Construir query base
+        query = User.query
+
+        # Aplicar filtro de busca se fornecido
+        if busca:
+            like_term = f'%{busca}%'
+            query = query.filter(
+                db.or_(
+                    User.nome.ilike(like_term),
+                    User.sobrenome.ilike(like_term),
+                    User.usuario.ilike(like_term),
+                    User.email.ilike(like_term),
+                    User.nivel_acesso.ilike(like_term),
+                    User.setores.ilike(like_term)
+                )
+            )
+
+        # Aplicar ordenação e paginação
+        query = query.order_by(User.data_criacao.desc())
+        pagination = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
         usuarios_list = []
         
-        for u in usuarios:
+        for u in pagination.items:
             # Converter data de criação para timezone do Brasil
             data_criacao_str = None
             if u.data_criacao:
@@ -1387,9 +1416,21 @@ def listar_usuarios():
                 'data_criacao': data_criacao_str
             })
         
-        logger.debug(f"Usuários encontrados: {len(usuarios_list)}")
-        
-        return json_response(usuarios_list)
+        logger.debug(f"Usuários encontrados: {len(usuarios_list)} (total: {pagination.total})")
+
+        # Retornar dados com informações de paginação
+        return json_response({
+            'usuarios': usuarios_list,
+            'pagination': {
+                'page': page,
+                'per_page': per_page,
+                'total': pagination.total,
+                'pages': pagination.pages,
+                'has_next': pagination.has_next,
+                'has_prev': pagination.has_prev
+            },
+            'busca': busca
+        })
     except Exception as e:
         logger.error(f"Erro ao listar usu��rios: {str(e)}")
         logger.error(traceback.format_exc())
