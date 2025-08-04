@@ -965,7 +965,7 @@ document.getElementById('btnGerarSenha')?.addEventListener('click', function(e) 
     gerarSenha();
 });
 
-// Função para validar dados do usuário
+// Funç��o para validar dados do usuário
 function validarDadosUsuario(dados) {
     const erros = [];
     
@@ -3174,7 +3174,7 @@ function inicializarFiltroPermissoes() {
     };
 
     // Event listeners para busca em tempo real (increased debounce to reduce flickering)
-    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 300));
+    filtroInput.addEventListener('input', debounce(filtrarUsuarios, 500));
     btnFiltrar.addEventListener('click', filtrarUsuarios);
 
     // Filtrar ao pressionar Enter
@@ -3186,7 +3186,7 @@ function inicializarFiltroPermissoes() {
     });
 
     // Adicionar placeholder mais descritivo
-    filtroInput.placeholder = 'Buscar por nome, email ou nível de acesso...';
+    filtroInput.placeholder = 'Buscar por nome, email, unidade ou nível de acesso...';
 
     // Funcionalidade para limpar filtro com Escape
     filtroInput.addEventListener('keydown', function(e) {
@@ -3319,7 +3319,7 @@ function renderizarUsuarios(usuarios) {
 
     // Renderizar cards dos usuários
     usuariosGrid.innerHTML = usuarios.map(usuario => `
-        <div class="card usuario-card animate__animated animate__fadeIn">
+        <div class="card usuario-card">
             <div class="card-header">
                 <h3>${usuario.nome} ${usuario.sobrenome}</h3>
                 <span class="status-badge ${usuario.bloqueado ? 'bg-danger' : 'bg-success'}">
