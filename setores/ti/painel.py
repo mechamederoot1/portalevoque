@@ -444,10 +444,10 @@ def salvar_configuracoes_db(config):
     try:
         # Validar estrutura antes de salvar
         if not isinstance(config, dict):
-            logger.error("Configuraç��o inválida para salvar")
+            logger.error("Configuração inválida para salvar")
             return False
         
-        # Carregar configurações existentes
+        # Carregar configuraç��es existentes
         config_existente = carregar_configuracoes()
         
         # Atualizar apenas as seções fornecidas
@@ -1927,7 +1927,7 @@ def notificacoes_recentes():
 # ==================== SLA ENDPOINTS ====================
 
 @painel_bp.route('/api/sla/metricas', methods=['GET'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def obter_metricas_sla():
     """Retorna métricas gerais de SLA"""
