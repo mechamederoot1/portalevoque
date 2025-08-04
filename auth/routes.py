@@ -138,11 +138,19 @@ def first_login():
 @auth_bp.route('/logout')
 @login_required
 def logout():
+    reason = request.args.get('reason')
+
     if current_user.is_authenticated:
         usuario = current_user.usuario
         logout_user()
-        current_app.logger.info(f'Logout bem-sucedido: {usuario}')
-        flash('Você foi desconectado com sucesso.', 'info')
+
+        if reason == 'timeout':
+            current_app.logger.info(f'Logout por timeout de sessão: {usuario}')
+            flash('Sua sessão foi encerrada por inatividade (15 minutos). Faça login novamente.', 'warning')
+        else:
+            current_app.logger.info(f'Logout bem-sucedido: {usuario}')
+            flash('Você foi desconectado com sucesso.', 'info')
+
     return redirect(url_for('auth.login'))
 
 @auth_bp.route('/perfil')
