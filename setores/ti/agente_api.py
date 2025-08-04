@@ -444,6 +444,162 @@ def perfil_agente():
         logger.error(f"Erro ao buscar perfil do agente: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@agente_api_bp.route('/api/agente/estatisticas', methods=['GET'])
+@api_login_required
+def estatisticas_agente():
+    """Retorna estatísticas básicas do agente logado"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Chamados ativos do agente
+        chamados_ativos = agente.get_chamados_ativos()
+
+        # Chamados concluídos hoje
+        hoje = get_brazil_time().date()
+        concluidos_hoje = ChamadoAgente.query.filter_by(
+            agente_id=agente.id
+        ).join(Chamado).filter(
+            Chamado.status == 'Concluido',
+            func.date(Chamado.data_conclusao) == hoje
+        ).count()
+
+        # Novos chamados disponíveis
+        chamados_disponiveis = Chamado.query.filter(
+            Chamado.status == 'Aberto',
+            ~Chamado.id.in_(
+                db.session.query(ChamadoAgente.chamado_id).filter_by(ativo=True)
+            )
+        ).count()
+
+        estatisticas = {
+            'chamados_ativos': chamados_ativos,
+            'concluidos_hoje': concluidos_hoje,
+            'disponiveis': chamados_disponiveis,
+            'limite_max': agente.max_chamados_simultaneos
+        }
+
+        return json_response(estatisticas)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar estatísticas básicas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@agente_api_bp.route('/api/chamados/disponiveis', methods=['GET'])
+@api_login_required
+def chamados_disponiveis():
+    """Lista chamados disponíveis para atribuição"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Buscar chamados que não estão atribuídos
+        chamados = Chamado.query.filter(
+            Chamado.status == 'Aberto',
+            ~Chamado.id.in_(
+                db.session.query(ChamadoAgente.chamado_id).filter_by(ativo=True)
+            )
+        ).order_by(Chamado.prioridade.desc(), Chamado.data_abertura.asc()).all()
+
+        chamados_list = []
+        for chamado in chamados:
+            data_abertura_brazil = chamado.get_data_abertura_brazil()
+
+            chamados_list.append({
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'protocolo': chamado.protocolo,
+                'solicitante': chamado.solicitante,
+                'unidade': chamado.unidade,
+                'problema': chamado.problema,
+                'prioridade': chamado.prioridade,
+                'data_abertura': data_abertura_brazil.strftime('%d/%m/%Y %H:%M') if data_abertura_brazil else 'N/A'
+            })
+
+        return json_response(chamados_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar chamados disponíveis: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@agente_api_bp.route('/api/agente/meus-chamados', methods=['GET'])
+@api_login_required
+def meus_chamados():
+    """Lista chamados do agente logado com filtro por status"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        filtro = request.args.get('filtro', 'ativos')
+
+        # Base query para chamados do agente
+        base_query = db.session.query(Chamado, ChamadoAgente).join(
+            ChamadoAgente, Chamado.id == ChamadoAgente.chamado_id
+        ).filter(
+            ChamadoAgente.agente_id == agente.id
+        )
+
+        # Aplicar filtros
+        if filtro == 'ativos':
+            chamados = base_query.filter(
+                ChamadoAgente.ativo == True,
+                Chamado.status.in_(['Aguardando', 'Em Andamento'])
+            ).order_by(Chamado.prioridade.desc(), Chamado.data_abertura.asc()).all()
+        elif filtro == 'aguardando':
+            chamados = base_query.filter(
+                ChamadoAgente.ativo == True,
+                Chamado.status == 'Aguardando'
+            ).order_by(Chamado.data_abertura.asc()).all()
+        elif filtro == 'concluidos':
+            chamados = base_query.filter(
+                Chamado.status == 'Concluido'
+            ).order_by(Chamado.data_conclusao.desc()).limit(50).all()
+        elif filtro == 'cancelados':
+            chamados = base_query.filter(
+                Chamado.status == 'Cancelado'
+            ).order_by(Chamado.data_conclusao.desc()).limit(50).all()
+        else:
+            chamados = base_query.filter(
+                ChamadoAgente.ativo == True
+            ).order_by(Chamado.prioridade.desc(), Chamado.data_abertura.asc()).all()
+
+        chamados_list = []
+        for chamado, chamado_agente in chamados:
+            data_abertura_brazil = chamado.get_data_abertura_brazil()
+
+            chamado_data = {
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'protocolo': chamado.protocolo,
+                'solicitante': chamado.solicitante,
+                'unidade': chamado.unidade,
+                'problema': chamado.problema,
+                'prioridade': chamado.prioridade,
+                'status': chamado.status,
+                'data_abertura': data_abertura_brazil.strftime('%d/%m/%Y %H:%M') if data_abertura_brazil else 'N/A',
+                'data_atribuicao': chamado_agente.data_atribuicao.strftime('%d/%m/%Y %H:%M') if chamado_agente.data_atribuicao else 'N/A'
+            }
+
+            if chamado.data_conclusao:
+                data_conclusao_brazil = chamado.data_conclusao
+                if hasattr(data_conclusao_brazil, 'replace'):
+                    data_conclusao_brazil = pytz.timezone('America/Sao_Paulo').localize(data_conclusao_brazil)
+                chamado_data['data_conclusao'] = data_conclusao_brazil.strftime('%d/%m/%Y %H:%M')
+
+            chamados_list.append(chamado_data)
+
+        return json_response(chamados_list)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar meus chamados: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 @agente_api_bp.route('/api/chamados/<int:chamado_id>/atribuir-me', methods=['POST'])
 @api_login_required
 def atribuir_chamado_para_mim(chamado_id):
