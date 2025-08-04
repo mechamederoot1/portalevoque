@@ -3300,6 +3300,8 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
                 </div>
             `;
         }
+    } finally {
+        isSearching = false;
     }
 }
 
