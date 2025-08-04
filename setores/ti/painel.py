@@ -1438,7 +1438,7 @@ def listar_usuarios():
                     User.usuario.ilike(like_term),
                     User.email.ilike(like_term),
                     User.nivel_acesso.ilike(like_term),
-                    User.setores.ilike(like_term)
+                    User._setores.ilike(like_term)
                 )
             )
 
