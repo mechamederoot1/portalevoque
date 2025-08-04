@@ -1541,7 +1541,7 @@ function renderUsuariosPagination(totalItems) {
     usuariosPagination.appendChild(nextBtn);
 }
 
-// Função para anexar event listeners aos cards de usuários
+// Função para anexar event listeners aos cards de usu��rios
 function attachUsuariosEventListeners() {
     // Listener para botão Editar
     document.querySelectorAll('.btn-editar').forEach(btn => {
@@ -3327,6 +3327,29 @@ function renderizarUsuarios(usuarios) {
         </div>
     `).join('');
 }
+
+// Missing functions for the permissions section buttons
+function editarUsuario(usuarioId) {
+    console.log('Editando usuário:', usuarioId);
+    abrirModalEditarUsuario(usuarioId);
+}
+
+function bloquearUsuario(usuarioId) {
+    console.log('Bloqueando usuário:', usuarioId);
+    toggleBloqueioUsuario(usuarioId);
+}
+
+function desbloquearUsuario(usuarioId) {
+    console.log('Desbloqueando usuário:', usuarioId);
+    toggleBloqueioUsuario(usuarioId);
+}
+
+// Make functions globally available
+window.editarUsuario = editarUsuario;
+window.bloquearUsuario = bloquearUsuario;
+window.desbloquearUsuario = desbloquearUsuario;
+window.gerarNovaSenha = gerarNovaSenha;
+window.excluirUsuario = excluirUsuario;
 
 function renderizarPaginacaoUsuarios(pagination) {
     const paginationContainer = document.getElementById('usuariosPagination');
