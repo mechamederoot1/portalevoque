@@ -1168,7 +1168,7 @@
     </section>
 
     <!-- Backup & Manutenção -->
-    <section id="backup-manutencao" class="content-section" tabindex="0" aria-label="Backup & Manutenção">
+    <section id="backup-manutencao" class="content-section" tabindex="0" aria-label="Backup & Manuten��ão">
       <h2><i class="fas fa-database me-2"></i>Backup & Manutenção do Sistema</h2>
 
       <div class="row">
@@ -2341,6 +2341,91 @@
   <script src="/static/ti/js/painel/admin.js"></script>
 
   <script>
+    // =================================
+    // SISTEMA DE NAVEGAÇÃO SIMPLIFICADO
+    // =================================
+
+    function initSimpleNavigation() {
+        console.log('🚀 Inicializando navegação simplificada...');
+
+        // Encontrar todos os links da sidebar
+        const sidebarLinks = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
+        const allSections = document.querySelectorAll('section.content-section');
+
+        console.log('Links encontrados:', sidebarLinks.length);
+        console.log('Seções encontradas:', allSections.length);
+
+        // Função para ativar seção
+        function activateSection(targetId) {
+            console.log('Ativando seção:', targetId);
+
+            // Esconder todas as seções
+            allSections.forEach(section => {
+                section.classList.remove('active');
+            });
+
+            // Mostrar seção alvo
+            const targetSection = document.getElementById(targetId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                console.log('✅ Seção ativada:', targetId);
+            } else {
+                console.error('❌ Seção não encontrada:', targetId);
+            }
+
+            // Atualizar links ativos
+            sidebarLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.getAttribute('href') === '#' + targetId) {
+                    link.classList.add('active');
+                }
+            });
+        }
+
+        // Adicionar event listeners aos links
+        sidebarLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                const href = this.getAttribute('href');
+                if (href && href !== '#') {
+                    const targetId = href.substring(1);
+                    activateSection(targetId);
+                    window.location.hash = targetId;
+                }
+            });
+        });
+
+        // Navegação por hash
+        window.addEventListener('hashchange', function() {
+            const hash = window.location.hash.substring(1);
+            if (hash) {
+                activateSection(hash);
+            }
+        });
+
+        // Ativar seção inicial
+        const hash = window.location.hash.substring(1);
+        if (hash && document.getElementById(hash)) {
+            activateSection(hash);
+        } else {
+            activateSection('visao-geral');
+        }
+
+        console.log('✅ Navegação simplificada inicializada!');
+    }
+
+    // Inicializar quando DOM estiver pronto
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initSimpleNavigation);
+    } else {
+        initSimpleNavigation();
+    }
+
+    // =================================
+    // FIM DO SISTEMA DE NAVEGAÇÃO
+    // =================================
+
     // Configurações de notificações - Sistema implementado
     let configuracaoNotificacoes = {
         email_novo_chamado: true,
