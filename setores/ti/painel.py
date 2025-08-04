@@ -1530,7 +1530,6 @@ def buscar_usuario(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>/bloquear', methods=['PUT'])
 @login_required
-@setor_required('Administrador')
 def toggle_bloqueio_usuario(user_id):
     try:
         usuario = User.query.get(user_id)
@@ -2688,7 +2687,7 @@ def listar_categorias_logs_acoes():
 @login_required
 @setor_required('Administrador')
 def estatisticas_logs_acoes():
-    """Retorna estatísticas dos logs de ações"""
+    """Retorna estatísticas dos logs de a��ões"""
     try:
         from database import LogAcao
 
