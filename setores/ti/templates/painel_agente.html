@@ -255,7 +255,7 @@
                       <i class="fas fa-pause me-1"></i>Aguardando
                     </button>
                     <button type="button" class="btn btn-sm btn-outline-light" data-filter="concluidos">
-                      <i class="fas fa-check me-1"></i>Concluídos
+                      <i class="fas fa-check me-1"></i>Conclu��dos
                     </button>
                   </div>
                 </div>
@@ -475,7 +475,7 @@
       </div>
     </div>
 
-    <!-- Seção: Chamados Cancelados -->
+    <!-- Seç��o: Chamados Cancelados -->
     <div class="section-content" id="meus-chamados-cancelados" style="display: none;">
       <div class="container-fluid py-4">
         <div class="row mb-4">
@@ -2231,7 +2231,9 @@
       async marcarNotificacaoLida(notificacaoId) {
         try {
           await fetch(`/ti/painel/api/agente/notificacoes/${notificacaoId}/marcar-lida`, {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
           });
           this.notificacoesNaoLidas = Math.max(0, this.notificacoesNaoLidas - 1);
           this.atualizarContadorNotificacoes();
@@ -2370,7 +2372,9 @@
       async marcarTodasNotificacoesLidas() {
         try {
           const response = await fetch('/ti/painel/api/agente/notificacoes/marcar-todas-lidas', {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
           });
 
           if (response.ok) {
@@ -2556,7 +2560,9 @@
           }
 
           const response = await fetch(`/ti/painel/api/usuarios/${id}/gerar-senha`, {
-            method: 'POST'
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({})
           });
 
           if (response.ok) {
