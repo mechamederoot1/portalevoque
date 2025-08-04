@@ -25,12 +25,23 @@
       --accent-color: #FF914D;
       --dark-color: #2A2F30;
       --light-color: #F8F9FA;
+      --text-color: #F8F9FA;
+      --text-light: #bfc7ca;
+      --card-bg: #2A2F30;
+      --border-color: #3A4345;
+      --shadow-color: rgba(0,0,0,0.3);
     }
-    
+
     body {
-      font-family: 'Montserrat', sans-serif;
+      font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
       background-color: var(--secondary-color);
-      color: var(--light-color);
+      color: var(--text-color) !important;
+      font-weight: 500;
+      line-height: 1.6;
+    }
+
+    .navbar-brand, .nav-link {
+      color: var(--text-color) !important;
     }
     
     .navbar {
