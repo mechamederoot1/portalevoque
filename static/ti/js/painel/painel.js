@@ -282,7 +282,7 @@ function popularFiltrosDinamicos() {
             }, [])
             .sort((a, b) => a.nome.localeCompare(b.nome));
 
-        // Limpar opç��es existentes (exceto a primeira)
+        // Limpar opções existentes (exceto a primeira)
         while (filtroAgenteResponsavel.children.length > 1) {
             filtroAgenteResponsavel.removeChild(filtroAgenteResponsavel.lastChild);
         }
@@ -1917,10 +1917,10 @@ function loadSectionContent(sectionId) {
                         console.log('Função inicializarGrupos encontrada no retry, executando...');
                         inicializarGrupos();
                     } else if (typeof carregarGrupos === 'function') {
-                        console.log('Função carregarGrupos encontrada no retry, executando...');
+                        console.log('Fun��ão carregarGrupos encontrada no retry, executando...');
                         carregarGrupos();
                     } else {
-                        console.error('Funções de grupos ainda não disponíveis. Verifique o carregamento dos scripts.');
+                        console.error('Funções de grupos ainda não dispon��veis. Verifique o carregamento dos scripts.');
                     }
                 }, 100);
             }
@@ -2046,6 +2046,33 @@ function inicializarSistemaPainel() {
             console.log('Ativando seção padrão: visao-geral');
             activateSection('visao-geral');
         }
+
+        // 5. Set up test function for debugging navigation
+        window.testNavigation = function(sectionId) {
+            console.log('=== TESTE DE NAVEGAÇÃO ===');
+            console.log('Tentando navegar para:', sectionId);
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                console.log('Seção encontrada, ativando...');
+                activateSection(sectionId);
+
+                // Activate corresponding nav link
+                const navLink = document.querySelector(`.sidebar a[href="#${sectionId}"]`);
+                if (navLink) {
+                    document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
+                    navLink.classList.add('active');
+                    console.log('Link de navegação ativado');
+                } else {
+                    console.warn('Link de navegação não encontrado para:', sectionId);
+                }
+
+                console.log('Navegação concluída com sucesso');
+                return true;
+            } else {
+                console.error('Seção não encontrada:', sectionId);
+                return false;
+            }
+        };
 
         // 4. Carregar dados críticos
         setTimeout(() => {
