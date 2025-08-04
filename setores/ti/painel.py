@@ -953,6 +953,24 @@ Equipe de Suporte TI - Evoque Fitness
         except Exception as email_error:
             logger.warning(f"Erro ao enviar e-mail de atribuição: {str(email_error)}")
 
+        # Emitir evento Socket.IO para notificação em tempo real
+        try:
+            if hasattr(current_app, 'socketio'):
+                current_app.socketio.emit('chamado_atribuido', {
+                    'chamado_id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'protocolo': chamado.protocolo,
+                    'solicitante': chamado.solicitante,
+                    'problema': chamado.problema,
+                    'prioridade': chamado.prioridade,
+                    'agente_id': agente.id,
+                    'agente_nome': f"{current_user.nome} {current_user.sobrenome}",
+                    'agente_email': current_user.email,
+                    'timestamp': get_brazil_time().isoformat()
+                })
+        except Exception as socket_error:
+            logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
+
         logger.info(f"Chamado {chamado.codigo} auto-atribuído ao agente {current_user.nome}")
 
         return json_response({
@@ -2736,7 +2754,7 @@ def atribuir_chamado(chamado_id):
 
         agente_id = data.get('agente_id')
         if not agente_id:
-            return error_response('ID do agente �� obrigatório')
+            return error_response('ID do agente é obrigatório')
 
         chamado = Chamado.query.get(chamado_id)
         if not chamado:
