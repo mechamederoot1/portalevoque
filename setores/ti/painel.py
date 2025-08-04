@@ -23,6 +23,17 @@ painel_bp = Blueprint('painel', __name__, template_folder='templates')
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
+def api_login_required(f):
+    """Decorador que retorna erro JSON se não autenticado"""
+    from functools import wraps
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return jsonify({'error': 'Authentication required'}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Timezone do Brasil
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 
@@ -2479,7 +2490,7 @@ def excluir_agente(agente_id):
         # Verificar se há chamados ativos atribuídos
         chamados_ativos = agente.get_chamados_ativos()
         if chamados_ativos > 0:
-            return error_response(f'Não é possível excluir agente com {chamados_ativos} chamado(s) ativo(s)')
+            return error_response(f'Não �� possível excluir agente com {chamados_ativos} chamado(s) ativo(s)')
 
         nome_agente = agente.usuario.nome
 
