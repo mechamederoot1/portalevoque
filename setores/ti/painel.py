@@ -1341,6 +1341,115 @@ def listar_agentes_ativos():
         logger.error(f"Erro ao listar agentes ativos: {str(e)}")
         return error_response('Erro interno no servidor')
 
+# ==================== NOTIFICAÇÕES DO AGENTE ====================
+
+@painel_bp.route('/api/agente/notificacoes', methods=['GET'])
+@api_login_required
+def notificacoes_agente():
+    """Retorna notificações do agente"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Parâmetros de filtro
+        nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
+        limite = request.args.get('limite', 50, type=int)
+
+        # Simular algumas notificações para demonstração
+        agora = get_brazil_time()
+        notificacoes = [
+            {
+                'id': 1,
+                'titulo': 'Novo chamado atribuído',
+                'mensagem': 'Você tem um novo chamado de alta prioridade',
+                'tipo': 'chamado_atribuido',
+                'prioridade': 'alta',
+                'lida': False,
+                'data_criacao': (agora - timedelta(minutes=30)).strftime('%d/%m/%Y %H:%M:%S'),
+                'exibir_popup': True,
+                'som_ativo': True,
+                'chamado': {'id': 1, 'codigo': 'TI-2025-001'}
+            },
+            {
+                'id': 2,
+                'titulo': 'Chamado transferido',
+                'mensagem': 'Um chamado foi transferido para você',
+                'tipo': 'chamado_transferido',
+                'prioridade': 'normal',
+                'lida': True,
+                'data_criacao': (agora - timedelta(hours=2)).strftime('%d/%m/%Y %H:%M:%S'),
+                'exibir_popup': False,
+                'som_ativo': False,
+                'chamado': {'id': 2, 'codigo': 'TI-2025-002'}
+            },
+            {
+                'id': 3,
+                'titulo': 'Sistema atualizado',
+                'mensagem': 'O sistema foi atualizado com novas funcionalidades',
+                'tipo': 'sistema',
+                'prioridade': 'baixa',
+                'lida': True,
+                'data_criacao': (agora - timedelta(days=1)).strftime('%d/%m/%Y %H:%M:%S'),
+                'exibir_popup': False,
+                'som_ativo': False,
+                'chamado': None
+            }
+        ]
+
+        # Filtrar por não lidas se solicitado
+        if nao_lidas:
+            notificacoes = [n for n in notificacoes if not n['lida']]
+
+        # Aplicar limite
+        notificacoes = notificacoes[:limite]
+
+        return json_response(notificacoes)
+
+    except Exception as e:
+        logger.error(f"Erro ao buscar notificações: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agente/notificacoes/<int:notificacao_id>/marcar-lida', methods=['POST'])
+@api_login_required
+def marcar_notificacao_lida(notificacao_id):
+    """Marca uma notificação como lida"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Simular marcação como lida
+        return json_response({
+            'message': 'Notificação marcada como lida',
+            'notificacao_id': notificacao_id
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao marcar notificação como lida: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/agente/notificacoes/marcar-todas-lidas', methods=['POST'])
+@api_login_required
+def marcar_todas_notificacoes_lidas():
+    """Marca todas as notificações como lidas"""
+    try:
+        # Verificar se o usuário é um agente
+        agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
+        if not agente:
+            return error_response('Usuário não é um agente de suporte', 403)
+
+        # Simular marcação de todas como lidas
+        return json_response({
+            'message': 'Todas as notificações foram marcadas como lidas'
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao marcar todas as notificações como lidas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 # ==================== PROBLEMAS REPORTADOS ====================
 
 @painel_bp.route('/api/problemas', methods=['GET'])
