@@ -50,8 +50,26 @@ class SecurityMiddleware:
     
     def is_whitelisted_ip(self, ip):
         """Verifica se o IP está na whitelist"""
-        whitelist = self.app.config.get('SECURITY_IP_WHITELIST', ['127.0.0.1', 'localhost'])
-        return ip in whitelist
+        whitelist = self.app.config.get('SECURITY_IP_WHITELIST', [
+            '127.0.0.1', 'localhost', '::1',
+            # Redes locais comuns
+            '192.168.1.109', '192.168.0.0/16', '10.0.0.0/8', '172.16.0.0/12'
+        ])
+
+        # Verificar IP exato primeiro
+        if ip in whitelist:
+            return True
+
+        # Verificar se está em alguma rede CIDR
+        for addr in whitelist:
+            if '/' in addr:  # É um CIDR
+                try:
+                    import ipaddress
+                    if ipaddress.ip_address(ip) in ipaddress.ip_network(addr, strict=False):
+                        return True
+                except ValueError:
+                    continue
+        return False
     
     def record_failed_attempt(self, ip):
         """Registra uma tentativa de login falhada"""
