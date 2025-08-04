@@ -211,7 +211,7 @@ class SolicitacaoCompra(db.Model):
     quantidade = db.Column(db.Integer, nullable=False)
     categoria = db.Column(db.String(50), nullable=True)
     prioridade = db.Column(db.String(20), default='Normal')
-    valor_estimado = db.Column(db.Decimal(10, 2), nullable=True)
+    valor_estimado = db.Column(Numeric(10, 2), nullable=True)
     data_entrega_desejada = db.Column(db.Date, nullable=True)
     justificativa = db.Column(db.Text, nullable=False)
     observacoes = db.Column(db.Text, nullable=True)
