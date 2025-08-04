@@ -816,9 +816,11 @@ def chamados_disponiveis():
             chamados_list.append({
                 'id': chamado.id,
                 'codigo': chamado.codigo,
+                'protocolo': chamado.protocolo if hasattr(chamado, 'protocolo') else None,
                 'solicitante': chamado.solicitante,
                 'problema': chamado.problema,
                 'prioridade': chamado.prioridade,
+                'descricao': chamado.descricao if hasattr(chamado, 'descricao') else None,
                 'data_abertura': data_abertura_brazil.strftime('%d/%m %H:%M') if data_abertura_brazil else 'N/A'
             })
 
