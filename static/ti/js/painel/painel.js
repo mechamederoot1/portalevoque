@@ -1061,7 +1061,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
                     }
                 } else {
                     if (window.advancedNotificationSystem) {
-                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usuário ${data.nome} criado, mas houve erro ao registrar como agente.`);
+                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usu��rio ${data.nome} criado, mas houve erro ao registrar como agente.`);
                     }
                 }
             } catch (agenteError) {
@@ -1386,7 +1386,19 @@ async function loadUsuarios() {
         if (!response.ok) {
             throw new Error('Erro ao carregar usuários');
         }
-        usuariosData = await response.json();
+        const data = await response.json();
+
+        // Extract usuarios array from API response
+        if (data && data.usuarios && Array.isArray(data.usuarios)) {
+            usuariosData = data.usuarios;
+        } else if (Array.isArray(data)) {
+            usuariosData = data;
+        } else {
+            console.error('Unexpected API response format:', data);
+            usuariosData = [];
+        }
+
+        console.log('Usuarios loaded:', usuariosData.length);
         renderUsuariosPage(currentUsuariosPage);
 
         // Inicializar filtro após carregar usuários
@@ -1917,10 +1929,10 @@ function loadSectionContent(sectionId) {
                         console.log('Função inicializarGrupos encontrada no retry, executando...');
                         inicializarGrupos();
                     } else if (typeof carregarGrupos === 'function') {
-                        console.log('Fun��ão carregarGrupos encontrada no retry, executando...');
+                        console.log('Função carregarGrupos encontrada no retry, executando...');
                         carregarGrupos();
                     } else {
-                        console.error('Funções de grupos ainda não dispon��veis. Verifique o carregamento dos scripts.');
+                        console.error('Funções de grupos ainda não disponíveis. Verifique o carregamento dos scripts.');
                     }
                 }, 100);
             }
