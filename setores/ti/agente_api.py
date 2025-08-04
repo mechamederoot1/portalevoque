@@ -694,6 +694,29 @@ def atribuir_chamado_para_mim(chamado_id):
         db.session.add(nova_atribuicao)
         db.session.commit()
 
+        # Criar notificação para o agente
+        criar_notificacao_agente(
+            agente_id=agente.id,
+            titulo=f"Chamado {chamado.codigo} Atribuído",
+            mensagem=f"Você recebeu um novo chamado: {chamado.problema}",
+            tipo='chamado_atribuido',
+            chamado_id=chamado.id,
+            metadados={
+                'solicitante': chamado.solicitante,
+                'prioridade': chamado.prioridade,
+                'unidade': chamado.unidade
+            },
+            prioridade='alta' if chamado.prioridade == 'Alta' else 'normal'
+        )
+
+        # Criar histórico de atendimento
+        criar_historico_atendimento(
+            chamado_id=chamado.id,
+            agente_id=agente.id,
+            status_inicial=chamado.status,
+            observacoes='Auto-atribuição pelo agente'
+        )
+
         # Enviar e-mails de notificação
         try:
             from setores.ti.routes import enviar_email
