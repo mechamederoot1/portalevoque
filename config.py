@@ -131,6 +131,7 @@ class TestingConfig(Config):
     TESTING = True
     SQLALCHEMY_DATABASE_URI = 'sqlite:///:memory:'
     WTF_CSRF_ENABLED = False
+    SQLALCHEMY_ENGINE_OPTIONS = {}  # Remove MySQL-specific options for SQLite
 
 # Dicionário de configurações
 config = {
