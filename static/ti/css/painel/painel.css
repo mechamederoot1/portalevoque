@@ -1448,6 +1448,15 @@ select option:checked {
 /* ============ SISTEMA DE NOTIFICAÇÕES AVANÇADO ============ */
 
 /* Container principal das notificações toast */
+.notification-container {
+  position: fixed;
+  top: calc(var(--navbar-height) + 1rem);
+  right: 1rem;
+  z-index: 9999;
+  max-width: 400px;
+  pointer-events: none;
+}
+
 .advanced-notification-container {
   position: fixed;
   top: calc(var(--navbar-height) + 1rem);
