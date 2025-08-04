@@ -207,7 +207,7 @@ async function loadChamados() {
     }
 }
 
-// Funç��o para popular filtros com dados dinâmicos
+// Funç���o para popular filtros com dados dinâmicos
 function popularFiltrosDinamicos() {
     // Popular filtro de unidades
     const filtroUnidade = document.getElementById('filtroUnidade');
@@ -2288,27 +2288,7 @@ function updateSocketStatus(status, type) {
 }
 
 // Inicializar Socket.IO quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', function() {
-    // Aguardar um pouco para garantir que tudo esteja carregado
-    setTimeout(() => {
-        initializeSocketIO();
-    }, 1000);
-    
-    // Botão para reconectar Socket.IO
-    document.getElementById('btnReconectarSocket')?.addEventListener('click', function() {
-        console.log('Tentando reconectar Socket.IO...');
-        updateSocketStatus('Reconectando...', 'warning');
-        
-        if (socket) {
-            socket.disconnect();
-            setTimeout(() => {
-                socket.connect();
-            }, 1000);
-        } else {
-            initializeSocketIO();
-        }
-    });
-});
+// REMOVIDO: DOMContentLoaded duplicado - Socket.IO e botões já são inicializados no principal
 
 // ==================== FUNCIONALIDADES DE AGENTES ====================
 // agentesData is declared in agentes.js
@@ -2987,7 +2967,7 @@ let currentUsuariosPage = 1;
 let currentUsuariosBusca = '';
 
 async function filtrarListaUsuarios(termoBusca, page = 1) {
-    console.log(`Filtrando usuários com termo: "${termoBusca}", página: ${page}`);
+    console.log(`Filtrando usu��rios com termo: "${termoBusca}", página: ${page}`);
 
     try {
         // Atualizar variáveis globais
