@@ -1681,7 +1681,7 @@ let usuariosBloqueadosData = [];
 const usuariosBloqueadosPerPage = 6;
 let currentBloqueadosPage = 1;
 
-// Função para carregar usuários bloqueados
+// Fun��ão para carregar usuários bloqueados
 async function loadUsuariosBloqueados() {
     try {
         const response = await fetch('/ti/painel/api/usuarios');
@@ -1861,7 +1861,7 @@ function loadSectionContent(sectionId) {
                 console.log('Funções de grupos não encontradas, tentando novamente em 100ms...');
                 setTimeout(() => {
                     if (typeof inicializarGrupos === 'function') {
-                        console.log('Funç��o inicializarGrupos encontrada no retry, executando...');
+                        console.log('Função inicializarGrupos encontrada no retry, executando...');
                         inicializarGrupos();
                     } else if (typeof carregarGrupos === 'function') {
                         console.log('Função carregarGrupos encontrada no retry, executando...');
@@ -2958,6 +2958,9 @@ function inicializarFiltroPermissoes() {
     });
 
     console.log('Filtro de permissões inicializado com sucesso!');
+
+    // Carregar usuários inicialmente
+    filtrarListaUsuarios('', 1);
 }
 
 // Variáveis para controle de paginação de usuários
