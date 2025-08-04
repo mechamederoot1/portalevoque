@@ -748,7 +748,6 @@ def carregar_configuracoes_notificacoes():
 
 @painel_bp.route('/api/problemas', methods=['GET'])
 @login_required
-@setor_required('Administrador')
 def listar_problemas():
     """Lista todos os problemas reportados"""
     try:
