@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Relatórios - Evoque Fitness</title>
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- Font Awesome -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root {
+      --primary-color: #FF6200;
+      --secondary-color: #1C2526;
+      --accent-color: #FF914D;
+      --dark-color: #2A2F30;
+      --light-color: #F8F9FA;
+    }
+    
+    body {
+      font-family: 'Montserrat', sans-serif;
+      background-color: var(--secondary-color);
+      color: var(--light-color);
+    }
+    
+    .navbar {
+      background-color: var(--dark-color) !important;
+      border-bottom: 2px solid var(--primary-color);
+    }
+    
+    .main-content {
+      margin-top: 80px;
+      padding: 40px 0;
+    }
+    
+    .card {
+      background-color: var(--dark-color);
+      border: 1px solid #3A4345;
+      border-radius: 12px;
+    }
+    
+    .page-title {
+      color: var(--primary-color);
+      border-bottom: 3px solid var(--primary-color);
+      padding-bottom: 10px;
+      margin-bottom: 30px;
+    }
+    
+    .stats-card {
+      background: linear-gradient(135deg, var(--primary-color), var(--accent-color));
+      border: none;
+      color: white;
+    }
+    
+    .stats-value {
+      font-size: 2.5rem;
+      font-weight: 700;
+    }
+    
+    .form-control, .form-select {
+      background-color: var(--secondary-color);
+      border-color: #3A4345;
+      color: var(--light-color);
+    }
+    
+    .form-control:focus, .form-select:focus {
+      background-color: var(--secondary-color);
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 0.2rem rgba(255, 98, 0, 0.25);
+      color: var(--light-color);
+    }
+    
+    .btn-primary {
+      background-color: var(--primary-color);
+      border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover {
+      background-color: var(--accent-color);
+      border-color: var(--accent-color);
+    }
+    
+    .chart-container {
+      position: relative;
+      height: 400px;
+    }
+    
+    .table-dark {
+      --bs-table-bg: var(--dark-color);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navbar -->
+  <nav class="navbar navbar-expand-lg navbar-dark fixed-top">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('main.index') }}">
+        <img src="https://images.totalpass.com/public/1280x720/czM6Ly90cC1pbWFnZS1hZG1pbi1wcm9kL2d5bXMvNHVrOWtkOGd3M2xlMXg4OGNzdzViN2NhdmUzY2hhNWV3Y2lyd2pyNmI4djl6aXdiNTV2YXg3bjJ2aDI2" alt="Evoque Fitness" height="40">
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link" href="{{ url_for('compras.index') }}">
+          <i class="fas fa-arrow-left me-2"></i>Voltar
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="container">
+      <h1 class="page-title">
+        <i class="fas fa-chart-pie me-3"></i>Relatórios de Compras
+      </h1>
+      
+      <!-- Filtros Gerais -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-filter me-2"></i>Filtros
+          </h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3 mb-3">
+              <label for="dataInicio" class="form-label">Data Início</label>
+              <input type="date" class="form-control" id="dataInicio">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="dataFim" class="form-label">Data Fim</label>
+              <input type="date" class="form-control" id="dataFim">
+            </div>
+            <div class="col-md-3 mb-3">
+              <label for="filtroCategoria" class="form-label">Categoria</label>
+              <select class="form-select" id="filtroCategoria">
+                <option value="">Todas as categorias</option>
+                <option value="equipamentos">Equipamentos</option>
+                <option value="materiais">Materiais</option>
+                <option value="servicos">Serviços</option>
+                <option value="manutencao">Manutenção</option>
+                <option value="limpeza">Limpeza</option>
+              </select>
+            </div>
+            <div class="col-md-3 mb-3 d-flex align-items-end">
+              <button class="btn btn-primary w-100" onclick="atualizarRelatorios()">
+                <i class="fas fa-chart-bar me-2"></i>Gerar Relatório
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Cards de Estatísticas -->
+      <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+          <div class="card stats-card">
+            <div class="card-body text-center">
+              <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+              <div class="stats-value" id="totalSolicitacoes">42</div>
+              <div>Total de Solicitações</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="card stats-card">
+            <div class="card-body text-center">
+              <i class="fas fa-dollar-sign fa-3x mb-3"></i>
+              <div class="stats-value" id="valorTotal">R$ 125.430</div>
+              <div>Valor Total</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="card stats-card">
+            <div class="card-body text-center">
+              <i class="fas fa-check-circle fa-3x mb-3"></i>
+              <div class="stats-value" id="aprovadas">85%</div>
+              <div>Taxa de Aprovação</div>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3 mb-3">
+          <div class="card stats-card">
+            <div class="card-body text-center">
+              <i class="fas fa-clock fa-3x mb-3"></i>
+              <div class="stats-value" id="tempoMedio">3.2</div>
+              <div>Dias Médios p/ Entrega</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Gráficos -->
+      <div class="row mb-4">
+        <div class="col-lg-8 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-chart-line me-2"></i>Solicitações por Mês
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chartMensal"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-4 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-chart-pie me-2"></i>Por Categoria
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chartCategorias"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="row mb-4">
+        <div class="col-lg-6 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-chart-bar me-2"></i>Status das Solicitações
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chartStatus"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="col-lg-6 mb-4">
+          <div class="card">
+            <div class="card-header">
+              <h5 class="card-title mb-0">
+                <i class="fas fa-truck me-2"></i>Top 5 Fornecedores
+              </h5>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="chartFornecedores"></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Tabela Detalhada -->
+      <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-table me-2"></i>Relatório Detalhado
+          </h5>
+          <div>
+            <button class="btn btn-success btn-sm me-2" onclick="exportarExcel()">
+              <i class="fas fa-file-excel me-1"></i>Excel
+            </button>
+            <button class="btn btn-danger btn-sm" onclick="exportarPDF()">
+              <i class="fas fa-file-pdf me-1"></i>PDF
+            </button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover" id="tabelaRelatorio">
+              <thead>
+                <tr>
+                  <th>Protocolo</th>
+                  <th>Data</th>
+                  <th>Produto</th>
+                  <th>Categoria</th>
+                  <th>Valor</th>
+                  <th>Status</th>
+                  <th>Fornecedor</th>
+                </tr>
+              </thead>
+              <tbody>
+                <!-- Dados serão carregados dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  
+  <script>
+    // Dados de exemplo
+    const dadosExemplo = [
+      { protocolo: 'COMP-20250101001', data: '01/01/2025', produto: 'Esteiras Profissionais', categoria: 'equipamentos', valor: 15000, status: 'entregue', fornecedor: 'TechFit' },
+      { protocolo: 'COMP-20250102002', data: '02/01/2025', produto: 'Material de Limpeza', categoria: 'limpeza', valor: 350, status: 'aprovado', fornecedor: 'Clean Services' },
+      { protocolo: 'COMP-20250103003', data: '03/01/2025', produto: 'Manutenção Ar Condicionado', categoria: 'manutencao', valor: 800, status: 'processando', fornecedor: 'Manutenção Total' },
+      { protocolo: 'COMP-20250104004', data: '04/01/2025', produto: 'Papel A4', categoria: 'materiais', valor: 120, status: 'pendente', fornecedor: 'Office Supplies' }
+    ];
+
+    // Configuração dos gráficos
+    const configGrafico = {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: '#F8F9FA'
+          }
+        }
+      },
+      scales: {
+        y: {
+          ticks: {
+            color: '#F8F9FA'
+          },
+          grid: {
+            color: '#3A4345'
+          }
+        },
+        x: {
+          ticks: {
+            color: '#F8F9FA'
+          },
+          grid: {
+            color: '#3A4345'
+          }
+        }
+      }
+    };
+
+    function inicializarGraficos() {
+      // Gráfico Mensal
+      const ctxMensal = document.getElementById('chartMensal').getContext('2d');
+      new Chart(ctxMensal, {
+        type: 'line',
+        data: {
+          labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'],
+          datasets: [{
+            label: 'Solicitações',
+            data: [12, 19, 8, 15, 22, 18],
+            borderColor: '#FF6200',
+            backgroundColor: 'rgba(255, 98, 0, 0.1)',
+            tension: 0.4
+          }]
+        },
+        options: configGrafico
+      });
+
+      // Gráfico de Categorias
+      const ctxCategorias = document.getElementById('chartCategorias').getContext('2d');
+      new Chart(ctxCategorias, {
+        type: 'doughnut',
+        data: {
+          labels: ['Equipamentos', 'Limpeza', 'Manutenção', 'Materiais'],
+          datasets: [{
+            data: [35, 25, 20, 20],
+            backgroundColor: ['#FF6200', '#FF914D', '#FFA366', '#FFB580']
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              labels: {
+                color: '#F8F9FA'
+              }
+            }
+          }
+        }
+      });
+
+      // Gráfico de Status
+      const ctxStatus = document.getElementById('chartStatus').getContext('2d');
+      new Chart(ctxStatus, {
+        type: 'bar',
+        data: {
+          labels: ['Pendente', 'Aprovado', 'Processando', 'Entregue'],
+          datasets: [{
+            label: 'Quantidade',
+            data: [5, 12, 8, 17],
+            backgroundColor: ['#ffc107', '#28a745', '#17a2b8', '#6f42c1']
+          }]
+        },
+        options: configGrafico
+      });
+
+      // Gráfico de Fornecedores
+      const ctxFornecedores = document.getElementById('chartFornecedores').getContext('2d');
+      new Chart(ctxFornecedores, {
+        type: 'horizontalBar',
+        data: {
+          labels: ['TechFit', 'Clean Services', 'Manutenção Total', 'Office Supplies'],
+          datasets: [{
+            label: 'Pedidos',
+            data: [15, 12, 8, 7],
+            backgroundColor: '#FF6200'
+          }]
+        },
+        options: configGrafico
+      });
+    }
+
+    function carregarTabelaRelatorio() {
+      const tbody = document.querySelector('#tabelaRelatorio tbody');
+      
+      tbody.innerHTML = dadosExemplo.map(item => `
+        <tr>
+          <td><code>${item.protocolo}</code></td>
+          <td>${item.data}</td>
+          <td>${item.produto}</td>
+          <td><span class="badge" style="background-color: var(--primary-color)">${item.categoria}</span></td>
+          <td>R$ ${item.valor.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</td>
+          <td><span class="badge bg-${getStatusColor(item.status)}">${getStatusLabel(item.status)}</span></td>
+          <td>${item.fornecedor}</td>
+        </tr>
+      `).join('');
+    }
+
+    function getStatusColor(status) {
+      const colors = {
+        pendente: 'warning',
+        aprovado: 'success',
+        processando: 'info',
+        entregue: 'primary',
+        rejeitado: 'danger'
+      };
+      return colors[status] || 'secondary';
+    }
+
+    function getStatusLabel(status) {
+      const labels = {
+        pendente: 'Pendente',
+        aprovado: 'Aprovado',
+        processando: 'Processando',
+        entregue: 'Entregue',
+        rejeitado: 'Rejeitado'
+      };
+      return labels[status] || status;
+    }
+
+    function atualizarRelatorios() {
+      // Simular atualização dos dados
+      console.log('Atualizando relatórios...');
+      
+      // Aqui você faria uma chamada para a API com os filtros
+      const dataInicio = document.getElementById('dataInicio').value;
+      const dataFim = document.getElementById('dataFim').value;
+      const categoria = document.getElementById('filtroCategoria').value;
+      
+      // Recarregar dados
+      carregarTabelaRelatorio();
+      
+      // Mostrar feedback
+      const btn = event.target;
+      const textoOriginal = btn.innerHTML;
+      btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Atualizando...';
+      btn.disabled = true;
+      
+      setTimeout(() => {
+        btn.innerHTML = textoOriginal;
+        btn.disabled = false;
+      }, 1000);
+    }
+
+    function exportarExcel() {
+      alert('Exportação para Excel será implementada em breve.');
+    }
+
+    function exportarPDF() {
+      alert('Exportação para PDF será implementada em breve.');
+    }
+
+    // Inicializar página
+    document.addEventListener('DOMContentLoaded', function() {
+      // Definir datas padrão (último mês)
+      const hoje = new Date();
+      const umMesAtras = new Date();
+      umMesAtras.setMonth(hoje.getMonth() - 1);
+      
+      document.getElementById('dataInicio').value = umMesAtras.toISOString().split('T')[0];
+      document.getElementById('dataFim').value = hoje.toISOString().split('T')[0];
+      
+      // Carregar dados
+      carregarTabelaRelatorio();
+      
+      // Inicializar gráficos após um pequeno delay para garantir que o DOM esteja pronto
+      setTimeout(inicializarGraficos, 100);
+    });
+  </script>
+</body>
+</html>
