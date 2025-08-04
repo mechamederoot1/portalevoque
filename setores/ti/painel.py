@@ -856,7 +856,11 @@ def meus_chamados_agente():
             )
         elif filtro == 'concluidos':
             query = query.filter(
-                Chamado.status.in_(['Concluido', 'Cancelado'])
+                Chamado.status == 'Concluido'
+            )
+        elif filtro == 'cancelados':
+            query = query.filter(
+                Chamado.status == 'Cancelado'
             )
 
         atribuicoes = query.order_by(ChamadoAgente.data_atribuicao.desc()).limit(20).all()
@@ -2732,7 +2736,7 @@ def atribuir_chamado(chamado_id):
 
         agente_id = data.get('agente_id')
         if not agente_id:
-            return error_response('ID do agente é obrigatório')
+            return error_response('ID do agente �� obrigatório')
 
         chamado = Chamado.query.get(chamado_id)
         if not chamado:
