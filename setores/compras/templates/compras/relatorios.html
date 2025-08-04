@@ -55,16 +55,29 @@
     }
     
     .card {
-      background-color: var(--dark-color);
-      border: 1px solid #3A4345;
+      background-color: var(--card-bg);
+      border: 1px solid var(--border-color);
       border-radius: 12px;
+      box-shadow: 0 4px 12px var(--shadow-color);
     }
-    
+
+    .card-header {
+      background-color: rgba(255, 98, 0, 0.1);
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-color) !important;
+    }
+
+    .card-title {
+      color: var(--primary-color) !important;
+      font-weight: 600;
+    }
+
     .page-title {
-      color: var(--primary-color);
+      color: var(--primary-color) !important;
       border-bottom: 3px solid var(--primary-color);
       padding-bottom: 10px;
       margin-bottom: 30px;
+      font-weight: 700;
     }
     
     .stats-card {
