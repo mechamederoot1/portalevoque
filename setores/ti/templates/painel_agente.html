@@ -793,7 +793,7 @@
           <div class="row">
             <div class="col-md-6">
               <div class="mb-3">
-                <label class="form-label"><strong>Código:</strong></label>
+                <label class="form-label"><strong>C��digo:</strong></label>
                 <div class="form-control-plaintext text-white" id="modalCodigo">-</div>
               </div>
               <div class="mb-3">
@@ -1043,6 +1043,9 @@
             break;
           case 'meus-chamados-concluidos':
             this.carregarMeusChamadosPage('concluidos');
+            break;
+          case 'meus-chamados-cancelados':
+            this.carregarMeusChamadosPage('cancelados');
             break;
           case 'historico-agente':
             this.carregarPerfilAgente();
