@@ -1310,6 +1310,53 @@
           this.carregarEstatisticas();
           this.carregarMeusChamados();
         });
+
+        socket.on('chamado_atribuido', (data) => {
+          // Se o chamado foi atribuído ao agente atual, mostrar notificação e atualizar
+          if (data.agente_email === '{{ current_user.email }}') {
+            this.showNotification(`Novo chamado atribuído: ${data.codigo}`, 'success');
+            this.carregarEstatisticas();
+            this.carregarChamadosDisponiveis();
+            this.carregarMeusChamados();
+            // Atualizar também a seção ativa se for uma das páginas de chamados
+            const activeSection = document.querySelector('.sidebar nav a.active');
+            if (activeSection) {
+              const sectionId = activeSection.getAttribute('href').substring(1);
+              this.carregarDadosSecao(sectionId);
+            }
+          } else {
+            // Apenas atualizar chamados disponíveis se foi atribuído a outro agente
+            this.carregarChamadosDisponiveis();
+            this.carregarEstatisticas();
+          }
+        });
+
+        socket.on('chamado_transferido', (data) => {
+          // Se o chamado foi transferido para o agente atual
+          if (data.agente_destino_email === '{{ current_user.email }}') {
+            this.showNotification(`Chamado transferido para você: ${data.codigo}`, 'info');
+            this.carregarEstatisticas();
+            this.carregarMeusChamados();
+            // Atualizar seção ativa
+            const activeSection = document.querySelector('.sidebar nav a.active');
+            if (activeSection) {
+              const sectionId = activeSection.getAttribute('href').substring(1);
+              this.carregarDadosSecao(sectionId);
+            }
+          }
+          // Se o chamado foi transferido do agente atual para outro
+          else if (data.agente_origem_email === '{{ current_user.email }}') {
+            this.showNotification(`Chamado ${data.codigo} foi transferido para ${data.agente_destino_nome}`, 'info');
+            this.carregarEstatisticas();
+            this.carregarMeusChamados();
+            // Atualizar seção ativa
+            const activeSection = document.querySelector('.sidebar nav a.active');
+            if (activeSection) {
+              const sectionId = activeSection.getAttribute('href').substring(1);
+              this.carregarDadosSecao(sectionId);
+            }
+          }
+        });
       }
 
       getPrioridadeClass(prioridade) {
