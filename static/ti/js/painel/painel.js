@@ -2764,7 +2764,7 @@ function renderizarAgentes(agentes = null) {
             </div>
             <div class="card-body">
                 <div class="info-row">
-                    <strong>Usuário:</strong>
+                    <strong>Usu��rio:</strong>
                     <span>${agente.usuario}</span>
                 </div>
                 <div class="info-row">
@@ -3353,6 +3353,23 @@ function renderizarUsuarios(usuarios) {
     const usuariosGrid = document.getElementById('usuariosGrid');
     if (!usuariosGrid) {
         console.log('usuariosGrid não encontrado');
+        return;
+    }
+
+    // Verificação de segurança para array de usuários
+    if (!usuarios || !Array.isArray(usuarios)) {
+        console.warn('Array de usuários inválido:', usuarios);
+        usuariosGrid.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                    </div>
+                    <h4>Erro ao carregar usuários</h4>
+                    <p class="text-muted">Dados inválidos recebidos do servidor</p>
+                </div>
+            </div>
+        `;
         return;
     }
 
@@ -4506,7 +4523,7 @@ async function atribuirAgente(chamadoId) {
         document.body.insertAdjacentHTML('beforeend', modalContent);
 
     } catch (error) {
-        console.error('Erro ao abrir modal de atribui��ão:', error);
+        console.error('Erro ao abrir modal de atribui����ão:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
         }
