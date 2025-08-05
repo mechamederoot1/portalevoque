@@ -2764,7 +2764,7 @@ function renderizarAgentes(agentes = null) {
             </div>
             <div class="card-body">
                 <div class="info-row">
-                    <strong>Usu��rio:</strong>
+                    <strong>Usuário:</strong>
                     <span>${agente.usuario}</span>
                 </div>
                 <div class="info-row">
@@ -3388,58 +3388,81 @@ function renderizarUsuarios(usuarios) {
         return;
     }
 
-    // Renderizar cards dos usuários
-    usuariosGrid.innerHTML = usuarios.map(usuario => `
-        <div class="card usuario-card">
-            <div class="card-header">
-                <h3>${usuario.nome} ${usuario.sobrenome}</h3>
-                <span class="status-badge ${usuario.bloqueado ? 'bg-danger' : 'bg-success'}">
-                    ${usuario.bloqueado ? 'Bloqueado' : 'Ativo'}
-                </span>
+    // Renderizar cards dos usuários com verificações de segurança
+    usuariosGrid.innerHTML = usuarios.map(usuario => {
+        // Verificações de propriedades essenciais
+        if (!usuario || typeof usuario !== 'object') {
+            console.warn('Objeto de usuário inválido:', usuario);
+            return '<div class="card"><div class="card-body text-danger">Dados de usuário inválidos</div></div>';
+        }
+
+        const nome = usuario.nome || 'Nome não informado';
+        const sobrenome = usuario.sobrenome || '';
+        const email = usuario.email || 'Email não informado';
+        const usuarioLogin = usuario.usuario || 'Usuário não informado';
+        const nivelAcesso = usuario.nivel_acesso || 'Não definido';
+        const setores = usuario.setores || usuario.setor || 'Não definido';
+        const dataCriacao = usuario.data_criacao || usuario.data_cadastro || 'Não informado';
+        const bloqueado = Boolean(usuario.bloqueado);
+        const id = usuario.id;
+
+        if (!id) {
+            console.warn('ID de usuário não encontrado:', usuario);
+            return '<div class="card"><div class="card-body text-danger">ID de usuário inválido</div></div>';
+        }
+
+        return `
+            <div class="card usuario-card">
+                <div class="card-header">
+                    <h3>${nome} ${sobrenome}</h3>
+                    <span class="status-badge ${bloqueado ? 'bg-danger' : 'bg-success'}">
+                        ${bloqueado ? 'Bloqueado' : 'Ativo'}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <i class="fas fa-user"></i>
+                        <span>${usuarioLogin}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fas fa-envelope"></i>
+                        <span>${email}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>${nivelAcesso}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fas fa-building"></i>
+                        <span>${setores}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fas fa-calendar"></i>
+                        <span>${dataCriacao}</span>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-sm" onclick="editarUsuario(${id})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    ${bloqueado ?
+                        `<button class="btn btn-success btn-sm" onclick="desbloquearUsuario(${id})">
+                            <i class="fas fa-unlock"></i> Desbloquear
+                        </button>` :
+                        `<button class="btn btn-warning btn-sm" onclick="bloquearUsuario(${id})">
+                            <i class="fas fa-lock"></i> Bloquear
+                        </button>`
+                    }
+                    <button class="btn btn-info btn-sm" onclick="gerarNovaSenha(${id})">
+                        <i class="fas fa-key"></i> Nova Senha
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${id})">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="info-row">
-                    <i class="fas fa-user"></i>
-                    <span>${usuario.usuario}</span>
-                </div>
-                <div class="info-row">
-                    <i class="fas fa-envelope"></i>
-                    <span>${usuario.email}</span>
-                </div>
-                <div class="info-row">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>${usuario.nivel_acesso}</span>
-                </div>
-                <div class="info-row">
-                    <i class="fas fa-building"></i>
-                    <span>${usuario.setores || 'Não definido'}</span>
-                </div>
-                <div class="info-row">
-                    <i class="fas fa-calendar"></i>
-                    <span>${usuario.data_criacao || 'Não informado'}</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <button class="btn btn-primary btn-sm" onclick="editarUsuario(${usuario.id})">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
-                ${usuario.bloqueado ?
-                    `<button class="btn btn-success btn-sm" onclick="desbloquearUsuario(${usuario.id})">
-                        <i class="fas fa-unlock"></i> Desbloquear
-                    </button>` :
-                    `<button class="btn btn-warning btn-sm" onclick="bloquearUsuario(${usuario.id})">
-                        <i class="fas fa-lock"></i> Bloquear
-                    </button>`
-                }
-                <button class="btn btn-info btn-sm" onclick="gerarNovaSenha(${usuario.id})">
-                    <i class="fas fa-key"></i> Nova Senha
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${usuario.id})">
-                    <i class="fas fa-trash"></i> Excluir
-                </button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Missing functions for the permissions section buttons
@@ -4523,7 +4546,7 @@ async function atribuirAgente(chamadoId) {
         document.body.insertAdjacentHTML('beforeend', modalContent);
 
     } catch (error) {
-        console.error('Erro ao abrir modal de atribui����ão:', error);
+        console.error('Erro ao abrir modal de atribui��ão:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar agentes');
         }
