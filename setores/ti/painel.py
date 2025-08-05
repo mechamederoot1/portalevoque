@@ -63,6 +63,21 @@ def error_response(message, status=400):
     """Retorna erro JSON padronizado"""
     return json_response({'error': message}, status)
 
+def gerenciamento_usuarios_required(f):
+    """Decorador que permite acesso a administradores e agentes de suporte ativos"""
+    from functools import wraps
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return error_response('Não autorizado', 401)
+
+        if not current_user.tem_permissao_gerenciar_usuarios():
+            return error_response('Acesso negado. Permissão de administrador ou agente de suporte necessária.', 403)
+
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Timezone do Brasil
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 
@@ -440,7 +455,7 @@ def carregar_configuracoes():
                     if config.chave in ['versao_database', 'data_criacao', 'sistema_inicializado']:
                         config_final[config.chave] = config.valor
                     else:
-                        logger.error(f"Erro ao decodificar configuraç��o {config.chave}")
+                        logger.error(f"Erro ao decodificar configuraç����o {config.chave}")
                     continue
 
         except Exception as db_error:
@@ -657,7 +672,7 @@ def salvar_configuracoes_api():
                     if not isinstance(sla_config[campo], (int, float)) or sla_config[campo] <= 0:
                         return error_response(f'Campo SLA {campo} deve ser um número positivo', 400)
         
-        # Validar configurações de notificações
+        # Validar configura��ões de notificações
         if 'notificacoes' in data:
             notif_config = data['notificacoes']
             campos_bool = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
@@ -745,7 +760,7 @@ def salvar_configuracoes_notificacoes():
         })
         
     except Exception as e:
-        logger.error(f"Erro ao salvar configurações de notificações: {str(e)}")
+        logger.error(f"Erro ao salvar configurações de notificaç��es: {str(e)}")
         logger.error(traceback.format_exc())
         return error_response(f'Erro interno no servidor: {str(e)}')
 
@@ -1467,7 +1482,7 @@ def notificacoes_agente():
 @painel_bp.route('/api/agente/notificacoes/<int:notificacao_id>/marcar-lida', methods=['POST'])
 @api_login_required
 def marcar_notificacao_lida(notificacao_id):
-    """Marca uma notificação como lida"""
+    """Marca uma notificaç��o como lida"""
     try:
         # Verificar se o usuário é um agente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
@@ -1743,7 +1758,7 @@ def atualizar_prioridade_problema(problema_id):
         prioridades_validas = ['Baixa', 'Normal', 'Alta', 'Urgente', 'Crítica']
         
         if nova_prioridade not in prioridades_validas:
-            return error_response('Prioridade inválida', 400)
+            return error_response('Prioridade inv��lida', 400)
         
         problema = ProblemaReportado.query.get(problema_id)
         if not problema:
@@ -1998,6 +2013,69 @@ def obter_estatisticas_chamados():
         # Converter para dicionário
         stats_dict = {}
         total = 0
+
+        for status, quantidade in estatisticas:
+            stats_dict[status] = quantidade
+            total += quantidade
+
+        # Adicionar status que podem não ter chamados
+        status_possiveis = ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']
+        for status in status_possiveis:
+            if status not in stats_dict:
+                stats_dict[status] = 0
+
+        stats_dict['total'] = total
+
+        return json_response(stats_dict)
+
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas dos chamados: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/debug/test-usuarios')
+@login_required
+def debug_test_usuarios():
+    """Debug endpoint to test user loading"""
+    try:
+        # Test direct database query
+        users = User.query.all()
+        users_data = []
+        for user in users:
+            users_data.append({
+                'id': user.id,
+                'nome': user.nome,
+                'sobrenome': user.sobrenome,
+                'email': user.email,
+                'usuario': user.usuario,
+                'nivel_acesso': user.nivel_acesso,
+                'setor': user.setor,
+                'setores': user.setores,
+                'bloqueado': getattr(user, 'bloqueado', False),
+                'data_criacao': user.data_criacao.strftime('%d/%m/%Y') if user.data_criacao else None
+            })
+
+        return json_response({
+            'status': 'success',
+            'message': 'Debug test successful',
+            'total_users': len(users_data),
+            'current_user': {
+                'id': current_user.id,
+                'nome': current_user.nome,
+                'email': current_user.email,
+                'nivel_acesso': current_user.nivel_acesso,
+                'setores': current_user.setores,
+                'tem_permissao_admin': current_user.tem_permissao('Administrador'),
+                'tem_acesso_ti': current_user.tem_acesso_setor('ti')
+            },
+            'usuarios': users_data
+        })
+    except Exception as e:
+        import traceback
+        return json_response({
+            'status': 'error',
+            'message': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
         for stat in estatisticas:
             stats_dict[stat.status] = stat.quantidade
             total += stat.quantidade
@@ -2139,13 +2217,16 @@ def deletar_chamado(id):
 
 @painel_bp.route('/api/usuarios', methods=['GET'])
 @login_required
-@setor_required('Administrador')
+@setor_required('ti')
 def listar_usuarios():
     """Lista usuários com filtros opcionais"""
     try:
+        # Verificar se o usuário tem permissão (Administrador ou Agente de Suporte)
+        if not current_user.tem_permissao_gerenciar_usuarios():
+            return error_response('Acesso negado. Permissão de administrador ou agente de suporte necessária.', 403)
         busca = request.args.get('busca', '').strip()
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
+        per_page = request.args.get('per_page', 5, type=int)
 
         query = User.query
 
@@ -2177,7 +2258,7 @@ def listar_usuarios():
                 'setor': user.setor,
                 'bloqueado': getattr(user, 'bloqueado', False),
                 'ativo': getattr(user, 'ativo', True),
-                'data_cadastro': user.data_cadastro.strftime('%d/%m/%Y') if user.data_cadastro else None
+                'data_cadastro': user.data_criacao.strftime('%d/%m/%Y') if user.data_criacao else None
             })
 
         return json_response({
@@ -2196,7 +2277,7 @@ def listar_usuarios():
 
 @painel_bp.route('/api/usuarios', methods=['POST'])
 @login_required
-@setor_required('Administrador')
+@gerenciamento_usuarios_required
 def criar_usuario():
     try:
         if not request.is_json:
@@ -2206,10 +2287,15 @@ def criar_usuario():
         if not data:
             return error_response('Dados não fornecidos', 400)
             
-        required_fields = ['nome', 'sobrenome', 'usuario', 'email', 'senha', 'nivel_acesso', 'setor']
+        required_fields = ['nome', 'sobrenome', 'usuario', 'email', 'senha', 'nivel_acesso']
         for field in required_fields:
             if not data.get(field):
                 return error_response(f'Campo {field} é obrigatório', 400)
+
+        # Verificar setor/setores (aceita ambos os formatos)
+        setores_data = data.get('setores') or data.get('setor')
+        if not setores_data:
+            return error_response('Campo setores é obrigatório', 400)
 
         niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor', 'Agente de suporte']
         if data['nivel_acesso'] not in niveis_validos:
@@ -2230,7 +2316,7 @@ def criar_usuario():
             bloqueado=data.get('bloqueado', False)
         )
         
-        novo_usuario.setores = data['setor']
+        novo_usuario.setores = setores_data
         novo_usuario.set_password(data['senha'])
 
         db.session.add(novo_usuario)
@@ -2286,6 +2372,7 @@ def criar_usuario():
 
 @painel_bp.route('/api/usuarios-search', methods=['GET'])
 @login_required
+@gerenciamento_usuarios_required
 def buscar_usuarios_backup():
     try:
         busca = request.args.get('busca', '').strip()
@@ -2466,7 +2553,7 @@ def buscar_usuarios_backup():
 
 @painel_bp.route('/api/usuarios/<int:user_id>', methods=['GET'])
 @login_required
-@setor_required('Administrador')
+@gerenciamento_usuarios_required
 def buscar_usuario(user_id):
     try:
         usuario = User.query.get(user_id)
@@ -2500,6 +2587,7 @@ def buscar_usuario(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>/bloquear', methods=['PUT'])
 @login_required
+@gerenciamento_usuarios_required
 def toggle_bloqueio_usuario(user_id):
     try:
         usuario = User.query.get(user_id)
@@ -2546,7 +2634,7 @@ def toggle_bloqueio_usuario(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>/gerar-senha', methods=['POST'])
 @login_required
-@setor_required('Administrador')
+@gerenciamento_usuarios_required
 def gerar_nova_senha(user_id):
     try:
         usuario = User.query.get(user_id)
@@ -2573,6 +2661,7 @@ def gerar_nova_senha(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>', methods=['PUT'])
 @login_required
+@gerenciamento_usuarios_required
 def atualizar_usuario(user_id):
     try:
         if not request.is_json:
@@ -2635,12 +2724,33 @@ def atualizar_usuario(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>', methods=['DELETE'])
 @login_required
+@gerenciamento_usuarios_required
 def deletar_usuario(user_id):
     try:
         usuario = User.query.get(user_id)
         if not usuario:
             return error_response('Usuário não encontrado', 404)
-            
+
+        # Verificar se o usuário é administrador
+        if usuario.nivel_acesso == 'Administrador':
+            return error_response('Não é possível excluir usuários administradores', 400)
+
+        # Verificar se o usuário está tentando excluir a si mesmo
+        if usuario.id == current_user.id:
+            return error_response('Não é possível excluir seu próprio usuário', 400)
+
+        # Verificar dependências - chamados criados
+        from database import Chamado
+        chamados_count = Chamado.query.filter_by(usuario_id=user_id).count()
+        if chamados_count > 0:
+            return error_response(f'Não é possível excluir usuário com {chamados_count} chamados associados. Considere bloquear ao invés de excluir.', 400)
+
+        # Verificar se é agente de suporte ativo
+        from database import AgenteSuporte
+        agente = AgenteSuporte.query.filter_by(usuario_id=user_id, ativo=True).first()
+        if agente:
+            return error_response('Não é possível excluir agente de suporte ativo. Desative o agente primeiro.', 400)
+
         nome_usuario = usuario.usuario
         db.session.delete(usuario)
         db.session.commit()
@@ -3120,7 +3230,7 @@ def listar_setores():
             {'id': 'Financeiro', 'nome': 'Setor financeiro'},
             {'id': 'Marketing', 'nome': 'Setor de produtos'},
             {'id': 'Comercial', 'nome': 'Setor comercial'},
-            {'id': 'Outros', 'nome': 'Outros serviços'},
+            {'id': 'Outros', 'nome': 'Outros servi��os'},
             {'id': 'Administracao', 'nome': 'Administração geral'}
         ]
         return json_response(setores)
@@ -3132,7 +3242,7 @@ def listar_setores():
 @login_required
 @setor_required('Administrador')
 def listar_niveis_acesso():
-    """Lista todos os níveis de acesso disponíveis"""
+    """Lista todos os n��veis de acesso disponíveis"""
     try:
         niveis = [
             {'id': 'Administrador', 'nome': 'Administrador'},
@@ -3508,7 +3618,7 @@ def atribuir_chamado(chamado_id):
         ).first()
 
         if atribuicao_existente:
-            # Finalizar atribuição anterior
+            # Finalizar atribui��ão anterior
             atribuicao_existente.finalizar_atribuicao()
 
         # Criar nova atribuição
@@ -3659,7 +3769,7 @@ def estatisticas_logs_acoes():
     try:
         from database import LogAcao
 
-        # Estatísticas gerais
+        # Estat��sticas gerais
         total_acoes = LogAcao.query.count()
         acoes_sucesso = LogAcao.query.filter_by(sucesso=True).count()
         acoes_erro = LogAcao.query.filter_by(sucesso=False).count()

@@ -1,6 +1,6 @@
 import os
 from flask import Flask, session, request, redirect, url_for
-from config import Config
+from config import get_config
 from flask_login import LoginManager
 from database import db, seed_unidades, User, Chamado, Unidade, ProblemaReportado, ItemInternet, HistoricoTicket, Configuracao
 from setores.ti.routes import ti_bp
@@ -135,6 +135,83 @@ with app.app_context():
                     print(f"✅ Dados iniciais já existem ({unidades_count} unidades)")
             except Exception as e:
                 print(f"⚠️ Erro ao verificar/inserir dados iniciais: {str(e)}")
+
+            # Criar usuário admin padrão se não existir
+            try:
+                admin_user = User.query.filter_by(usuario='admin').first()
+                if not admin_user:
+                    print("🔄 Criando usuário admin padrão...")
+                    admin_user = User(
+                        nome='Administrador',
+                        sobrenome='Sistema',
+                        usuario='admin',
+                        email='admin@evoquefitness.com',
+                        nivel_acesso='Administrador',
+                        setor='TI',
+                        bloqueado=False
+                    )
+                    admin_user.set_password('admin123')
+                    admin_user.setores = ['TI']
+                    db.session.add(admin_user)
+                    db.session.commit()
+                    print("✅ Usuário admin criado: admin/admin123")
+                else:
+                    print(f"✅ Usuário admin já existe: {admin_user.email}")
+                    # Garantir que o admin tem as permissões corretas
+                    admin_user.nivel_acesso = 'Administrador'
+                    admin_user.setores = ['TI']
+                    admin_user.bloqueado = False
+                    admin_user.set_password('admin123')  # Resetar senha para garantir
+                    db.session.commit()
+                    print("✅ Configurações do admin atualizadas")
+
+                # Criar usuário agente de suporte padrão se não existir
+                agente_user = User.query.filter_by(usuario='agente').first()
+                if not agente_user:
+                    print("🔄 Criando usuário agente de suporte padrão...")
+                    agente_user = User(
+                        nome='Agente',
+                        sobrenome='Suporte',
+                        usuario='agente',
+                        email='agente@evoquefitness.com',
+                        nivel_acesso='Gestor',
+                        setor='TI',
+                        bloqueado=False
+                    )
+                    agente_user.set_password('agente123')
+                    agente_user.setores = ['TI']
+                    db.session.add(agente_user)
+                    db.session.commit()
+
+                    # Criar registro de agente de suporte
+                    from database import AgenteSuporte
+                    agente_suporte = AgenteSuporte(
+                        usuario_id=agente_user.id,
+                        ativo=True,
+                        nivel_experiencia='pleno',
+                        max_chamados_simultaneos=10
+                    )
+                    db.session.add(agente_suporte)
+                    db.session.commit()
+                    print("✅ Usuário agente criado: agente/agente123")
+                else:
+                    print(f"✅ Usuário agente já existe: {agente_user.email}")
+                    # Garantir que é um agente de suporte ativo
+                    from database import AgenteSuporte
+                    agente_suporte = AgenteSuporte.query.filter_by(usuario_id=agente_user.id).first()
+                    if not agente_suporte:
+                        agente_suporte = AgenteSuporte(
+                            usuario_id=agente_user.id,
+                            ativo=True,
+                            nivel_experiencia='pleno',
+                            max_chamados_simultaneos=10
+                        )
+                        db.session.add(agente_suporte)
+                        db.session.commit()
+                        print("✅ Registro de agente de suporte criado")
+            except Exception as e:
+                print(f"⚠️ Erro ao criar/atualizar usuários padrão: {str(e)}")
+                db.session.rollback()
         else:
             print("⚠️  Algumas estruturas podem não ter sido criadas corretamente.")
         
@@ -191,4 +268,4 @@ def handle_ping():
 if __name__ == '__main__':
     print("🚀 Iniciando aplicação com proteções de segurança ativas...")
     print("🔌 Socket.IO configurado e ativo")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True, allow_unsafe_werkzeug=True)
+    socketio.run(app, host='0.0.0.0', port=5001, debug=True, allow_unsafe_werkzeug=True)

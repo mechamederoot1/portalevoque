@@ -13,6 +13,75 @@
   <!-- Animate.css -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
   <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/painel.css') }}">
+
+  <style>
+    /* Estilos para os controles de visualização */
+    .view-mode {
+      transition: all 0.3s ease;
+    }
+
+    .btn-group .btn-outline-primary.active {
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+      color: white;
+    }
+
+    /* Estilos para cards de usuários */
+    .card-body .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+    }
+
+    /* Melhorar aparência dos badges */
+    .badge {
+      font-size: 0.75rem;
+      padding: 0.35em 0.65em;
+    }
+
+    /* Estilos para paginação */
+    .pagination .page-link {
+      background-color: #343a40;
+      border-color: #495057;
+      color: #fff;
+    }
+
+    .pagination .page-item.active .page-link {
+      background-color: #0d6efd;
+      border-color: #0d6efd;
+    }
+
+    .pagination .page-link:hover {
+      background-color: #495057;
+      border-color: #6c757d;
+      color: #fff;
+    }
+
+    /* Informações de resultados */
+    #infoResultados {
+      font-size: 0.875rem;
+      opacity: 0.8;
+    }
+
+    /* Estilos para modo grade */
+    #visualizacaoGrade .card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #visualizacaoGrade .card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Estilos para modo cards */
+    #visualizacaoCards .card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    #visualizacaoCards .card:hover {
+      transform: translateX(5px);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+  </style>
 </head>
 <body data-theme="dark">
 
@@ -742,17 +811,38 @@
           </div>
         </div>
 
-        <!-- Filtros e Busca -->
+        <!-- Filtros, Busca e Controles de Visualização -->
         <div class="row mb-4">
-          <div class="col-md-6">
+          <div class="col-md-4">
             <div class="input-group">
-              <input type="text" class="form-control" id="buscaUsuario" placeholder="Buscar por nome, e-mail ou usuário...">
+              <input type="text" class="form-control" id="buscaUsuario" placeholder="Buscar por nome, e-mail ou usuário..." onkeyup="painelAgente.buscarUsuariosComDelay()" oninput="painelAgente.resetarPaginacao()">
               <button class="btn btn-primary" type="button" onclick="painelAgente.buscarUsuarios()">
                 <i class="fas fa-search"></i> Buscar
               </button>
             </div>
           </div>
-          <div class="col-md-6 text-end">
+          <div class="col-md-4 text-center">
+            <!-- Controles de Visualização -->
+            <div class="btn-group" role="group" aria-label="Modo de visualização">
+              <button type="button" class="btn btn-outline-primary active" id="viewList" onclick="painelAgente.alterarVisualizacao('lista')">
+                <i class="fas fa-list"></i> Lista
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="viewGrid" onclick="painelAgente.alterarVisualizacao('grade')">
+                <i class="fas fa-th"></i> Grade
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="viewCards" onclick="painelAgente.alterarVisualizacao('cards')">
+                <i class="fas fa-id-card"></i> Cards
+              </button>
+            </div>
+            <!-- Seletor de itens por página -->
+            <select class="form-select d-inline-block w-auto ms-2" id="itensPorPagina" onchange="painelAgente.alterarItensPorPagina()">
+              <option value="5" selected>5 por página</option>
+              <option value="10">10 por página</option>
+              <option value="20">20 por página</option>
+              <option value="50">50 por página</option>
+            </select>
+          </div>
+          <div class="col-md-4 text-end">
             <button class="btn btn-success" onclick="painelAgente.abrirModalNovoUsuario()">
               <i class="fas fa-user-plus me-1"></i>Novo Usuário
             </button>
@@ -762,34 +852,53 @@
         <div class="row">
           <div class="col-12">
             <div class="card">
-              <div class="card-header">
+              <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
                   <i class="fas fa-users me-2"></i>Lista de Usuários
                   <span class="badge bg-info ms-2" id="totalUsuarios">0</span>
                 </h5>
+                <small class="text-muted" id="infoResultados"></small>
               </div>
               <div class="card-body">
-                <div class="table-responsive">
-                  <table class="table table-dark table-striped table-hover">
-                    <thead>
-                      <tr>
-                        <th>Nome</th>
-                        <th>E-mail</th>
-                        <th>Usuário</th>
-                        <th>Nível de Acesso</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody id="tabelaUsuarios">
-                      <tr><td colspan="6" class="text-center">Use a busca para listar usuários</td></tr>
-                    </tbody>
-                  </table>
+
+                <!-- Visualização em Lista (Tabela) -->
+                <div id="visualizacaoLista" class="view-mode">
+                  <div class="table-responsive">
+                    <table class="table table-dark table-striped table-hover">
+                      <thead>
+                        <tr>
+                          <th>Nome</th>
+                          <th>E-mail</th>
+                          <th>Usuário</th>
+                          <th>Nível de Acesso</th>
+                          <th>Status</th>
+                          <th>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tabelaUsuarios">
+                        <tr><td colspan="6" class="text-center">Use a busca para listar usuários</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Visualização em Grade -->
+                <div id="visualizacaoGrade" class="view-mode" style="display: none;">
+                  <div class="row" id="gradeUsuarios">
+                    <div class="col-12 text-center text-muted">Use a busca para listar usuários</div>
+                  </div>
+                </div>
+
+                <!-- Visualização em Cards -->
+                <div id="visualizacaoCards" class="view-mode" style="display: none;">
+                  <div class="row" id="cardsUsuarios">
+                    <div class="col-12 text-center text-muted">Use a busca para listar usuários</div>
+                  </div>
                 </div>
 
                 <!-- Paginação -->
                 <nav aria-label="Paginação de usuários" id="paginacaoUsuarios" style="display: none;">
-                  <ul class="pagination justify-content-center">
+                  <ul class="pagination justify-content-center" id="paginacaoLista">
                     <!-- Paginação será inserida via JavaScript -->
                   </ul>
                 </nav>
@@ -1330,6 +1439,13 @@
       constructor() {
         this.chamadoAtual = null;
         this.notificacoesNaoLidas = 0;
+        // Propriedades para gerenciamento de usuários
+        this.currentPage = 1;
+        this.perPage = 5;
+        this.viewMode = 'lista';
+        this.totalPages = 1;
+        this.currentData = null;
+        this.searchTimeout = null;
         // Removido áudio problemático com CSP
         this.init();
       }
@@ -2006,35 +2122,186 @@
 
       async buscarUsuarios(busca = '') {
         try {
+          // Mostrar indicador de loading
+          this.mostrarLoadingUsuarios();
+
           const params = new URLSearchParams();
           if (busca) params.append('busca', busca);
+          params.append('page', this.currentPage);
+          params.append('per_page', this.perPage);
 
           const response = await fetch(`/ti/painel/api/usuarios?${params}`);
           if (response.ok) {
             const data = await response.json();
-            this.renderizarUsuarios(data.usuarios || data);
-            this.atualizarContadorUsuarios(data.total || (data.usuarios ? data.usuarios.length : 0));
+            this.currentData = data;
+            this.renderizarUsuarios(data.usuarios || []);
+            this.atualizarContadorUsuarios(data.total || 0);
+            this.atualizarPaginacao(data);
+            this.atualizarInfoResultados(data);
           } else {
             console.error('Erro ao buscar usuários:', response.status);
             this.showNotification('Erro ao carregar usuários', 'error');
+            this.renderizarUsuariosVazio();
           }
         } catch (error) {
           console.error('Erro ao buscar usuários:', error);
           this.showNotification('Erro ao carregar usuários', 'error');
+          this.renderizarUsuariosVazio();
         }
       }
 
-      renderizarUsuarios(usuarios) {
+      mostrarLoadingUsuarios() {
         const tbody = document.getElementById('tabelaUsuarios');
-        const totalElement = document.getElementById('totalUsuarios');
+        const gradeElement = document.getElementById('gradeUsuarios');
+        const cardsElement = document.getElementById('cardsUsuarios');
 
-        if (!tbody) return;
+        const loadingHtml = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin me-2"></i>Carregando usuários...</div>';
 
-        if (!usuarios || usuarios.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum usuário encontrado</td></tr>';
-          if (totalElement) totalElement.textContent = '0';
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center">${loadingHtml}</td></tr>`;
+        if (gradeElement) gradeElement.innerHTML = `<div class="col-12">${loadingHtml}</div>`;
+        if (cardsElement) cardsElement.innerHTML = `<div class="col-12">${loadingHtml}</div>`;
+
+        // Ocultar paginação durante loading
+        const paginacao = document.getElementById('paginacaoUsuarios');
+        if (paginacao) paginacao.style.display = 'none';
+      }
+
+      alterarVisualizacao(modo) {
+        this.viewMode = modo;
+
+        // Atualizar botões ativos
+        document.querySelectorAll('.btn-group button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`view${modo.charAt(0).toUpperCase() + modo.slice(1)}`).classList.add('active');
+
+        // Mostrar/ocultar visualizações
+        document.querySelectorAll('.view-mode').forEach(view => view.style.display = 'none');
+
+        if (this.currentData) {
+          this.renderizarUsuarios(this.currentData.usuarios || []);
+        }
+      }
+
+      alterarItensPorPagina() {
+        this.perPage = parseInt(document.getElementById('itensPorPagina').value);
+        this.currentPage = 1;
+        this.buscarUsuarios(document.getElementById('buscaUsuario').value);
+      }
+
+      irParaPagina(pagina) {
+        if (pagina >= 1 && pagina <= this.totalPages) {
+          this.currentPage = pagina;
+          this.buscarUsuarios(document.getElementById('buscaUsuario').value);
+        }
+      }
+
+      atualizarInfoResultados(data) {
+        const infoElement = document.getElementById('infoResultados');
+        if (infoElement && data.total > 0) {
+          const inicio = (data.current_page - 1) * data.per_page + 1;
+          const fim = Math.min(data.current_page * data.per_page, data.total);
+          infoElement.textContent = `Exibindo ${inicio} - ${fim} de ${data.total} usuários`;
+        }
+      }
+
+      atualizarPaginacao(data) {
+        const paginacao = document.getElementById('paginacaoUsuarios');
+        const lista = document.getElementById('paginacaoLista');
+
+        this.totalPages = data.pages || 1;
+
+        if (data.total <= data.per_page) {
+          paginacao.style.display = 'none';
           return;
         }
+
+        paginacao.style.display = 'block';
+        lista.innerHTML = '';
+
+        // Botão anterior
+        lista.innerHTML += `
+          <li class="page-item ${!data.has_prev ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="painelAgente.irParaPagina(${data.current_page - 1})" ${!data.has_prev ? 'aria-disabled="true"' : ''}>
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+        `;
+
+        // Números das páginas
+        const startPage = Math.max(1, data.current_page - 2);
+        const endPage = Math.min(data.pages, data.current_page + 2);
+
+        if (startPage > 1) {
+          lista.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="painelAgente.irParaPagina(1)">1</a></li>`;
+          if (startPage > 2) {
+            lista.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+          }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+          lista.innerHTML += `
+            <li class="page-item ${i === data.current_page ? 'active' : ''}">
+              <a class="page-link" href="#" onclick="painelAgente.irParaPagina(${i})">${i}</a>
+            </li>
+          `;
+        }
+
+        if (endPage < data.pages) {
+          if (endPage < data.pages - 1) {
+            lista.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+          }
+          lista.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="painelAgente.irParaPagina(${data.pages})">${data.pages}</a></li>`;
+        }
+
+        // Botão próximo
+        lista.innerHTML += `
+          <li class="page-item ${!data.has_next ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="painelAgente.irParaPagina(${data.current_page + 1})" ${!data.has_next ? 'aria-disabled="true"' : ''}>
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        `;
+      }
+
+      renderizarUsuarios(usuarios) {
+        // Mostrar visualização correspondente
+        document.querySelectorAll('.view-mode').forEach(view => view.style.display = 'none');
+
+        if (!usuarios || usuarios.length === 0) {
+          this.renderizarUsuariosVazio();
+          return;
+        }
+
+        switch(this.viewMode) {
+          case 'lista':
+            this.renderizarUsuariosLista(usuarios);
+            document.getElementById('visualizacaoLista').style.display = 'block';
+            break;
+          case 'grade':
+            this.renderizarUsuariosGrade(usuarios);
+            document.getElementById('visualizacaoGrade').style.display = 'block';
+            break;
+          case 'cards':
+            this.renderizarUsuariosCards(usuarios);
+            document.getElementById('visualizacaoCards').style.display = 'block';
+            break;
+        }
+      }
+
+      renderizarUsuariosVazio() {
+        const tbody = document.getElementById('tabelaUsuarios');
+        const gradeElement = document.getElementById('gradeUsuarios');
+        const cardsElement = document.getElementById('cardsUsuarios');
+
+        if (tbody) tbody.innerHTML = '<tr><td colspan="6" class="text-center">Nenhum usuário encontrado</td></tr>';
+        if (gradeElement) gradeElement.innerHTML = '<div class="col-12 text-center text-muted">Nenhum usuário encontrado</div>';
+        if (cardsElement) cardsElement.innerHTML = '<div class="col-12 text-center text-muted">Nenhum usuário encontrado</div>';
+
+        document.getElementById('visualizacaoLista').style.display = 'block';
+      }
+
+      renderizarUsuariosLista(usuarios) {
+        const tbody = document.getElementById('tabelaUsuarios');
+        if (!tbody) return;
 
         tbody.innerHTML = usuarios.map(usuario => `
           <tr>
@@ -2048,13 +2315,105 @@
               </span>
             </td>
             <td>
-              <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.editarUsuario(${usuario.id})" title="Editar">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="btn btn-sm btn-warning me-1" onclick="painelAgente.resetarSenhaUsuario(${usuario.id})" title="Resetar senha">
-                <i class="fas fa-key"></i>
-              </button>
-              <button class="btn btn-sm btn-${usuario.bloqueado ? 'success' : 'danger'}" onclick="painelAgente.alternarBloqueioUsuario(${usuario.id}, ${!usuario.bloqueado})" title="${usuario.bloqueado ? 'Desbloquear' : 'Bloquear'}">
+              ${this.gerarBotoesAcao(usuario)}
+            </td>
+          </tr>
+        `).join('');
+      }
+
+      renderizarUsuariosGrade(usuarios) {
+        const gradeElement = document.getElementById('gradeUsuarios');
+        if (!gradeElement) return;
+
+        gradeElement.innerHTML = usuarios.map(usuario => `
+          <div class="col-md-6 col-lg-4 mb-3">
+            <div class="card bg-dark border-secondary h-100">
+              <div class="card-body d-flex flex-column">
+                <div class="d-flex align-items-center mb-2">
+                  <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 40px; height: 40px;">
+                    <i class="fas fa-user text-white"></i>
+                  </div>
+                  <div class="flex-grow-1">
+                    <h6 class="card-title mb-0">${usuario.nome} ${usuario.sobrenome}</h6>
+                    <small class="text-muted">${usuario.usuario}</small>
+                  </div>
+                </div>
+
+                <div class="mb-2">
+                  <small class="text-muted d-block"><i class="fas fa-envelope me-1"></i>${usuario.email}</small>
+                  <span class="badge bg-info me-1">${usuario.nivel_acesso}</span>
+                  <span class="badge bg-${usuario.bloqueado ? 'danger' : 'success'}">${usuario.bloqueado ? 'Bloqueado' : 'Ativo'}</span>
+                </div>
+
+                <div class="mt-auto">
+                  ${this.gerarBotoesAcao(usuario)}
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      renderizarUsuariosCards(usuarios) {
+        const cardsElement = document.getElementById('cardsUsuarios');
+        if (!cardsElement) return;
+
+        cardsElement.innerHTML = usuarios.map(usuario => `
+          <div class="col-12 mb-3">
+            <div class="card bg-dark border-secondary">
+              <div class="card-body">
+                <div class="row align-items-center">
+                  <div class="col-auto">
+                    <div class="bg-primary rounded-circle d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
+                      <i class="fas fa-user text-white fs-5"></i>
+                    </div>
+                  </div>
+                  <div class="col">
+                    <h5 class="card-title mb-1">${usuario.nome} ${usuario.sobrenome}</h5>
+                    <p class="card-text mb-1">
+                      <i class="fas fa-envelope me-2 text-muted"></i>${usuario.email}<br>
+                      <i class="fas fa-user me-2 text-muted"></i>${usuario.usuario}
+                    </p>
+                    <div>
+                      <span class="badge bg-info me-2">${usuario.nivel_acesso}</span>
+                      <span class="badge bg-${usuario.bloqueado ? 'danger' : 'success'}">${usuario.bloqueado ? 'Bloqueado' : 'Ativo'}</span>
+                    </div>
+                  </div>
+                  <div class="col-auto">
+                    ${this.gerarBotoesAcao(usuario)}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      gerarBotoesAcao(usuario) {
+        return `
+          <button class="btn btn-sm btn-primary me-1" onclick="painelAgente.editarUsuario(${usuario.id})" title="Editar">
+            <i class="fas fa-edit"></i>
+          </button>
+          <button class="btn btn-sm btn-warning me-1" onclick="painelAgente.resetarSenhaUsuario(${usuario.id})" title="Resetar senha">
+            <i class="fas fa-key"></i>
+          </button>
+          <button class="btn btn-sm btn-${usuario.bloqueado ? 'success' : 'danger'}" onclick="painelAgente.alternarBloqueioUsuario(${usuario.id}, ${!usuario.bloqueado})" title="${usuario.bloqueado ? 'Desbloquear' : 'Bloquear'}">
+            <i class="fas fa-${usuario.bloqueado ? 'unlock' : 'lock'}"></i>
+          </button>
+        `;
+      }
+
+      buscarUsuariosComDelay() {
+        clearTimeout(this.searchTimeout);
+        this.searchTimeout = setTimeout(() => {
+          this.resetarPaginacao();
+          this.buscarUsuarios(document.getElementById('buscaUsuario').value);
+        }, 300);
+      }
+
+      resetarPaginacao() {
+        this.currentPage = 1;
+      }
                 <i class="fas fa-${usuario.bloqueado ? 'unlock' : 'lock'}"></i>
               </button>
             </td>

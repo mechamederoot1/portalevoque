@@ -34,17 +34,30 @@ let navLinks = null;
 let sections = null;
 
 function initializeNavigation() {
-    console.log('Inicializando navegação...');
+    console.log('=== INICIALIZANDO NAVEGAÇÃO ===');
 
     // Always re-query the DOM to ensure we have the latest elements
-    navLinks = document.querySelectorAll('.sidebar nav ul li a');
+    navLinks = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
     sections = document.querySelectorAll('section.content-section');
 
     console.log('Links de navegação encontrados:', navLinks.length);
     console.log('Seções encontradas:', sections.length);
 
+    // Debug: listar todos os links encontrados
+    navLinks.forEach((link, index) => {
+        console.log(`Link ${index}: href="${link.getAttribute('href')}", text="${link.textContent.trim()}"`);
+    });
+
+    // Debug: listar todas as seções encontradas
+    sections.forEach((section, index) => {
+        console.log(`Seção ${index}: id="${section.id}", classes="${section.className}"`);
+    });
+
     if (navLinks.length === 0) {
         console.error('ERRO: Nenhum link de navegação encontrado!');
+        console.log('Tentando buscar links de forma alternativa...');
+        const allLinks = document.querySelectorAll('.sidebar a');
+        console.log('Total de links na sidebar:', allLinks.length);
         return;
     }
 
@@ -53,46 +66,64 @@ function initializeNavigation() {
         return;
     }
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', e => {
+    navLinks.forEach((link, index) => {
+        // Remover listeners existentes
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+
+        newLink.addEventListener('click', function(e) {
             e.preventDefault();
-            const href = link.getAttribute('href');
-            if (!href || href === '#') {
-                console.log('Link sem href válido:', link);
+            e.stopPropagation();
+
+            const href = this.getAttribute('href');
+            console.log(`=== CLICK NO LINK ${index} ===`);
+            console.log('href:', href);
+            console.log('elemento clicado:', this);
+
+            if (!href || href === '#' || !href.startsWith('#')) {
+                console.log('Link sem href válido ou é submenu toggle');
                 return;
             }
 
             const targetId = href.substring(1);
-            console.log('Navegando para seção:', targetId);
+            console.log('ID da seção alvo:', targetId);
 
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
             if (!targetSection) {
                 console.error('Seção não encontrada:', targetId);
+                console.log('Seções disponíveis:', Array.from(sections).map(s => s.id));
                 return;
             }
+
+            console.log('Seção encontrada, prosseguindo com navegação...');
 
             // Remove active class from all navigation links
             document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
 
             // Add active class to clicked link
-            link.classList.add('active');
+            this.classList.add('active');
 
             // Handle submenu parent activation
-            const submenu = link.closest('.submenu');
+            const submenu = this.closest('.submenu');
             if (submenu) {
+                console.log('Link está em submenu, ativando parent...');
                 const parentToggle = submenu.previousElementSibling;
                 if (parentToggle && parentToggle.classList.contains('submenu-toggle')) {
                     parentToggle.classList.add('active');
                     parentToggle.parentElement.classList.add('open');
+                    console.log('Parent submenu ativado');
                 }
             }
 
             // Activate the target section
+            console.log('Ativando seção:', targetId);
             activateSection(targetId);
 
             // Update URL hash
             window.location.hash = targetId;
+
+            console.log('=== NAVEGAÇÃO CONCLUÍDA ===');
         });
     });
 
@@ -156,49 +187,148 @@ function initializeNavigation() {
 }
 
 function activateSection(id) {
-    console.log('Ativando seção:', id);
+    console.log('=== ATIVANDO SEÇÃO ===');
+    console.log('ID solicitado:', id);
 
     // Always query sections fresh to ensure we have the latest DOM state
     const allSections = document.querySelectorAll('section.content-section');
 
     if (!allSections || allSections.length === 0) {
-        console.error('Nenhuma seção encontrada!');
+        console.error('ERRO: Nenhuma seção encontrada!');
         return;
     }
 
     console.log(`Encontradas ${allSections.length} seções. Procurando seção: ${id}`);
+    console.log('Seções disponíveis:', Array.from(allSections).map(s => `${s.id} (classes: ${s.className})`));
 
     let sectionFound = false;
 
-    allSections.forEach(section => {
+    allSections.forEach((section, index) => {
+        console.log(`Verificando seção ${index}: id="${section.id}"`);
+
         if (section.id === id) {
+            console.log(`✅ MATCH! Ativando seção: ${id}`);
+
+            // Remover classe active de todas as outras se��ões primeiro
+            allSections.forEach(s => {
+                if (s !== section) {
+                    s.classList.remove('active');
+                    s.removeAttribute('tabindex');
+                }
+            });
+
+            // Ativar a seção alvo
             section.classList.add('active');
             section.setAttribute('tabindex', '0');
-            console.log('Seção ativada:', id);
+
+            // Debug: verificar se a classe foi aplicada
+            console.log('Classes da seção após ativação:', section.className);
+            console.log('Display computed style:', window.getComputedStyle(section).display);
+
             sectionFound = true;
 
             // Scroll to top of main content
             const mainContent = document.getElementById('mainContent');
             if (mainContent) {
                 mainContent.scrollTop = 0;
+                console.log('Scroll resetado para o topo');
+            } else {
+                console.warn('mainContent não encontrado');
             }
 
-            // Load section-specific content
+            // Load section-specific content with delay
             setTimeout(() => {
+                console.log('Carregando conteúdo específico da seção...');
                 loadSectionContent(id);
-            }, 50);
+            }, 100);
+
         } else {
+            // Debug para outras seções
+            console.log(`⏩ Desativando seção: ${section.id}`);
             section.classList.remove('active');
             section.removeAttribute('tabindex');
         }
     });
 
     if (!sectionFound) {
-        console.error(`Seção com ID '${id}' não foi encontrada no DOM!`);
-        // List all available sections for debugging
+        console.error(`❌ ERRO: Seção com ID '${id}' não foi encontrada no DOM!`);
         console.log('Seções disponíveis:', Array.from(allSections).map(s => s.id));
+
+        // Tentar ativar seção padrão como fallback
+        console.log('Tentando ativar seção padrão: visao-geral');
+        const defaultSection = document.getElementById('visao-geral');
+        if (defaultSection) {
+            defaultSection.classList.add('active');
+            console.log('Seção padrão ativada como fallback');
+        }
+    } else {
+        console.log('✅ SEÇÃO ATIVADA COM SUCESSO:', id);
     }
 }
+
+// Funções de Debug
+window.debugNavigation = function() {
+    console.log('=== DEBUG DE NAVEGAÇÃO ===');
+
+    const sidebar = document.getElementById('sidebar');
+    const sections = document.querySelectorAll('section.content-section');
+    const navLinks = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
+
+    console.log('Sidebar encontrada:', !!sidebar);
+    console.log('Seções encontradas:', sections.length);
+    console.log('Links de navegação encontrados:', navLinks.length);
+
+    console.log('=== SEÇÕES DISPONÍVEIS ===');
+    sections.forEach((section, index) => {
+        const isActive = section.classList.contains('active');
+        const display = window.getComputedStyle(section).display;
+        console.log(`${index + 1}. ID: "${section.id}" | Ativa: ${isActive} | Display: ${display}`);
+    });
+
+    console.log('=== LINKS DE NAVEGAÇÃO ===');
+    navLinks.forEach((link, index) => {
+        const href = link.getAttribute('href');
+        const isActive = link.classList.contains('active');
+        const text = link.textContent.trim();
+        console.log(`${index + 1}. href: "${href}" | Ativo: ${isActive} | Texto: "${text}"`);
+    });
+
+    // Mostrar painel de debug
+    const debugPanel = document.getElementById('debugPanel');
+    if (debugPanel) {
+        debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+    }
+};
+
+window.testNavigationTo = function(sectionId) {
+    console.log(`=== TESTE DE NAVEGAÇÃO PARA: ${sectionId} ===`);
+
+    // Verificar se a seção existe
+    const targetSection = document.getElementById(sectionId);
+    if (!targetSection) {
+        console.error(`Seção "${sectionId}" não encontrada!`);
+        return false;
+    }
+
+    // Tentar ativar a seção
+    activateSection(sectionId);
+
+    // Ativar link correspondente
+    const navLink = document.querySelector(`.sidebar a[href="#${sectionId}"]`);
+    if (navLink) {
+        document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
+        navLink.classList.add('active');
+        console.log('Link de navegação ativado');
+    } else {
+        console.warn(`Link de navegação para "${sectionId}" não encontrado`);
+    }
+
+    // Atualizar hash
+    window.location.hash = sectionId;
+
+    console.log('Teste de navegação concluído');
+    return true;
+};
 
 // Theme toggle
 const themeToggleBtn = document.getElementById('themeToggle');
@@ -975,7 +1105,7 @@ function validarDadosUsuario(dados) {
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
     if (!dados.senha) erros.push('Senha é obrigatória. Clique em "Gerar Senha"');
     if (!dados.nivel_acesso) erros.push('N��vel de acesso é obrigatório');
-    if (!dados.setor || dados.setor.length === 0) erros.push('Selecione pelo menos um setor');
+    if (!dados.setores || dados.setores.length === 0) erros.push('Selecione pelo menos um setor');
     
     // Validação de e-mail
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -1013,7 +1143,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             usuario: document.getElementById('usuarioLogin').value.trim(),
             senha: document.getElementById('senhaGeradaInput').value,
             nivel_acesso: document.getElementById('nivelAcesso').value,
-            setor: Array.from(document.getElementById('setorUsuario').selectedOptions).map(opt => opt.value),
+            setores: Array.from(document.getElementById('setorUsuario').selectedOptions).map(opt => opt.value),
             alterar_senha_primeiro_acesso: document.getElementById('alterarSenhaPrimeiroAcesso').checked
         };
 
@@ -1038,8 +1168,8 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             throw new Error(data.error || 'Erro ao criar usuário');
         }
 
-        // Se foi selecionado "Agente de Suporte", criar automaticamente o agente
-        if (usuarioData.nivel_acesso === 'Agente de Suporte') {
+        // Se foi selecionado "Agente de suporte", criar automaticamente o agente
+        if (usuarioData.nivel_acesso === 'Agente de suporte') {
             try {
                 const agenteResponse = await fetch('/ti/painel/api/agentes', {
                     method: 'POST',
@@ -1061,7 +1191,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
                     }
                 } else {
                     if (window.advancedNotificationSystem) {
-                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usuário ${data.nome} criado, mas houve erro ao registrar como agente.`);
+                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usu��rio ${data.nome} criado, mas houve erro ao registrar como agente.`);
                     }
                 }
             } catch (agenteError) {
@@ -1371,7 +1501,7 @@ document.getElementById('modalDelete')?.addEventListener('click', async function
     closeModal();
 });
 
-// Variáveis globais para usuários
+// Vari��veis globais para usuários
 let usuariosData = [];
 const usuariosPerPage = 6;
 let currentUsuariosPage = 1;
@@ -1696,25 +1826,45 @@ async function toggleBloqueioUsuario(usuarioId) {
 // Função para excluir usuário
 async function excluirUsuario(usuarioId) {
     if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) return;
-    
+
     try {
         const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
-        
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao excluir usuário');
+            let errorMessage = 'Erro ao excluir usuário';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Erro ao parsear resposta de erro:', parseError);
+                errorMessage = `Erro ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
-        
+
+        const data = await response.json();
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showSuccess('Usuário Excluído', 'Usuário excluído com sucesso!');
+            window.advancedNotificationSystem.showSuccess('Usuário Excluído', data.message || 'Usuário excluído com sucesso!');
         }
-        await loadUsuarios();
+
+        // Recarregar lista de usuários
+        if (typeof filtrarListaUsuarios === 'function') {
+            await filtrarListaUsuarios(currentUsuariosBusca || '', currentUsuariosPage || 1);
+        } else if (typeof loadUsuarios === 'function') {
+            await loadUsuarios();
+        }
+
     } catch (error) {
         console.error('Erro ao excluir usuário:', error);
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+            window.advancedNotificationSystem.showError('Erro ao Excluir', error.message);
+        } else {
+            alert(`Erro ao excluir usuário: ${error.message}`);
         }
     }
 }
@@ -2101,7 +2251,9 @@ function inicializarSistemaPainel() {
             activateSection('visao-geral');
         }
 
-        // 5. Set up test function for debugging navigation
+        // 5. Sistema pronto
+
+        // 6. Set up test function for debugging navigation
         window.testNavigation = function(sectionId) {
             console.log('=== TESTE DE NAVEGAÇÃO ===');
             console.log('Tentando navegar para:', sectionId);
@@ -3304,8 +3456,18 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
         // Renderizar usuários
         renderizarUsuarios(usuarios);
 
+        // Create pagination object with correct structure
+        const pagination = {
+            total: data.total || 0,
+            pages: data.pages || 1,
+            page: data.current_page || page,
+            per_page: data.per_page || 12,
+            has_next: data.has_next || false,
+            has_prev: data.has_prev || false
+        };
+
         // Renderizar paginação
-        renderizarPaginacaoUsuarios(data.pagination || {});
+        renderizarPaginacaoUsuarios(pagination);
 
         // Feedback visual no input (using CSS classes instead of inline styles)
         const filtroInput = document.getElementById('filtroPermissoes');
@@ -3317,7 +3479,7 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
             }
         }
 
-        console.log(`Busca concluída: ${data.usuarios.length} usuário(s) encontrado(s) de ${data.pagination.total} total`);
+        console.log(`Busca concluída: ${usuarios.length} usuário(s) encontrado(s) de ${pagination.total} total`);
 
     } catch (error) {
         console.error('Erro ao filtrar usuários:', error);
@@ -3346,6 +3508,23 @@ function renderizarUsuarios(usuarios) {
         return;
     }
 
+    // Verificação de segurança para array de usuários
+    if (!usuarios || !Array.isArray(usuarios)) {
+        console.warn('Array de usuários inválido:', usuarios);
+        usuariosGrid.innerHTML = `
+            <div class="col-12 text-center py-4">
+                <div class="empty-state">
+                    <div class="empty-icon">
+                        <i class="fas fa-exclamation-triangle fa-3x text-warning"></i>
+                    </div>
+                    <h4>Erro ao carregar usuários</h4>
+                    <p class="text-muted">Dados inválidos recebidos do servidor</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
     if (usuarios.length === 0) {
         usuariosGrid.innerHTML = `
             <div class="col-12 text-center py-4" id="mensagemUsuariosVazia">
@@ -3361,58 +3540,81 @@ function renderizarUsuarios(usuarios) {
         return;
     }
 
-    // Renderizar cards dos usuários
-    usuariosGrid.innerHTML = usuarios.map(usuario => `
-        <div class="card usuario-card">
-            <div class="card-header">
-                <h3>${usuario.nome} ${usuario.sobrenome}</h3>
-                <span class="status-badge ${usuario.bloqueado ? 'bg-danger' : 'bg-success'}">
-                    ${usuario.bloqueado ? 'Bloqueado' : 'Ativo'}
-                </span>
+    // Renderizar cards dos usuários com verificações de segurança
+    usuariosGrid.innerHTML = usuarios.map(usuario => {
+        // Verificações de propriedades essenciais
+        if (!usuario || typeof usuario !== 'object') {
+            console.warn('Objeto de usuário inválido:', usuario);
+            return '<div class="card"><div class="card-body text-danger">Dados de usuário inválidos</div></div>';
+        }
+
+        const nome = usuario.nome || 'Nome não informado';
+        const sobrenome = usuario.sobrenome || '';
+        const email = usuario.email || 'Email não informado';
+        const usuarioLogin = usuario.usuario || 'Usuário não informado';
+        const nivelAcesso = usuario.nivel_acesso || 'Não definido';
+        const setores = usuario.setores || usuario.setor || 'Não definido';
+        const dataCriacao = usuario.data_criacao || usuario.data_cadastro || 'Não informado';
+        const bloqueado = Boolean(usuario.bloqueado);
+        const id = usuario.id;
+
+        if (!id) {
+            console.warn('ID de usuário não encontrado:', usuario);
+            return '<div class="card"><div class="card-body text-danger">ID de usuário inválido</div></div>';
+        }
+
+        return `
+            <div class="card usuario-card">
+                <div class="card-header">
+                    <h3>${nome} ${sobrenome}</h3>
+                    <span class="status-badge ${bloqueado ? 'bg-danger' : 'bg-success'}">
+                        ${bloqueado ? 'Bloqueado' : 'Ativo'}
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="info-row">
+                        <i class="fas fa-user"></i>
+                        <span>${usuarioLogin}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fas fa-envelope"></i>
+                        <span>${email}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>${nivelAcesso}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fas fa-building"></i>
+                        <span>${setores}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fas fa-calendar"></i>
+                        <span>${dataCriacao}</span>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <button class="btn btn-primary btn-sm" onclick="editarUsuario(${id})">
+                        <i class="fas fa-edit"></i> Editar
+                    </button>
+                    ${bloqueado ?
+                        `<button class="btn btn-success btn-sm" onclick="desbloquearUsuario(${id})">
+                            <i class="fas fa-unlock"></i> Desbloquear
+                        </button>` :
+                        `<button class="btn btn-warning btn-sm" onclick="bloquearUsuario(${id})">
+                            <i class="fas fa-lock"></i> Bloquear
+                        </button>`
+                    }
+                    <button class="btn btn-info btn-sm" onclick="gerarNovaSenha(${id})">
+                        <i class="fas fa-key"></i> Nova Senha
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${id})">
+                        <i class="fas fa-trash"></i> Excluir
+                    </button>
+                </div>
             </div>
-            <div class="card-body">
-                <div class="info-row">
-                    <i class="fas fa-user"></i>
-                    <span>${usuario.usuario}</span>
-                </div>
-                <div class="info-row">
-                    <i class="fas fa-envelope"></i>
-                    <span>${usuario.email}</span>
-                </div>
-                <div class="info-row">
-                    <i class="fas fa-shield-alt"></i>
-                    <span>${usuario.nivel_acesso}</span>
-                </div>
-                <div class="info-row">
-                    <i class="fas fa-building"></i>
-                    <span>${usuario.setores || 'Não definido'}</span>
-                </div>
-                <div class="info-row">
-                    <i class="fas fa-calendar"></i>
-                    <span>${usuario.data_criacao || 'Não informado'}</span>
-                </div>
-            </div>
-            <div class="card-footer">
-                <button class="btn btn-primary btn-sm" onclick="editarUsuario(${usuario.id})">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
-                ${usuario.bloqueado ?
-                    `<button class="btn btn-success btn-sm" onclick="desbloquearUsuario(${usuario.id})">
-                        <i class="fas fa-unlock"></i> Desbloquear
-                    </button>` :
-                    `<button class="btn btn-warning btn-sm" onclick="bloquearUsuario(${usuario.id})">
-                        <i class="fas fa-lock"></i> Bloquear
-                    </button>`
-                }
-                <button class="btn btn-info btn-sm" onclick="gerarNovaSenha(${usuario.id})">
-                    <i class="fas fa-key"></i> Nova Senha
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="excluirUsuario(${usuario.id})">
-                    <i class="fas fa-trash"></i> Excluir
-                </button>
-            </div>
-        </div>
-    `).join('');
+        `;
+    }).join('');
 }
 
 // Missing functions for the permissions section buttons
@@ -3534,7 +3736,15 @@ if (document.readyState === 'loading') {
 
 function renderizarPaginacaoUsuarios(pagination) {
     const paginationContainer = document.getElementById('usuariosPagination');
-    if (!paginationContainer || pagination.pages <= 1) {
+
+    // Verificações de segurança
+    if (!pagination) {
+        console.warn('Dados de paginação não fornecidos');
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+    }
+
+    if (!paginationContainer || (pagination.pages || 0) <= 1) {
         if (paginationContainer) paginationContainer.innerHTML = '';
         return;
     }
@@ -4848,7 +5058,7 @@ function debugSistemaPainel() {
             if (elemento) {
                 console.log(`✓ ${id}: ${elemento.textContent}`);
             } else {
-                console.error(`✗ ${id}: elemento não encontrado`);
+                console.error(`✗ ${id}: elemento n��o encontrado`);
             }
         });
 
