@@ -30,7 +30,7 @@ class Config:
         # Codifica a senha para uso na URL
         self.DB_PASSWORD_ENCODED = quote_plus(self.DB_PASSWORD)
 
-        # URI de conex��o MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
+        # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
         self.SQLALCHEMY_DATABASE_URI = (
             f'mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD_ENCODED}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
             '?charset=utf8mb4'
@@ -161,12 +161,15 @@ class ProductionConfig(Config):
     """Configuração para produção"""
     DEBUG = False
     FLASK_ENV = 'production'
-    
+
     # Configurações de segurança adicionais para produção
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
-    
+
+    def __init__(self):
+        super().__init__()
+
     @classmethod
     def init_app(cls, app):
         """Inicialização específica para produção"""
