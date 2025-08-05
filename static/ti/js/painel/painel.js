@@ -3304,8 +3304,18 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
         // Renderizar usuários
         renderizarUsuarios(usuarios);
 
+        // Create pagination object with correct structure
+        const pagination = {
+            total: data.total || 0,
+            pages: data.pages || 1,
+            page: data.current_page || page,
+            per_page: data.per_page || 12,
+            has_next: data.has_next || false,
+            has_prev: data.has_prev || false
+        };
+
         // Renderizar paginação
-        renderizarPaginacaoUsuarios(data.pagination || {});
+        renderizarPaginacaoUsuarios(pagination);
 
         // Feedback visual no input (using CSS classes instead of inline styles)
         const filtroInput = document.getElementById('filtroPermissoes');
@@ -3317,7 +3327,7 @@ async function filtrarListaUsuarios(termoBusca, page = 1) {
             }
         }
 
-        console.log(`Busca concluída: ${data.usuarios.length} usuário(s) encontrado(s) de ${data.pagination.total} total`);
+        console.log(`Busca concluída: ${usuarios.length} usuário(s) encontrado(s) de ${pagination.total} total`);
 
     } catch (error) {
         console.error('Erro ao filtrar usuários:', error);
@@ -4848,7 +4858,7 @@ function debugSistemaPainel() {
             if (elemento) {
                 console.log(`✓ ${id}: ${elemento.textContent}`);
             } else {
-                console.error(`✗ ${id}: elemento não encontrado`);
+                console.error(`✗ ${id}: elemento n��o encontrado`);
             }
         });
 
