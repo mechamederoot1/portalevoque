@@ -2206,9 +2206,9 @@ def deletar_chamado(id):
 def listar_usuarios():
     """Lista usuários com filtros opcionais"""
     try:
-        # Verificar se o usuário tem permissão de administrador
-        if not current_user.tem_permissao('Administrador'):
-            return error_response('Acesso negado. Permissão de administrador necessária.', 403)
+        # Verificar se o usuário tem permissão (Administrador ou Agente de Suporte)
+        if not current_user.tem_permissao_gerenciar_usuarios():
+            return error_response('Acesso negado. Permissão de administrador ou agente de suporte necessária.', 403)
         busca = request.args.get('busca', '').strip()
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
