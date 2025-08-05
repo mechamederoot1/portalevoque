@@ -11,30 +11,31 @@ load_dotenv()
 
 class Config:
     """Configuração base da aplicação"""
-    
+
     # Configurações básicas do Flask
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
-    
+
     # Configurações do banco de dados MySQL Azure
     DB_HOST = os.environ.get('DB_HOST')
     DB_PORT = int(os.environ.get('DB_PORT', 3306))
     DB_USER = os.environ.get('DB_USER')
     DB_PASSWORD = os.environ.get('DB_PASSWORD')
     DB_NAME = os.environ.get('DB_NAME')
-    
-    # Validar se as variáveis de banco estão configuradas
-    if not all([DB_HOST, DB_USER, DB_PASSWORD, DB_NAME]):
-        raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME")
 
-    # Codifica a senha para uso na URL
-    DB_PASSWORD_ENCODED = quote_plus(DB_PASSWORD)
+    def __init__(self):
+        # Validar se as variáveis de banco estão configuradas (only when Config is instantiated)
+        if not all([self.DB_HOST, self.DB_USER, self.DB_PASSWORD, self.DB_NAME]):
+            raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME")
 
-    # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
-    SQLALCHEMY_DATABASE_URI = (
-        f'mysql+pymysql://{DB_USER}:{DB_PASSWORD_ENCODED}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
-        '?charset=utf8mb4'
-        '&ssl_disabled=false'
-    )
+        # Codifica a senha para uso na URL
+        self.DB_PASSWORD_ENCODED = quote_plus(self.DB_PASSWORD)
+
+        # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
+        self.SQLALCHEMY_DATABASE_URI = (
+            f'mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD_ENCODED}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
+            '?charset=utf8mb4'
+            '&ssl_disabled=false'
+        )
 
     # Configurações do SQLAlchemy
     SQLALCHEMY_TRACK_MODIFICATIONS = False
@@ -158,7 +159,7 @@ class ProductionConfig(Config):
     DEBUG = False
     FLASK_ENV = 'production'
     
-    # Configurações de segurança adicionais para produção
+    # Configura��ões de segurança adicionais para produção
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
