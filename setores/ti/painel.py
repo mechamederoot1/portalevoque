@@ -2582,6 +2582,7 @@ def buscar_usuario(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>/bloquear', methods=['PUT'])
 @login_required
+@gerenciamento_usuarios_required
 def toggle_bloqueio_usuario(user_id):
     try:
         usuario = User.query.get(user_id)
