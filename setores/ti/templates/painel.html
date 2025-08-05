@@ -85,7 +85,7 @@
           <a href="#" class="submenu-toggle" aria-controls="submenu-auditoria" aria-expanded="false" tabindex="0"><i class="fas fa-search"></i><span>Auditoria & Logs</span></a>
           <ul class="submenu" id="submenu-auditoria" aria-label="submenu auditoria" role="menu">
             <li role="none"><a href="#logs-acesso" role="menuitem" tabindex="-1"><i class="fas fa-sign-in-alt"></i><span>Logs de Acesso</span></a></li>
-            <li role="none"><a href="#logs-acoes" role="menuitem" tabindex="-1"><i class="fas fa-clipboard-list"></i><span>A��ões dos Usuários</span></a></li>
+            <li role="none"><a href="#logs-acoes" role="menuitem" tabindex="-1"><i class="fas fa-clipboard-list"></i><span>Ações dos Usuários</span></a></li>
             <li role="none"><a href="#analise-problemas" role="menuitem" tabindex="-1"><i class="fas fa-chart-bar"></i><span>Análise de Problemas</span></a></li>
             <li role="none"><a href="#relatorios" role="menuitem" tabindex="-1"><i class="fas fa-file-alt"></i><span>Relatórios</span></a></li>
           </ul>
@@ -776,7 +776,7 @@
       </div>
     </section>
 
-    <!-- ==================== NOVAS SEÇÕES ==================== -->
+    <!-- ==================== NOVAS SEÇ��ES ==================== -->
 
     <!-- Logs de Acesso -->
     <section id="logs-acesso" class="content-section" tabindex="0" aria-label="Logs de Acesso">
@@ -1954,19 +1954,6 @@
 
   <!-- Container de Notificações -->
   <div id="notificationContainer" class="notification-container"></div>
-
-  <!-- Botão de Debug (apenas em desenvolvimento) -->
-  <div id="debugPanel" style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: #333; color: white; padding: 10px; border-radius: 5px; display: none;">
-    <button onclick="debugNavigation()" style="background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
-      🔧 Debug Nav
-    </button>
-    <button onclick="testNavigationTo('permissoes')" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px;">
-      Test Permissões
-    </button>
-    <button onclick="testNavigationTo('gerenciar-chamados')" style="background: #ffc107; color: black; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px;">
-      Test Chamados
-    </button>
-  </div>
 
   <!-- Modal Lista de Notificações -->
   <div class="modal" id="modalNotificacoes" role="dialog" aria-modal="true" aria-labelledby="modalNotificacoesTitle">
