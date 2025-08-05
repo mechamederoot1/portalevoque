@@ -993,7 +993,7 @@ modalSaveBtn.addEventListener('click', async () => {
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showSuccess('Status Atualizado', mensagem);
         }
-        renderChamadosPage(currentPage); // Atualiza a visualização
+        renderChamadosPage(currentPage); // Atualiza a visualizaç��o
     } catch (error) {
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', error.message);
@@ -1105,7 +1105,7 @@ function validarDadosUsuario(dados) {
     if (!dados.usuario) erros.push('Nome de usuário é obrigatório');
     if (!dados.senha) erros.push('Senha é obrigatória. Clique em "Gerar Senha"');
     if (!dados.nivel_acesso) erros.push('N��vel de acesso é obrigatório');
-    if (!dados.setor || dados.setor.length === 0) erros.push('Selecione pelo menos um setor');
+    if (!dados.setores || dados.setores.length === 0) erros.push('Selecione pelo menos um setor');
     
     // Validação de e-mail
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
