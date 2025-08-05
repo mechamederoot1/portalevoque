@@ -266,6 +266,70 @@ function activateSection(id) {
     }
 }
 
+// Funções de Debug
+window.debugNavigation = function() {
+    console.log('=== DEBUG DE NAVEGAÇÃO ===');
+
+    const sidebar = document.getElementById('sidebar');
+    const sections = document.querySelectorAll('section.content-section');
+    const navLinks = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
+
+    console.log('Sidebar encontrada:', !!sidebar);
+    console.log('Seções encontradas:', sections.length);
+    console.log('Links de navegação encontrados:', navLinks.length);
+
+    console.log('=== SEÇÕES DISPONÍVEIS ===');
+    sections.forEach((section, index) => {
+        const isActive = section.classList.contains('active');
+        const display = window.getComputedStyle(section).display;
+        console.log(`${index + 1}. ID: "${section.id}" | Ativa: ${isActive} | Display: ${display}`);
+    });
+
+    console.log('=== LINKS DE NAVEGAÇÃO ===');
+    navLinks.forEach((link, index) => {
+        const href = link.getAttribute('href');
+        const isActive = link.classList.contains('active');
+        const text = link.textContent.trim();
+        console.log(`${index + 1}. href: "${href}" | Ativo: ${isActive} | Texto: "${text}"`);
+    });
+
+    // Mostrar painel de debug
+    const debugPanel = document.getElementById('debugPanel');
+    if (debugPanel) {
+        debugPanel.style.display = debugPanel.style.display === 'none' ? 'block' : 'none';
+    }
+};
+
+window.testNavigationTo = function(sectionId) {
+    console.log(`=== TESTE DE NAVEGAÇÃO PARA: ${sectionId} ===`);
+
+    // Verificar se a seção existe
+    const targetSection = document.getElementById(sectionId);
+    if (!targetSection) {
+        console.error(`Seção "${sectionId}" não encontrada!`);
+        return false;
+    }
+
+    // Tentar ativar a seção
+    activateSection(sectionId);
+
+    // Ativar link correspondente
+    const navLink = document.querySelector(`.sidebar a[href="#${sectionId}"]`);
+    if (navLink) {
+        document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
+        navLink.classList.add('active');
+        console.log('Link de navegação ativado');
+    } else {
+        console.warn(`Link de navegação para "${sectionId}" não encontrado`);
+    }
+
+    // Atualizar hash
+    window.location.hash = sectionId;
+
+    console.log('Teste de navegação concluído');
+    return true;
+};
+
 // Theme toggle
 const themeToggleBtn = document.getElementById('themeToggle');
 if (themeToggleBtn) {
@@ -3989,7 +4053,7 @@ function renderizarGrupos(grupos) {
                         ${grupo.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                 </div>
-                <p class="card-text group-description text-muted">${grupo.descricao || 'Sem descrição'}</p>
+                <p class="card-text group-description text-muted">${grupo.descricao || 'Sem descriç��o'}</p>
                 <div class="group-stats mb-3">
                     <small class="text-muted">
                         <i class="fas fa-users"></i> ${grupo.membros_count} membros •
