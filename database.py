@@ -108,8 +108,20 @@ class User(db.Model, UserMixin):
             'Gerente Regional': ['Administrador', 'Gerente', 'Gerente Regional'],
             'Gestor': ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor']
         }
-        
+
         return self.nivel_acesso in niveis_acesso.get(permissao_necessaria, [])
+
+    def eh_agente_suporte_ativo(self):
+        """Verifica se o usuário é um agente de suporte ativo"""
+        try:
+            agente = AgenteSuporte.query.filter_by(usuario_id=self.id, ativo=True).first()
+            return agente is not None
+        except:
+            return False
+
+    def tem_permissao_gerenciar_usuarios(self):
+        """Verifica se o usuário pode gerenciar outros usuários (Administrador ou Agente de Suporte)"""
+        return self.tem_permissao('Administrador') or self.eh_agente_suporte_ativo()
 
     def __repr__(self):
         return f'<User {self.usuario} - {self.email}>'
