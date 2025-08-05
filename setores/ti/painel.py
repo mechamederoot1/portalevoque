@@ -304,7 +304,7 @@ def setup_database_endpoint():
 
         # Criar logs de ações dos últimos 7 dias
         acoes_exemplo = [
-            ('Login realizado', 'autenticacao', 'Usuário fez login no sistema'),
+            ('Login realizado', 'autenticacao', 'Usu��rio fez login no sistema'),
             ('Chamado criado', 'chamados', 'Novo chamado de suporte aberto'),
             ('Chamado atualizado', 'chamados', 'Status do chamado alterado'),
             ('Usuário criado', 'usuarios', 'Novo usuário cadastrado'),
@@ -2287,10 +2287,15 @@ def criar_usuario():
         if not data:
             return error_response('Dados não fornecidos', 400)
             
-        required_fields = ['nome', 'sobrenome', 'usuario', 'email', 'senha', 'nivel_acesso', 'setor']
+        required_fields = ['nome', 'sobrenome', 'usuario', 'email', 'senha', 'nivel_acesso']
         for field in required_fields:
             if not data.get(field):
                 return error_response(f'Campo {field} é obrigatório', 400)
+
+        # Verificar setor/setores (aceita ambos os formatos)
+        setores_data = data.get('setores') or data.get('setor')
+        if not setores_data:
+            return error_response('Campo setores é obrigatório', 400)
 
         niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor', 'Agente de suporte']
         if data['nivel_acesso'] not in niveis_validos:
