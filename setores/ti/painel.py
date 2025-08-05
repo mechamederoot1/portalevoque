@@ -2656,6 +2656,7 @@ def gerar_nova_senha(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>', methods=['PUT'])
 @login_required
+@gerenciamento_usuarios_required
 def atualizar_usuario(user_id):
     try:
         if not request.is_json:
