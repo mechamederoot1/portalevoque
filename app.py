@@ -164,8 +164,53 @@ with app.app_context():
                     admin_user.set_password('admin123')  # Resetar senha para garantir
                     db.session.commit()
                     print("✅ Configurações do admin atualizadas")
+
+                # Criar usuário agente de suporte padrão se não existir
+                agente_user = User.query.filter_by(usuario='agente').first()
+                if not agente_user:
+                    print("🔄 Criando usuário agente de suporte padrão...")
+                    agente_user = User(
+                        nome='Agente',
+                        sobrenome='Suporte',
+                        usuario='agente',
+                        email='agente@evoquefitness.com',
+                        nivel_acesso='Gestor',
+                        setor='TI',
+                        bloqueado=False
+                    )
+                    agente_user.set_password('agente123')
+                    agente_user.setores = ['TI']
+                    db.session.add(agente_user)
+                    db.session.commit()
+
+                    # Criar registro de agente de suporte
+                    from database import AgenteSuporte
+                    agente_suporte = AgenteSuporte(
+                        usuario_id=agente_user.id,
+                        ativo=True,
+                        nivel_experiencia='pleno',
+                        max_chamados_simultaneos=10
+                    )
+                    db.session.add(agente_suporte)
+                    db.session.commit()
+                    print("✅ Usuário agente criado: agente/agente123")
+                else:
+                    print(f"✅ Usuário agente já existe: {agente_user.email}")
+                    # Garantir que é um agente de suporte ativo
+                    from database import AgenteSuporte
+                    agente_suporte = AgenteSuporte.query.filter_by(usuario_id=agente_user.id).first()
+                    if not agente_suporte:
+                        agente_suporte = AgenteSuporte(
+                            usuario_id=agente_user.id,
+                            ativo=True,
+                            nivel_experiencia='pleno',
+                            max_chamados_simultaneos=10
+                        )
+                        db.session.add(agente_suporte)
+                        db.session.commit()
+                        print("✅ Registro de agente de suporte criado")
             except Exception as e:
-                print(f"⚠️ Erro ao criar/atualizar usuário admin: {str(e)}")
+                print(f"⚠️ Erro ao criar/atualizar usuários padrão: {str(e)}")
                 db.session.rollback()
         else:
             print("⚠️  Algumas estruturas podem não ter sido criadas corretamente.")
