@@ -598,7 +598,7 @@
         <div class="row mb-4">
           <div class="col-12">
             <h2 class="mb-3">
-              <i class="fas fa-chart-bar me-2"></i>Minhas Estatísticas
+              <i class="fas fa-chart-bar me-2"></i>Minhas Estat��sticas
             </h2>
           </div>
         </div>
@@ -746,7 +746,7 @@
         <div class="row mb-4">
           <div class="col-md-4">
             <div class="input-group">
-              <input type="text" class="form-control" id="buscaUsuario" placeholder="Buscar por nome, e-mail ou usuário...">
+              <input type="text" class="form-control" id="buscaUsuario" placeholder="Buscar por nome, e-mail ou usuário..." onkeyup="painelAgente.buscarUsuariosComDelay()" oninput="painelAgente.resetarPaginacao()">
               <button class="btn btn-primary" type="button" onclick="painelAgente.buscarUsuarios()">
                 <i class="fas fa-search"></i> Buscar
               </button>
