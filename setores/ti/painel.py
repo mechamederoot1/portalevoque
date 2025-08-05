@@ -760,7 +760,7 @@ def salvar_configuracoes_notificacoes():
         })
         
     except Exception as e:
-        logger.error(f"Erro ao salvar configurações de notificações: {str(e)}")
+        logger.error(f"Erro ao salvar configurações de notificaç��es: {str(e)}")
         logger.error(traceback.format_exc())
         return error_response(f'Erro interno no servidor: {str(e)}')
 
@@ -2277,7 +2277,7 @@ def listar_usuarios():
 
 @painel_bp.route('/api/usuarios', methods=['POST'])
 @login_required
-@setor_required('Administrador')
+@gerenciamento_usuarios_required
 def criar_usuario():
     try:
         if not request.is_json:
@@ -3589,7 +3589,7 @@ def atribuir_chamado(chamado_id):
         ).first()
 
         if atribuicao_existente:
-            # Finalizar atribuição anterior
+            # Finalizar atribui��ão anterior
             atribuicao_existente.finalizar_atribuicao()
 
         # Criar nova atribuição
