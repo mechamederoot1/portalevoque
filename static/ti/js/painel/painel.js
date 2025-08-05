@@ -1168,8 +1168,8 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             throw new Error(data.error || 'Erro ao criar usuário');
         }
 
-        // Se foi selecionado "Agente de Suporte", criar automaticamente o agente
-        if (usuarioData.nivel_acesso === 'Agente de Suporte') {
+        // Se foi selecionado "Agente de suporte", criar automaticamente o agente
+        if (usuarioData.nivel_acesso === 'Agente de suporte') {
             try {
                 const agenteResponse = await fetch('/ti/painel/api/agentes', {
                     method: 'POST',
