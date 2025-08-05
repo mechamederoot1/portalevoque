@@ -672,7 +672,7 @@ def salvar_configuracoes_api():
                     if not isinstance(sla_config[campo], (int, float)) or sla_config[campo] <= 0:
                         return error_response(f'Campo SLA {campo} deve ser um número positivo', 400)
         
-        # Validar configurações de notificações
+        # Validar configura��ões de notificações
         if 'notificacoes' in data:
             notif_config = data['notificacoes']
             campos_bool = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
@@ -2629,7 +2629,7 @@ def toggle_bloqueio_usuario(user_id):
 
 @painel_bp.route('/api/usuarios/<int:user_id>/gerar-senha', methods=['POST'])
 @login_required
-@setor_required('Administrador')
+@gerenciamento_usuarios_required
 def gerar_nova_senha(user_id):
     try:
         usuario = User.query.get(user_id)
