@@ -2367,6 +2367,7 @@ def criar_usuario():
 
 @painel_bp.route('/api/usuarios-search', methods=['GET'])
 @login_required
+@gerenciamento_usuarios_required
 def buscar_usuarios_backup():
     try:
         busca = request.args.get('busca', '').strip()
