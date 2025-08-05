@@ -63,6 +63,21 @@ def error_response(message, status=400):
     """Retorna erro JSON padronizado"""
     return json_response({'error': message}, status)
 
+def gerenciamento_usuarios_required(f):
+    """Decorador que permite acesso a administradores e agentes de suporte ativos"""
+    from functools import wraps
+
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not current_user.is_authenticated:
+            return error_response('Não autorizado', 401)
+
+        if not current_user.tem_permissao_gerenciar_usuarios():
+            return error_response('Acesso negado. Permissão de administrador ou agente de suporte necessária.', 403)
+
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Timezone do Brasil
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 
