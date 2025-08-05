@@ -187,47 +187,82 @@ function initializeNavigation() {
 }
 
 function activateSection(id) {
-    console.log('Ativando seção:', id);
+    console.log('=== ATIVANDO SEÇÃO ===');
+    console.log('ID solicitado:', id);
 
     // Always query sections fresh to ensure we have the latest DOM state
     const allSections = document.querySelectorAll('section.content-section');
 
     if (!allSections || allSections.length === 0) {
-        console.error('Nenhuma seção encontrada!');
+        console.error('ERRO: Nenhuma seção encontrada!');
         return;
     }
 
     console.log(`Encontradas ${allSections.length} seções. Procurando seção: ${id}`);
+    console.log('Seções disponíveis:', Array.from(allSections).map(s => `${s.id} (classes: ${s.className})`));
 
     let sectionFound = false;
 
-    allSections.forEach(section => {
+    allSections.forEach((section, index) => {
+        console.log(`Verificando seção ${index}: id="${section.id}"`);
+
         if (section.id === id) {
+            console.log(`✅ MATCH! Ativando seção: ${id}`);
+
+            // Remover classe active de todas as outras seções primeiro
+            allSections.forEach(s => {
+                if (s !== section) {
+                    s.classList.remove('active');
+                    s.removeAttribute('tabindex');
+                }
+            });
+
+            // Ativar a seção alvo
             section.classList.add('active');
             section.setAttribute('tabindex', '0');
-            console.log('Seção ativada:', id);
+
+            // Debug: verificar se a classe foi aplicada
+            console.log('Classes da seção após ativação:', section.className);
+            console.log('Display computed style:', window.getComputedStyle(section).display);
+
             sectionFound = true;
 
             // Scroll to top of main content
             const mainContent = document.getElementById('mainContent');
             if (mainContent) {
                 mainContent.scrollTop = 0;
+                console.log('Scroll resetado para o topo');
+            } else {
+                console.warn('mainContent não encontrado');
             }
 
-            // Load section-specific content
+            // Load section-specific content with delay
             setTimeout(() => {
+                console.log('Carregando conteúdo específico da seção...');
                 loadSectionContent(id);
-            }, 50);
+            }, 100);
+
         } else {
+            // Debug para outras seções
+            console.log(`⏩ Desativando seção: ${section.id}`);
             section.classList.remove('active');
             section.removeAttribute('tabindex');
         }
     });
 
     if (!sectionFound) {
-        console.error(`Seção com ID '${id}' não foi encontrada no DOM!`);
-        // List all available sections for debugging
+        console.error(`❌ ERRO: Seção com ID '${id}' não foi encontrada no DOM!`);
         console.log('Seções disponíveis:', Array.from(allSections).map(s => s.id));
+
+        // Tentar ativar seção padrão como fallback
+        console.log('Tentando ativar seção padrão: visao-geral');
+        const defaultSection = document.getElementById('visao-geral');
+        if (defaultSection) {
+            defaultSection.classList.add('active');
+            console.log('Seção padrão ativada como fallback');
+        }
+    } else {
+        console.log('✅ SEÇÃO ATIVADA COM SUCESSO:', id);
     }
 }
 
@@ -2304,7 +2339,7 @@ function initializeFilterListeners() {
         });
     }
 
-    // Bot��o para reconectar Socket.IO
+    // Botão para reconectar Socket.IO
     const btnReconectarSocket = document.getElementById('btnReconectarSocket');
     if (btnReconectarSocket) {
         btnReconectarSocket.addEventListener('click', function() {
