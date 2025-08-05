@@ -66,7 +66,7 @@ def error_response(message, status=400):
 # Timezone do Brasil
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 
-# Configurações padrão do sistema
+# Configura��ões padrão do sistema
 CONFIGURACOES_PADRAO = {
     'sla': {
         'primeira_resposta': 4,
@@ -119,7 +119,7 @@ def setup_database_endpoint():
         import random
         import uuid
 
-        # Verificar se já existem dados de demonstraç��o
+        # Verificar se já existem dados de demonstração
         existing_logs = LogAcesso.query.limit(1).first()
         if existing_logs:
             return json_response({'message': 'Dados de demonstraç���o já existem', 'logs_count': LogAcesso.query.count()})
@@ -697,7 +697,7 @@ def salvar_configuracoes_api():
 @login_required
 @setor_required('Administrador')
 def salvar_configuracoes_notificacoes():
-    """Endpoint específico para salvar configurações de notifica��ões"""
+    """Endpoint específico para salvar configurações de notificações"""
     try:
         if not request.is_json:
             return error_response('Content-Type deve ser application/json', 400)
@@ -2139,7 +2139,7 @@ def deletar_chamado(id):
 
 @painel_bp.route('/api/usuarios', methods=['GET'])
 @login_required
-@setor_required('Administrador')
+@setor_required('ti')
 def listar_usuarios():
     """Lista usuários com filtros opcionais"""
     try:
