@@ -113,8 +113,77 @@ class DevelopmentConfig(Config):
     DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
 
-    def __init__(self):
-        super().__init__()
+class DevelopmentMySQLConfig:
+    """Configuração para desenvolvimento com MySQL Azure - URI direta"""
+    DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
+    FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
+    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-key-change-in-production'
+
+    # Configurações do banco de dados MySQL Azure
+    DB_HOST = os.environ.get('DB_HOST', 'evoque-database.mysql.database.azure.com')
+    DB_PORT = int(os.environ.get('DB_PORT', 3306))
+    DB_USER = os.environ.get('DB_USER', 'infra')
+    DB_PASSWORD = os.environ.get('DB_PASSWORD', 'Evoque12@')
+    DB_NAME = os.environ.get('DB_NAME', 'infra')
+
+    # URI de conexão MySQL direta
+    SQLALCHEMY_DATABASE_URI = (
+        f'mysql+pymysql://{DB_USER}:{quote_plus(DB_PASSWORD)}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+        '?charset=utf8mb4'
+        '&ssl_disabled=false'
+    )
+
+    # Configurações do SQLAlchemy
+    SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        'pool_pre_ping': True,
+        'pool_recycle': 300,
+        'pool_timeout': 30,
+        'max_overflow': 5,
+        'pool_size': 10
+    }
+
+    # Configurações do Microsoft Graph API
+    CLIENT_ID = os.environ.get('CLIENT_ID')
+    CLIENT_SECRET = os.environ.get('CLIENT_SECRET')
+    TENANT_ID = os.environ.get('TENANT_ID')
+    USER_ID = os.environ.get('USER_ID')
+
+    # Configurações de email
+    EMAIL_SISTEMA = os.environ.get('EMAIL_SISTEMA', 'sistema@evoquefitness.com')
+    EMAIL_TI = os.environ.get('EMAIL_TI', 'ti@academiaevoque.com.br')
+    SMTP_SERVER = os.environ.get('SMTP_SERVER', 'smtp.gmail.com')
+    SMTP_PORT = int(os.environ.get('SMTP_PORT', 587))
+    SMTP_USE_TLS = os.environ.get('SMTP_USE_TLS', 'True').lower() == 'true'
+
+    # Configurações de segurança
+    MAX_LOGIN_ATTEMPTS = int(os.environ.get('MAX_LOGIN_ATTEMPTS', 5))
+    SESSION_TIMEOUT = int(os.environ.get('SESSION_TIMEOUT', 30))
+    PASSWORD_MIN_LENGTH = int(os.environ.get('PASSWORD_MIN_LENGTH', 6))
+    PERMANENT_SESSION_LIFETIME = timedelta(minutes=SESSION_TIMEOUT)
+
+    # Configurações de logs
+    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')
+    LOG_FILE_PATH = os.environ.get('LOG_FILE_PATH', 'logs/app.log')
+
+    # Configurações de backup
+    BACKUP_PATH = os.environ.get('BACKUP_PATH', 'backups/')
+    BACKUP_RETENTION_DAYS = int(os.environ.get('BACKUP_RETENTION_DAYS', 30))
+
+    # Configurações de upload
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER', 'uploads/')
+    MAX_CONTENT_LENGTH = int(os.environ.get('MAX_CONTENT_LENGTH', 16777216))  # 16MB
+
+    # Configurações de timezone
+    TIMEZONE = os.environ.get('TIMEZONE', 'America/Sao_Paulo')
+
+    # Configurações de cache
+    CACHE_TYPE = os.environ.get('CACHE_TYPE', 'simple')
+    CACHE_DEFAULT_TIMEOUT = int(os.environ.get('CACHE_DEFAULT_TIMEOUT', 300))
+
+    # Configurações específicas do Flask
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = None
 
 class DevelopmentSQLiteConfig:
     """Configuração para desenvolvimento com SQLite (sem dependências MySQL)"""
