@@ -2226,7 +2226,7 @@ def listar_usuarios():
             return error_response('Acesso negado. Permissão de administrador ou agente de suporte necessária.', 403)
         busca = request.args.get('busca', '').strip()
         page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 20, type=int)
+        per_page = request.args.get('per_page', 5, type=int)
 
         query = User.query
 
