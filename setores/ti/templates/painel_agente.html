@@ -1370,6 +1370,13 @@
       constructor() {
         this.chamadoAtual = null;
         this.notificacoesNaoLidas = 0;
+        // Propriedades para gerenciamento de usuários
+        this.currentPage = 1;
+        this.perPage = 5;
+        this.viewMode = 'lista';
+        this.totalPages = 1;
+        this.currentData = null;
+        this.searchTimeout = null;
         // Removido áudio problemático com CSP
         this.init();
       }
