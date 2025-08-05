@@ -2051,14 +2051,6 @@
 
       // === GERENCIAMENTO DE USUÁRIOS ===
 
-      constructor() {
-        this.currentPage = 1;
-        this.perPage = 5;
-        this.viewMode = 'lista';
-        this.totalPages = 1;
-        this.currentData = null;
-      }
-
       async buscarUsuarios(busca = '') {
         try {
           const params = new URLSearchParams();
