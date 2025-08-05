@@ -675,7 +675,7 @@
         </div>
       </div>
       <div class="cards-grid" id="usuariosGrid">
-        <!-- Os usuários serão carregados aqui dinamicamente -->
+        <!-- Os usu��rios serão carregados aqui dinamicamente -->
       </div>
       <div class="pagination" id="usuariosPagination"></div>
     </section>
@@ -1384,7 +1384,7 @@
             <div class="card-body">
               <div class="d-flex justify-content-between">
                 <div>
-                  <h6 class="card-title">Taxa Resolução</h6>
+                  <h6 class="card-title">Taxa Resoluç��o</h6>
                   <h3 id="dashTaxaResolucao">0%</h3>
                   <small>Este mês</small>
                 </div>
@@ -1954,6 +1954,19 @@
 
   <!-- Container de Notificações -->
   <div id="notificationContainer" class="notification-container"></div>
+
+  <!-- Botão de Debug (apenas em desenvolvimento) -->
+  <div id="debugPanel" style="position: fixed; top: 10px; right: 10px; z-index: 9999; background: #333; color: white; padding: 10px; border-radius: 5px; display: none;">
+    <button onclick="debugNavigation()" style="background: #007bff; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+      🔧 Debug Nav
+    </button>
+    <button onclick="testNavigationTo('permissoes')" style="background: #28a745; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px;">
+      Test Permissões
+    </button>
+    <button onclick="testNavigationTo('gerenciar-chamados')" style="background: #ffc107; color: black; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-left: 5px;">
+      Test Chamados
+    </button>
+  </div>
 
   <!-- Modal Lista de Notificações -->
   <div class="modal" id="modalNotificacoes" role="dialog" aria-modal="true" aria-labelledby="modalNotificacoesTitle">
