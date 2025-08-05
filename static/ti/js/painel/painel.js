@@ -209,7 +209,7 @@ function activateSection(id) {
         if (section.id === id) {
             console.log(`✅ MATCH! Ativando seção: ${id}`);
 
-            // Remover classe active de todas as outras seções primeiro
+            // Remover classe active de todas as outras se��ões primeiro
             allSections.forEach(s => {
                 if (s !== section) {
                     s.classList.remove('active');
@@ -993,7 +993,7 @@ modalSaveBtn.addEventListener('click', async () => {
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showSuccess('Status Atualizado', mensagem);
         }
-        renderChamadosPage(currentPage); // Atualiza a visualizaç��o
+        renderChamadosPage(currentPage); // Atualiza a visualização
     } catch (error) {
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', error.message);
@@ -2251,14 +2251,7 @@ function inicializarSistemaPainel() {
             activateSection('visao-geral');
         }
 
-        // 5. Mostrar painel de debug em desenvolvimento
-        setTimeout(() => {
-            const debugPanel = document.getElementById('debugPanel');
-            if (debugPanel) {
-                debugPanel.style.display = 'block';
-                console.log('🔧 Painel de debug ativo - Use os botões no canto superior direito para testar navegação');
-            }
-        }, 1000);
+        // 5. Sistema pronto
 
         // 6. Set up test function for debugging navigation
         window.testNavigation = function(sectionId) {
