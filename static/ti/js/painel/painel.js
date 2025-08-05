@@ -1371,7 +1371,7 @@ document.getElementById('modalDelete')?.addEventListener('click', async function
     closeModal();
 });
 
-// Variáveis globais para usuários
+// Vari��veis globais para usuários
 let usuariosData = [];
 const usuariosPerPage = 6;
 let currentUsuariosPage = 1;
@@ -3544,7 +3544,15 @@ if (document.readyState === 'loading') {
 
 function renderizarPaginacaoUsuarios(pagination) {
     const paginationContainer = document.getElementById('usuariosPagination');
-    if (!paginationContainer || pagination.pages <= 1) {
+
+    // Verificações de segurança
+    if (!pagination) {
+        console.warn('Dados de paginação não fornecidos');
+        if (paginationContainer) paginationContainer.innerHTML = '';
+        return;
+    }
+
+    if (!paginationContainer || (pagination.pages || 0) <= 1) {
         if (paginationContainer) paginationContainer.innerHTML = '';
         return;
     }
