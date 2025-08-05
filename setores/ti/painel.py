@@ -66,7 +66,7 @@ def error_response(message, status=400):
 # Timezone do Brasil
 BRAZIL_TZ = pytz.timezone('America/Sao_Paulo')
 
-# Configura��ões padrão do sistema
+# Configurações padrão do sistema
 CONFIGURACOES_PADRAO = {
     'sla': {
         'primeira_resposta': 4,
@@ -440,7 +440,7 @@ def carregar_configuracoes():
                     if config.chave in ['versao_database', 'data_criacao', 'sistema_inicializado']:
                         config_final[config.chave] = config.valor
                     else:
-                        logger.error(f"Erro ao decodificar configuraç��o {config.chave}")
+                        logger.error(f"Erro ao decodificar configuraç����o {config.chave}")
                     continue
 
         except Exception as db_error:
@@ -1743,7 +1743,7 @@ def atualizar_prioridade_problema(problema_id):
         prioridades_validas = ['Baixa', 'Normal', 'Alta', 'Urgente', 'Crítica']
         
         if nova_prioridade not in prioridades_validas:
-            return error_response('Prioridade inválida', 400)
+            return error_response('Prioridade inv��lida', 400)
         
         problema = ProblemaReportado.query.get(problema_id)
         if not problema:
@@ -2143,6 +2143,9 @@ def deletar_chamado(id):
 def listar_usuarios():
     """Lista usuários com filtros opcionais"""
     try:
+        # Verificar se o usuário tem permissão de administrador
+        if not current_user.tem_permissao('Administrador'):
+            return error_response('Acesso negado. Permissão de administrador necessária.', 403)
         busca = request.args.get('busca', '').strip()
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
