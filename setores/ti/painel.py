@@ -1467,7 +1467,7 @@ def notificacoes_agente():
 @painel_bp.route('/api/agente/notificacoes/<int:notificacao_id>/marcar-lida', methods=['POST'])
 @api_login_required
 def marcar_notificacao_lida(notificacao_id):
-    """Marca uma notificação como lida"""
+    """Marca uma notificaç��o como lida"""
     try:
         # Verificar se o usuário é um agente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
@@ -1998,6 +1998,69 @@ def obter_estatisticas_chamados():
         # Converter para dicionário
         stats_dict = {}
         total = 0
+
+        for status, quantidade in estatisticas:
+            stats_dict[status] = quantidade
+            total += quantidade
+
+        # Adicionar status que podem não ter chamados
+        status_possiveis = ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']
+        for status in status_possiveis:
+            if status not in stats_dict:
+                stats_dict[status] = 0
+
+        stats_dict['total'] = total
+
+        return json_response(stats_dict)
+
+    except Exception as e:
+        logger.error(f"Erro ao obter estatísticas dos chamados: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/debug/test-usuarios')
+@login_required
+def debug_test_usuarios():
+    """Debug endpoint to test user loading"""
+    try:
+        # Test direct database query
+        users = User.query.all()
+        users_data = []
+        for user in users:
+            users_data.append({
+                'id': user.id,
+                'nome': user.nome,
+                'sobrenome': user.sobrenome,
+                'email': user.email,
+                'usuario': user.usuario,
+                'nivel_acesso': user.nivel_acesso,
+                'setor': user.setor,
+                'setores': user.setores,
+                'bloqueado': getattr(user, 'bloqueado', False),
+                'data_criacao': user.data_criacao.strftime('%d/%m/%Y') if user.data_criacao else None
+            })
+
+        return json_response({
+            'status': 'success',
+            'message': 'Debug test successful',
+            'total_users': len(users_data),
+            'current_user': {
+                'id': current_user.id,
+                'nome': current_user.nome,
+                'email': current_user.email,
+                'nivel_acesso': current_user.nivel_acesso,
+                'setores': current_user.setores,
+                'tem_permissao_admin': current_user.tem_permissao('Administrador'),
+                'tem_acesso_ti': current_user.tem_acesso_setor('ti')
+            },
+            'usuarios': users_data
+        })
+    except Exception as e:
+        import traceback
+        return json_response({
+            'status': 'error',
+            'message': str(e),
+            'traceback': traceback.format_exc()
+        }, status=500)
         for stat in estatisticas:
             stats_dict[stat.status] = stat.quantidade
             total += stat.quantidade
