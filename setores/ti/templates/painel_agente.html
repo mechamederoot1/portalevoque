@@ -695,7 +695,7 @@
       </div>
     </div>
 
-    <!-- Seção: Notificações -->
+    <!-- Seção: Notifica��ões -->
     <div class="section-content" id="notificacoes-agente" style="display: none;">
       <div class="container-fluid py-4">
         <div class="row mb-4">
@@ -2044,16 +2044,29 @@
 
       // === GERENCIAMENTO DE USUÁRIOS ===
 
+      constructor() {
+        this.currentPage = 1;
+        this.perPage = 5;
+        this.viewMode = 'lista';
+        this.totalPages = 1;
+        this.currentData = null;
+      }
+
       async buscarUsuarios(busca = '') {
         try {
           const params = new URLSearchParams();
           if (busca) params.append('busca', busca);
+          params.append('page', this.currentPage);
+          params.append('per_page', this.perPage);
 
           const response = await fetch(`/ti/painel/api/usuarios?${params}`);
           if (response.ok) {
             const data = await response.json();
-            this.renderizarUsuarios(data.usuarios || data);
-            this.atualizarContadorUsuarios(data.total || (data.usuarios ? data.usuarios.length : 0));
+            this.currentData = data;
+            this.renderizarUsuarios(data.usuarios || []);
+            this.atualizarContadorUsuarios(data.total || 0);
+            this.atualizarPaginacao(data);
+            this.atualizarInfoResultados(data);
           } else {
             console.error('Erro ao buscar usuários:', response.status);
             this.showNotification('Erro ao carregar usuários', 'error');
@@ -2062,6 +2075,102 @@
           console.error('Erro ao buscar usuários:', error);
           this.showNotification('Erro ao carregar usuários', 'error');
         }
+      }
+
+      alterarVisualizacao(modo) {
+        this.viewMode = modo;
+
+        // Atualizar botões ativos
+        document.querySelectorAll('.btn-group button').forEach(btn => btn.classList.remove('active'));
+        document.getElementById(`view${modo.charAt(0).toUpperCase() + modo.slice(1)}`).classList.add('active');
+
+        // Mostrar/ocultar visualizações
+        document.querySelectorAll('.view-mode').forEach(view => view.style.display = 'none');
+
+        if (this.currentData) {
+          this.renderizarUsuarios(this.currentData.usuarios || []);
+        }
+      }
+
+      alterarItensPorPagina() {
+        this.perPage = parseInt(document.getElementById('itensPorPagina').value);
+        this.currentPage = 1;
+        this.buscarUsuarios(document.getElementById('buscaUsuario').value);
+      }
+
+      irParaPagina(pagina) {
+        if (pagina >= 1 && pagina <= this.totalPages) {
+          this.currentPage = pagina;
+          this.buscarUsuarios(document.getElementById('buscaUsuario').value);
+        }
+      }
+
+      atualizarInfoResultados(data) {
+        const infoElement = document.getElementById('infoResultados');
+        if (infoElement && data.total > 0) {
+          const inicio = (data.current_page - 1) * data.per_page + 1;
+          const fim = Math.min(data.current_page * data.per_page, data.total);
+          infoElement.textContent = `Exibindo ${inicio} - ${fim} de ${data.total} usuários`;
+        }
+      }
+
+      atualizarPaginacao(data) {
+        const paginacao = document.getElementById('paginacaoUsuarios');
+        const lista = document.getElementById('paginacaoLista');
+
+        this.totalPages = data.pages || 1;
+
+        if (data.total <= data.per_page) {
+          paginacao.style.display = 'none';
+          return;
+        }
+
+        paginacao.style.display = 'block';
+        lista.innerHTML = '';
+
+        // Botão anterior
+        lista.innerHTML += `
+          <li class="page-item ${!data.has_prev ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="painelAgente.irParaPagina(${data.current_page - 1})" ${!data.has_prev ? 'aria-disabled="true"' : ''}>
+              <i class="fas fa-chevron-left"></i>
+            </a>
+          </li>
+        `;
+
+        // Números das páginas
+        const startPage = Math.max(1, data.current_page - 2);
+        const endPage = Math.min(data.pages, data.current_page + 2);
+
+        if (startPage > 1) {
+          lista.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="painelAgente.irParaPagina(1)">1</a></li>`;
+          if (startPage > 2) {
+            lista.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+          }
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+          lista.innerHTML += `
+            <li class="page-item ${i === data.current_page ? 'active' : ''}">
+              <a class="page-link" href="#" onclick="painelAgente.irParaPagina(${i})">${i}</a>
+            </li>
+          `;
+        }
+
+        if (endPage < data.pages) {
+          if (endPage < data.pages - 1) {
+            lista.innerHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+          }
+          lista.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="painelAgente.irParaPagina(${data.pages})">${data.pages}</a></li>`;
+        }
+
+        // Botão próximo
+        lista.innerHTML += `
+          <li class="page-item ${!data.has_next ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="painelAgente.irParaPagina(${data.current_page + 1})" ${!data.has_next ? 'aria-disabled="true"' : ''}>
+              <i class="fas fa-chevron-right"></i>
+            </a>
+          </li>
+        `;
       }
 
       renderizarUsuarios(usuarios) {
