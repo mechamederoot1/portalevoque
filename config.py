@@ -22,17 +22,18 @@ class Config:
     DB_PASSWORD = os.environ.get('DB_PASSWORD')
     DB_NAME = os.environ.get('DB_NAME')
 
-    def __init__(self):
-        # Validar se as variáveis de banco estão configuradas (only when Config is instantiated)
+    # Configurar URI do banco se as variáveis estão presentes
+    @property
+    def SQLALCHEMY_DATABASE_URI(self):
         if not all([self.DB_HOST, self.DB_USER, self.DB_PASSWORD, self.DB_NAME]):
             raise ValueError("Variáveis de ambiente do banco de dados não configuradas: DB_HOST, DB_USER, DB_PASSWORD, DB_NAME")
 
         # Codifica a senha para uso na URL
-        self.DB_PASSWORD_ENCODED = quote_plus(self.DB_PASSWORD)
+        password_encoded = quote_plus(self.DB_PASSWORD)
 
-        # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
-        self.SQLALCHEMY_DATABASE_URI = (
-            f'mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD_ENCODED}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
+        # URI de conexão MySQL com SSL para Azure
+        return (
+            f'mysql+pymysql://{self.DB_USER}:{password_encoded}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
             '?charset=utf8mb4'
             '&ssl_disabled=false'
         )
