@@ -135,6 +135,38 @@ with app.app_context():
                     print(f"✅ Dados iniciais já existem ({unidades_count} unidades)")
             except Exception as e:
                 print(f"⚠️ Erro ao verificar/inserir dados iniciais: {str(e)}")
+
+            # Criar usuário admin padrão se não existir
+            try:
+                admin_user = User.query.filter_by(usuario='admin').first()
+                if not admin_user:
+                    print("🔄 Criando usuário admin padrão...")
+                    admin_user = User(
+                        nome='Administrador',
+                        sobrenome='Sistema',
+                        usuario='admin',
+                        email='admin@evoquefitness.com',
+                        nivel_acesso='Administrador',
+                        setor='TI',
+                        bloqueado=False
+                    )
+                    admin_user.set_password('admin123')
+                    admin_user.setores = ['TI']
+                    db.session.add(admin_user)
+                    db.session.commit()
+                    print("✅ Usuário admin criado: admin/admin123")
+                else:
+                    print(f"✅ Usuário admin já existe: {admin_user.email}")
+                    # Garantir que o admin tem as permissões corretas
+                    admin_user.nivel_acesso = 'Administrador'
+                    admin_user.setores = ['TI']
+                    admin_user.bloqueado = False
+                    admin_user.set_password('admin123')  # Resetar senha para garantir
+                    db.session.commit()
+                    print("✅ Configurações do admin atualizadas")
+            except Exception as e:
+                print(f"⚠️ Erro ao criar/atualizar usuário admin: {str(e)}")
+                db.session.rollback()
         else:
             print("⚠️  Algumas estruturas podem não ter sido criadas corretamente.")
         
