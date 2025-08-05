@@ -30,7 +30,7 @@ class Config:
         # Codifica a senha para uso na URL
         self.DB_PASSWORD_ENCODED = quote_plus(self.DB_PASSWORD)
 
-        # URI de conexão MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
+        # URI de conex��o MySQL com SSL para Azure (mas sem SSL estrito para evitar problemas)
         self.SQLALCHEMY_DATABASE_URI = (
             f'mysql+pymysql://{self.DB_USER}:{self.DB_PASSWORD_ENCODED}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}'
             '?charset=utf8mb4'
@@ -112,6 +112,9 @@ class DevelopmentConfig(Config):
     DEBUG = os.environ.get('FLASK_DEBUG', 'False').lower() == 'true'
     FLASK_ENV = os.environ.get('FLASK_ENV', 'development')
 
+    def __init__(self):
+        super().__init__()
+
 class DevelopmentSQLiteConfig:
     """Configuração para desenvolvimento com SQLite (sem dependências MySQL)"""
     DEBUG = True
@@ -159,7 +162,7 @@ class ProductionConfig(Config):
     DEBUG = False
     FLASK_ENV = 'production'
     
-    # Configura��ões de segurança adicionais para produção
+    # Configurações de segurança adicionais para produção
     SESSION_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
