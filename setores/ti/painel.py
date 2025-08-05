@@ -2548,7 +2548,7 @@ def buscar_usuarios_backup():
 
 @painel_bp.route('/api/usuarios/<int:user_id>', methods=['GET'])
 @login_required
-@setor_required('Administrador')
+@gerenciamento_usuarios_required
 def buscar_usuario(user_id):
     try:
         usuario = User.query.get(user_id)
@@ -3202,7 +3202,7 @@ def listar_setores():
             {'id': 'Financeiro', 'nome': 'Setor financeiro'},
             {'id': 'Marketing', 'nome': 'Setor de produtos'},
             {'id': 'Comercial', 'nome': 'Setor comercial'},
-            {'id': 'Outros', 'nome': 'Outros serviços'},
+            {'id': 'Outros', 'nome': 'Outros servi��os'},
             {'id': 'Administracao', 'nome': 'Administração geral'}
         ]
         return json_response(setores)
@@ -3741,7 +3741,7 @@ def estatisticas_logs_acoes():
     try:
         from database import LogAcao
 
-        # Estatísticas gerais
+        # Estat��sticas gerais
         total_acoes = LogAcao.query.count()
         acoes_sucesso = LogAcao.query.filter_by(sucesso=True).count()
         acoes_erro = LogAcao.query.filter_by(sucesso=False).count()
