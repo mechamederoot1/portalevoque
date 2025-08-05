@@ -258,11 +258,12 @@ class TestingConfig(Config):
 
 # Dicionário de configurações
 config = {
-    'development': DevelopmentConfig,
+    'development': DevelopmentMySQLConfig,  # Usar MySQL como padrão
+    'dev-mysql': DevelopmentMySQLConfig,
     'dev-sqlite': DevelopmentSQLiteConfig,
     'production': ProductionConfig,
     'testing': TestingConfig,
-    'default': DevelopmentSQLiteConfig  # Use SQLite for easier development
+    'default': DevelopmentMySQLConfig  # Use MySQL Azure como padrão
 }
 
 def get_config():
@@ -270,6 +271,6 @@ def get_config():
     env = os.environ.get('FLASK_ENV', 'development')
     # Se DB_HOST está definido, usar MySQL, senão usar SQLite
     if os.environ.get('DB_HOST'):
-        return config.get(env, config['development'])
+        return config.get('dev-mysql', config['dev-mysql'])
     else:
         return config.get('dev-sqlite', config['dev-sqlite'])
