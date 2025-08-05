@@ -1696,25 +1696,45 @@ async function toggleBloqueioUsuario(usuarioId) {
 // Função para excluir usuário
 async function excluirUsuario(usuarioId) {
     if (!confirm('Tem certeza que deseja excluir este usuário? Esta ação não pode ser desfeita.')) return;
-    
+
     try {
         const response = await fetch(`/ti/painel/api/usuarios/${usuarioId}`, {
-            method: 'DELETE'
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json'
+            }
         });
-        
+
         if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || 'Erro ao excluir usuário');
+            let errorMessage = 'Erro ao excluir usuário';
+            try {
+                const errorData = await response.json();
+                errorMessage = errorData.error || errorData.message || errorMessage;
+            } catch (parseError) {
+                console.warn('Erro ao parsear resposta de erro:', parseError);
+                errorMessage = `Erro ${response.status}: ${response.statusText}`;
+            }
+            throw new Error(errorMessage);
         }
-        
+
+        const data = await response.json();
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showSuccess('Usuário Excluído', 'Usuário excluído com sucesso!');
+            window.advancedNotificationSystem.showSuccess('Usuário Excluído', data.message || 'Usuário excluído com sucesso!');
         }
-        await loadUsuarios();
+
+        // Recarregar lista de usuários
+        if (typeof filtrarListaUsuarios === 'function') {
+            await filtrarListaUsuarios(currentUsuariosBusca || '', currentUsuariosPage || 1);
+        } else if (typeof loadUsuarios === 'function') {
+            await loadUsuarios();
+        }
+
     } catch (error) {
         console.error('Erro ao excluir usuário:', error);
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', `Erro: ${error.message}`);
+            window.advancedNotificationSystem.showError('Erro ao Excluir', error.message);
+        } else {
+            alert(`Erro ao excluir usuário: ${error.message}`);
         }
     }
 }
