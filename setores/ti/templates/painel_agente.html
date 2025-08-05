@@ -742,9 +742,9 @@
           </div>
         </div>
 
-        <!-- Filtros e Busca -->
+        <!-- Filtros, Busca e Controles de Visualização -->
         <div class="row mb-4">
-          <div class="col-md-6">
+          <div class="col-md-4">
             <div class="input-group">
               <input type="text" class="form-control" id="buscaUsuario" placeholder="Buscar por nome, e-mail ou usuário...">
               <button class="btn btn-primary" type="button" onclick="painelAgente.buscarUsuarios()">
@@ -752,7 +752,28 @@
               </button>
             </div>
           </div>
-          <div class="col-md-6 text-end">
+          <div class="col-md-4 text-center">
+            <!-- Controles de Visualização -->
+            <div class="btn-group" role="group" aria-label="Modo de visualização">
+              <button type="button" class="btn btn-outline-primary active" id="viewList" onclick="painelAgente.alterarVisualizacao('lista')">
+                <i class="fas fa-list"></i> Lista
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="viewGrid" onclick="painelAgente.alterarVisualizacao('grade')">
+                <i class="fas fa-th"></i> Grade
+              </button>
+              <button type="button" class="btn btn-outline-primary" id="viewCards" onclick="painelAgente.alterarVisualizacao('cards')">
+                <i class="fas fa-id-card"></i> Cards
+              </button>
+            </div>
+            <!-- Seletor de itens por página -->
+            <select class="form-select d-inline-block w-auto ms-2" id="itensPorPagina" onchange="painelAgente.alterarItensPorPagina()">
+              <option value="5" selected>5 por página</option>
+              <option value="10">10 por página</option>
+              <option value="20">20 por página</option>
+              <option value="50">50 por página</option>
+            </select>
+          </div>
+          <div class="col-md-4 text-end">
             <button class="btn btn-success" onclick="painelAgente.abrirModalNovoUsuario()">
               <i class="fas fa-user-plus me-1"></i>Novo Usuário
             </button>
