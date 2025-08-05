@@ -1143,7 +1143,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
             usuario: document.getElementById('usuarioLogin').value.trim(),
             senha: document.getElementById('senhaGeradaInput').value,
             nivel_acesso: document.getElementById('nivelAcesso').value,
-            setor: Array.from(document.getElementById('setorUsuario').selectedOptions).map(opt => opt.value),
+            setores: Array.from(document.getElementById('setorUsuario').selectedOptions).map(opt => opt.value),
             alterar_senha_primeiro_acesso: document.getElementById('alterarSenhaPrimeiroAcesso').checked
         };
 
