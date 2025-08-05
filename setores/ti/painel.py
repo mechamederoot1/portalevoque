@@ -304,7 +304,7 @@ def setup_database_endpoint():
 
         # Criar logs de ações dos últimos 7 dias
         acoes_exemplo = [
-            ('Login realizado', 'autenticacao', 'Usu��rio fez login no sistema'),
+            ('Login realizado', 'autenticacao', 'Usuário fez login no sistema'),
             ('Chamado criado', 'chamados', 'Novo chamado de suporte aberto'),
             ('Chamado atualizado', 'chamados', 'Status do chamado alterado'),
             ('Usuário criado', 'usuarios', 'Novo usuário cadastrado'),
@@ -2316,7 +2316,7 @@ def criar_usuario():
             bloqueado=data.get('bloqueado', False)
         )
         
-        novo_usuario.setores = data['setor']
+        novo_usuario.setores = setores_data
         novo_usuario.set_password(data['senha'])
 
         db.session.add(novo_usuario)
@@ -3242,7 +3242,7 @@ def listar_setores():
 @login_required
 @setor_required('Administrador')
 def listar_niveis_acesso():
-    """Lista todos os níveis de acesso disponíveis"""
+    """Lista todos os n��veis de acesso disponíveis"""
     try:
         niveis = [
             {'id': 'Administrador', 'nome': 'Administrador'},
