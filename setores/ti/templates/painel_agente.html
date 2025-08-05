@@ -2122,6 +2122,9 @@
 
       async buscarUsuarios(busca = '') {
         try {
+          // Mostrar indicador de loading
+          this.mostrarLoadingUsuarios();
+
           const params = new URLSearchParams();
           if (busca) params.append('busca', busca);
           params.append('page', this.currentPage);
@@ -2138,11 +2141,29 @@
           } else {
             console.error('Erro ao buscar usuários:', response.status);
             this.showNotification('Erro ao carregar usuários', 'error');
+            this.renderizarUsuariosVazio();
           }
         } catch (error) {
           console.error('Erro ao buscar usuários:', error);
           this.showNotification('Erro ao carregar usuários', 'error');
+          this.renderizarUsuariosVazio();
         }
+      }
+
+      mostrarLoadingUsuarios() {
+        const tbody = document.getElementById('tabelaUsuarios');
+        const gradeElement = document.getElementById('gradeUsuarios');
+        const cardsElement = document.getElementById('cardsUsuarios');
+
+        const loadingHtml = '<div class="text-center p-4"><i class="fas fa-spinner fa-spin me-2"></i>Carregando usuários...</div>';
+
+        if (tbody) tbody.innerHTML = `<tr><td colspan="6" class="text-center">${loadingHtml}</td></tr>`;
+        if (gradeElement) gradeElement.innerHTML = `<div class="col-12">${loadingHtml}</div>`;
+        if (cardsElement) cardsElement.innerHTML = `<div class="col-12">${loadingHtml}</div>`;
+
+        // Ocultar paginação durante loading
+        const paginacao = document.getElementById('paginacaoUsuarios');
+        if (paginacao) paginacao.style.display = 'none';
       }
 
       alterarVisualizacao(modo) {
