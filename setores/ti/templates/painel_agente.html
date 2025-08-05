@@ -783,34 +783,53 @@
         <div class="row">
           <div class="col-12">
             <div class="card">
-              <div class="card-header">
+              <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="card-title mb-0">
                   <i class="fas fa-users me-2"></i>Lista de Usuários
                   <span class="badge bg-info ms-2" id="totalUsuarios">0</span>
                 </h5>
+                <small class="text-muted" id="infoResultados"></small>
               </div>
               <div class="card-body">
-                <div class="table-responsive">
-                  <table class="table table-dark table-striped table-hover">
-                    <thead>
-                      <tr>
-                        <th>Nome</th>
-                        <th>E-mail</th>
-                        <th>Usuário</th>
-                        <th>Nível de Acesso</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                      </tr>
-                    </thead>
-                    <tbody id="tabelaUsuarios">
-                      <tr><td colspan="6" class="text-center">Use a busca para listar usuários</td></tr>
-                    </tbody>
-                  </table>
+
+                <!-- Visualização em Lista (Tabela) -->
+                <div id="visualizacaoLista" class="view-mode">
+                  <div class="table-responsive">
+                    <table class="table table-dark table-striped table-hover">
+                      <thead>
+                        <tr>
+                          <th>Nome</th>
+                          <th>E-mail</th>
+                          <th>Usuário</th>
+                          <th>Nível de Acesso</th>
+                          <th>Status</th>
+                          <th>Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody id="tabelaUsuarios">
+                        <tr><td colspan="6" class="text-center">Use a busca para listar usuários</td></tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <!-- Visualização em Grade -->
+                <div id="visualizacaoGrade" class="view-mode" style="display: none;">
+                  <div class="row" id="gradeUsuarios">
+                    <div class="col-12 text-center text-muted">Use a busca para listar usuários</div>
+                  </div>
+                </div>
+
+                <!-- Visualização em Cards -->
+                <div id="visualizacaoCards" class="view-mode" style="display: none;">
+                  <div class="row" id="cardsUsuarios">
+                    <div class="col-12 text-center text-muted">Use a busca para listar usuários</div>
+                  </div>
                 </div>
 
                 <!-- Paginação -->
                 <nav aria-label="Paginação de usuários" id="paginacaoUsuarios" style="display: none;">
-                  <ul class="pagination justify-content-center">
+                  <ul class="pagination justify-content-center" id="paginacaoLista">
                     <!-- Paginação será inserida via JavaScript -->
                   </ul>
                 </nav>
