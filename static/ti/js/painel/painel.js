@@ -34,17 +34,30 @@ let navLinks = null;
 let sections = null;
 
 function initializeNavigation() {
-    console.log('Inicializando navegação...');
+    console.log('=== INICIALIZANDO NAVEGAÇÃO ===');
 
     // Always re-query the DOM to ensure we have the latest elements
-    navLinks = document.querySelectorAll('.sidebar nav ul li a');
+    navLinks = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
     sections = document.querySelectorAll('section.content-section');
 
     console.log('Links de navegação encontrados:', navLinks.length);
     console.log('Seções encontradas:', sections.length);
 
+    // Debug: listar todos os links encontrados
+    navLinks.forEach((link, index) => {
+        console.log(`Link ${index}: href="${link.getAttribute('href')}", text="${link.textContent.trim()}"`);
+    });
+
+    // Debug: listar todas as seções encontradas
+    sections.forEach((section, index) => {
+        console.log(`Seção ${index}: id="${section.id}", classes="${section.className}"`);
+    });
+
     if (navLinks.length === 0) {
         console.error('ERRO: Nenhum link de navegação encontrado!');
+        console.log('Tentando buscar links de forma alternativa...');
+        const allLinks = document.querySelectorAll('.sidebar a');
+        console.log('Total de links na sidebar:', allLinks.length);
         return;
     }
 
@@ -53,46 +66,64 @@ function initializeNavigation() {
         return;
     }
 
-    navLinks.forEach(link => {
-        link.addEventListener('click', e => {
+    navLinks.forEach((link, index) => {
+        // Remover listeners existentes
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+
+        newLink.addEventListener('click', function(e) {
             e.preventDefault();
-            const href = link.getAttribute('href');
-            if (!href || href === '#') {
-                console.log('Link sem href válido:', link);
+            e.stopPropagation();
+
+            const href = this.getAttribute('href');
+            console.log(`=== CLICK NO LINK ${index} ===`);
+            console.log('href:', href);
+            console.log('elemento clicado:', this);
+
+            if (!href || href === '#' || !href.startsWith('#')) {
+                console.log('Link sem href válido ou é submenu toggle');
                 return;
             }
 
             const targetId = href.substring(1);
-            console.log('Navegando para seção:', targetId);
+            console.log('ID da seção alvo:', targetId);
 
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
             if (!targetSection) {
                 console.error('Seção não encontrada:', targetId);
+                console.log('Seções disponíveis:', Array.from(sections).map(s => s.id));
                 return;
             }
+
+            console.log('Seção encontrada, prosseguindo com navegação...');
 
             // Remove active class from all navigation links
             document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
 
             // Add active class to clicked link
-            link.classList.add('active');
+            this.classList.add('active');
 
             // Handle submenu parent activation
-            const submenu = link.closest('.submenu');
+            const submenu = this.closest('.submenu');
             if (submenu) {
+                console.log('Link está em submenu, ativando parent...');
                 const parentToggle = submenu.previousElementSibling;
                 if (parentToggle && parentToggle.classList.contains('submenu-toggle')) {
                     parentToggle.classList.add('active');
                     parentToggle.parentElement.classList.add('open');
+                    console.log('Parent submenu ativado');
                 }
             }
 
             // Activate the target section
+            console.log('Ativando seção:', targetId);
             activateSection(targetId);
 
             // Update URL hash
             window.location.hash = targetId;
+
+            console.log('=== NAVEGAÇÃO CONCLUÍDA ===');
         });
     });
 
@@ -2273,7 +2304,7 @@ function initializeFilterListeners() {
         });
     }
 
-    // Botão para reconectar Socket.IO
+    // Bot��o para reconectar Socket.IO
     const btnReconectarSocket = document.getElementById('btnReconectarSocket');
     if (btnReconectarSocket) {
         btnReconectarSocket.addEventListener('click', function() {
