@@ -126,9 +126,15 @@ class DevelopmentMySQLConfig:
     DB_PASSWORD = os.environ.get('DB_PASSWORD', 'Evoque12@')
     DB_NAME = os.environ.get('DB_NAME', 'infra')
 
-    # URI de conexão MySQL direta
+    # URI de conexão MySQL direta - construída com os valores de ambiente
+    _db_host = os.environ.get('DB_HOST', 'evoque-database.mysql.database.azure.com')
+    _db_user = os.environ.get('DB_USER', 'infra')
+    _db_password = os.environ.get('DB_PASSWORD', 'Evoque12@')
+    _db_name = os.environ.get('DB_NAME', 'infra')
+    _db_port = int(os.environ.get('DB_PORT', 3306))
+
     SQLALCHEMY_DATABASE_URI = (
-        f'mysql+pymysql://{DB_USER}:{quote_plus(DB_PASSWORD)}@{DB_HOST}:{DB_PORT}/{DB_NAME}'
+        f'mysql+pymysql://{_db_user}:{quote_plus(_db_password)}@{_db_host}:{_db_port}/{_db_name}'
         '?charset=utf8mb4'
         '&ssl_disabled=false'
     )
