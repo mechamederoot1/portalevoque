@@ -2725,7 +2725,27 @@ def deletar_usuario(user_id):
         usuario = User.query.get(user_id)
         if not usuario:
             return error_response('Usuário não encontrado', 404)
-            
+
+        # Verificar se o usuário é administrador
+        if usuario.nivel_acesso == 'Administrador':
+            return error_response('Não é possível excluir usuários administradores', 400)
+
+        # Verificar se o usuário está tentando excluir a si mesmo
+        if usuario.id == current_user.id:
+            return error_response('Não é possível excluir seu próprio usuário', 400)
+
+        # Verificar dependências - chamados criados
+        from database import Chamado
+        chamados_count = Chamado.query.filter_by(usuario_id=user_id).count()
+        if chamados_count > 0:
+            return error_response(f'Não é possível excluir usuário com {chamados_count} chamados associados. Considere bloquear ao invés de excluir.', 400)
+
+        # Verificar se é agente de suporte ativo
+        from database import AgenteSuporte
+        agente = AgenteSuporte.query.filter_by(usuario_id=user_id, ativo=True).first()
+        if agente:
+            return error_response('Não é possível excluir agente de suporte ativo. Desative o agente primeiro.', 400)
+
         nome_usuario = usuario.usuario
         db.session.delete(usuario)
         db.session.commit()
