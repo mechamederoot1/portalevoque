@@ -1,6 +1,6 @@
 import os
 from flask import Flask, session, request, redirect, url_for
-from config import Config
+from config import get_config
 from flask_login import LoginManager
 from database import db, seed_unidades, User, Chamado, Unidade, ProblemaReportado, ItemInternet, HistoricoTicket, Configuracao
 from setores.ti.routes import ti_bp
