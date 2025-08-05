@@ -1191,7 +1191,7 @@ document.getElementById('formCriarUsuario')?.addEventListener('submit', async fu
                     }
                 } else {
                     if (window.advancedNotificationSystem) {
-                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usuário ${data.nome} criado, mas houve erro ao registrar como agente.`);
+                        window.advancedNotificationSystem.showWarning('Usuário Criado', `Usu��rio ${data.nome} criado, mas houve erro ao registrar como agente.`);
                     }
                 }
             } catch (agenteError) {
@@ -2251,7 +2251,16 @@ function inicializarSistemaPainel() {
             activateSection('visao-geral');
         }
 
-        // 5. Set up test function for debugging navigation
+        // 5. Mostrar painel de debug em desenvolvimento
+        setTimeout(() => {
+            const debugPanel = document.getElementById('debugPanel');
+            if (debugPanel) {
+                debugPanel.style.display = 'block';
+                console.log('🔧 Painel de debug ativo - Use os botões no canto superior direito para testar navegação');
+            }
+        }, 1000);
+
+        // 6. Set up test function for debugging navigation
         window.testNavigation = function(sectionId) {
             console.log('=== TESTE DE NAVEGAÇÃO ===');
             console.log('Tentando navegar para:', sectionId);
@@ -4053,7 +4062,7 @@ function renderizarGrupos(grupos) {
                         ${grupo.ativo ? 'Ativo' : 'Inativo'}
                     </span>
                 </div>
-                <p class="card-text group-description text-muted">${grupo.descricao || 'Sem descriç��o'}</p>
+                <p class="card-text group-description text-muted">${grupo.descricao || 'Sem descrição'}</p>
                 <div class="group-stats mb-3">
                     <small class="text-muted">
                         <i class="fas fa-users"></i> ${grupo.membros_count} membros •
