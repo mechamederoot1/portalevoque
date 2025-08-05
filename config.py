@@ -198,4 +198,8 @@ config = {
 def get_config():
     """Retorna a configuração baseada na variável de ambiente FLASK_ENV"""
     env = os.environ.get('FLASK_ENV', 'development')
-    return config.get(env, config['default'])
+    # Se DB_HOST está definido, usar MySQL, senão usar SQLite
+    if os.environ.get('DB_HOST'):
+        return config.get(env, config['development'])
+    else:
+        return config.get('dev-sqlite', config['dev-sqlite'])
