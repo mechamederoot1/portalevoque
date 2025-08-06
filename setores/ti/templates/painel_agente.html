@@ -1492,6 +1492,26 @@
         }
       }, 500);
 
+      // TESTE MANUAL - adicionar botões de teste
+      setTimeout(() => {
+        const testDiv = document.createElement('div');
+        testDiv.style.position = 'fixed';
+        testDiv.style.top = '10px';
+        testDiv.style.right = '10px';
+        testDiv.style.background = 'red';
+        testDiv.style.color = 'white';
+        testDiv.style.padding = '10px';
+        testDiv.style.zIndex = '9999';
+        testDiv.innerHTML = `
+          <div>TESTE DE NAVEGAÇÃO:</div>
+          <button onclick="showSection('dashboard-agente')" style="margin: 2px;">Dashboard</button>
+          <button onclick="showSection('historico-agente')" style="margin: 2px;">Histórico</button>
+          <button onclick="showSection('notificacoes-agente')" style="margin: 2px;">Notificações</button>
+          <button onclick="console.log('Sections:', document.querySelectorAll('.section-content').length)" style="margin: 2px;">Count</button>
+        `;
+        document.body.appendChild(testDiv);
+      }, 1000);
+
       // Mostrar dashboard inicialmente
       showSection('dashboard-agente');
     });
