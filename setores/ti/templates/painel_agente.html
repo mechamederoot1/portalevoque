@@ -1302,91 +1302,139 @@
   
   <!-- Scripts customizados -->
   <script>
-    // Sistema de navegação robusto para painel do agente
+    // NOVO SISTEMA DE NAVEGAÇÃO ULTRA ROBUSTO
     function initializeAgentNavigation() {
-      console.log('=== INICIALIZANDO NAVEGAÇÃO DO AGENTE ===');
-      console.log('Timestamp:', new Date().toISOString());
+      console.log('=== INICIALIZANDO NAVEGAÇÃO ROBUSTA DO AGENTE ===');
 
-      // 1. Debug detalhado dos elementos
-      const sidebar = document.getElementById('sidebar');
-      const navLinks = document.querySelectorAll('.sidebar nav a[href^="#"]');
-      const sections = document.querySelectorAll('.section-content');
+      // Aguardar um momento para garantir que o DOM está totalmente carregado
+      setTimeout(() => {
+        setupNavigation();
+      }, 100);
+    }
 
-      console.log('Sidebar existe:', !!sidebar);
-      console.log('Links encontrados:', navLinks.length);
-      console.log('Seções encontradas:', sections.length);
+    function setupNavigation() {
+      console.log('Configurando navegação...');
 
-      // Debug de cada link
-      navLinks.forEach((link, i) => {
-        console.log(`Link ${i}: href="${link.getAttribute('href')}", texto="${link.textContent.trim()}"`);
-      });
+      // 1. NAVEGAÇÃO PRINCIPAL - usando delegação de eventos
+      document.addEventListener('click', function(e) {
+        // Verificar se o clique foi em um link de navegação
+        const link = e.target.closest('a[href^="#"]');
+        if (!link) return;
 
-      // Debug de cada seção
-      sections.forEach((section, i) => {
-        console.log(`Seção ${i}: id="${section.id}", visível="${section.style.display !== 'none'}"`);
-      });
-
-      // Adicionar event listeners SIMPLES sem clonagem
-      navLinks.forEach(link => {
         const href = link.getAttribute('href');
-        if (!href || !href.startsWith('#') || href === '#') return;
+        if (!href || href === '#') return;
 
-        console.log('Adicionando listener para:', href);
+        console.log('=== CLICK INTERCEPTADO ===');
+        console.log('Link:', link.textContent.trim());
+        console.log('Href:', href);
 
-        link.addEventListener('click', function(e) {
-          console.log('=== CLICK DETECTADO ===');
-          console.log('Elemento clicado:', this.textContent.trim());
-          console.log('href original:', href);
+        e.preventDefault();
+        e.stopPropagation();
 
-          e.preventDefault();
-          e.stopPropagation();
+        const sectionId = href.substring(1);
+        console.log('Navegando para:', sectionId);
 
-          const sectionId = href.substring(1);
-          console.log('Navegando para seção:', sectionId);
-
-          // Chamada direta e simples
-          showSection(sectionId);
-        });
+        // Navegar para a seção
+        navigateToSection(sectionId);
       });
 
-      // 2. Configurar submenu toggles SIMPLES
-      document.querySelectorAll('.submenu-toggle').forEach(toggle => {
-        console.log('Configurando toggle para:', toggle.textContent.trim());
+      // 2. SUBMENU TOGGLES - usando delegação de eventos
+      document.addEventListener('click', function(e) {
+        const toggle = e.target.closest('.submenu-toggle');
+        if (!toggle) return;
 
-        toggle.addEventListener('click', function(e) {
-          console.log('=== TOGGLE SUBMENU ===', this.textContent.trim());
+        console.log('=== SUBMENU TOGGLE ===');
+        e.preventDefault();
+        e.stopPropagation();
 
-          e.preventDefault();
-          e.stopPropagation();
+        const parentLi = toggle.closest('li.has-submenu');
+        if (!parentLi) return;
 
-          const parentLi = this.closest('li.has-submenu');
-          const submenu = this.nextElementSibling;
-          const isOpen = parentLi.classList.contains('open');
+        const isOpen = parentLi.classList.contains('open');
 
-          console.log('Submenu atual isOpen:', isOpen);
-
-          // Fechar outros submenus
-          document.querySelectorAll('.sidebar li.has-submenu').forEach(otherLi => {
-            if (otherLi !== parentLi) {
-              otherLi.classList.remove('open');
-              const otherSubmenu = otherLi.querySelector('.submenu');
-              if (otherSubmenu) otherSubmenu.style.display = 'none';
-            }
-          });
-
-          // Toggle submenu atual
-          if (isOpen) {
-            parentLi.classList.remove('open');
-            if (submenu) submenu.style.display = 'none';
-          } else {
-            parentLi.classList.add('open');
-            if (submenu) submenu.style.display = 'block';
+        // Fechar todos os outros submenus
+        document.querySelectorAll('.sidebar li.has-submenu.open').forEach(li => {
+          if (li !== parentLi) {
+            li.classList.remove('open');
           }
         });
+
+        // Toggle submenu atual
+        if (isOpen) {
+          parentLi.classList.remove('open');
+        } else {
+          parentLi.classList.add('open');
+        }
       });
 
+      console.log('Navegação configurada com delegação de eventos');
+
       // Mostrar seção inicial
-      showSection('dashboard-agente');
+      navigateToSection('dashboard-agente');
+    }
+
+    // Função robusta de navegação
+    function navigateToSection(sectionId) {
+      console.log(`Navegando para seção: ${sectionId}`);
+
+      // Esconder todas as seções
+      const allSections = document.querySelectorAll('.section-content');
+      allSections.forEach(section => {
+        section.style.display = 'none';
+        section.classList.remove('active');
+      });
+
+      // Mostrar seção específica
+      const targetSection = document.getElementById(sectionId);
+      if (targetSection) {
+        targetSection.style.display = 'block';
+        targetSection.classList.add('active');
+        console.log(`Seção ${sectionId} ativada`);
+      } else {
+        console.error(`Seção ${sectionId} não encontrada`);
+        // Fallback para dashboard
+        const dashboard = document.getElementById('dashboard-agente');
+        if (dashboard) {
+          dashboard.style.display = 'block';
+          dashboard.classList.add('active');
+        }
+      }
+
+      // Atualizar links ativos
+      updateActiveLinks(sectionId);
+
+      // Carregar dados específicos da seção
+      loadSectionData(sectionId);
+    }
+
+    // Atualizar links ativos
+    function updateActiveLinks(sectionId) {
+      // Remover classe active de todos os links
+      document.querySelectorAll('.sidebar a').forEach(link => {
+        link.classList.remove('active');
+      });
+
+      // Adicionar classe active ao link correspondente
+      const targetLink = document.querySelector(`a[href="#${sectionId}"]`);
+      if (targetLink) {
+        targetLink.classList.add('active');
+
+        // Se o link está em um submenu, abrir o submenu
+        const parentSubmenu = targetLink.closest('.submenu');
+        if (parentSubmenu) {
+          const parentLi = parentSubmenu.closest('li.has-submenu');
+          if (parentLi) {
+            parentLi.classList.add('open');
+          }
+        }
+      }
+    }
+
+    // Carregar dados específicos da seção
+    function loadSectionData(sectionId) {
+      if (window.painelAgente && typeof window.painelAgente.carregarDadosSecao === 'function') {
+        window.painelAgente.carregarDadosSecao(sectionId);
+      }
     }
 
     // Função para mostrar seções
