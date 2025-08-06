@@ -1418,7 +1418,7 @@
                 <div>
                   <h6 class="card-title">Alertas Ativos</h6>
                   <h3 id="dashAlertasAtivos">0</h3>
-                  <small>Requerem atenção</small>
+                  <small>Requerem aten��ão</small>
                 </div>
                 <div class="align-self-center">
                   <i class="fas fa-exclamation-triangle fa-2x"></i>
@@ -2513,6 +2513,65 @@
   <script src="/static/ti/js/painel/grupos.js"></script>
   <script src="/static/ti/js/painel/painel.js"></script>
   <script src="/static/ti/js/painel/enviar_ticket.js"></script>
+
+  <!-- Script de debug e força inicialização -->
+  <script>
+    console.log('=== SCRIPT INLINE: FORÇANDO INICIALIZAÇÃO ===');
+
+    // Aguardar DOM estar pronto
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM LOADED - Verificando navegação...');
+
+        // Aguardar mais um pouco para garantir que scripts carregaram
+        setTimeout(function() {
+            console.log('=== VERIFICAÇÃO FINAL ===');
+
+            const links = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
+            const sections = document.querySelectorAll('section.content-section');
+
+            console.log('Links encontrados após DOMContentLoaded:', links.length);
+            console.log('Seções encontradas após DOMContentLoaded:', sections.length);
+
+            // Se não há navegação ativa, forçar inicialização
+            if (links.length > 0 && sections.length > 0) {
+                console.log('Elementos encontrados, configurando navegação...');
+
+                links.forEach(function(link) {
+                    link.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        const href = this.getAttribute('href');
+                        if (href && href.startsWith('#')) {
+                            const targetId = href.substring(1);
+                            console.log('Navegando para:', targetId);
+
+                            // Remover active de todas as seções
+                            sections.forEach(function(section) {
+                                section.classList.remove('active');
+                            });
+
+                            // Ativar seção alvo
+                            const targetSection = document.getElementById(targetId);
+                            if (targetSection) {
+                                targetSection.classList.add('active');
+                                console.log('Seção ativada:', targetId);
+                            }
+
+                            // Atualizar links ativos
+                            links.forEach(function(l) {
+                                l.classList.remove('active');
+                            });
+                            this.classList.add('active');
+                        }
+                    });
+                });
+
+                console.log('Navegação manual configurada com sucesso!');
+            } else {
+                console.error('Elementos de navegação não encontrados!');
+            }
+        }, 500);
+    });
+  </script>
   <script src="/static/ti/js/painel/notificacoes.js"></script>
   <script src="/static/ti/js/painel/sla.js"></script>
   <script src="/static/ti/js/painel/prioridades.js"></script>
