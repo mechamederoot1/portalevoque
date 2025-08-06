@@ -290,7 +290,8 @@ def transferir_chamado(chamado_id):
         # Enviar e-mails de notificação
         try:
             from setores.ti.routes import enviar_email
-            
+            logger.info(f"Iniciando envio de e-mails para transferência do chamado {chamado.codigo}")
+
             # E-mail para o solicitante
             assunto_cliente = f"Chamado {chamado.codigo} - Transferência de Agente"
             corpo_cliente = f"""
