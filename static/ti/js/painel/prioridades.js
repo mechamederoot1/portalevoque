@@ -276,20 +276,23 @@ class PrioridadesManager {
             
             // Invalidar cache
             this.cache.delete('problemas_list');
-            
+
             // Atualizar o atributo data-prioridade-original
             const select = document.querySelector(`[data-problema-id="${problemaId}"]`);
             if (select) {
                 select.dataset.prioridadeOriginal = novaPrioridade;
                 select.classList.remove('is-warning');
             }
-            
+
             console.log(`Prioridade do problema "${problemaNome}" atualizada para "${novaPrioridade}"`);
-            
+
+            // IMPORTANTE: Sincronizar configurações SLA após mudança de prioridade
+            this.sincronizarSLAComPrioridades();
+
             if (mostrarNotificacao) {
                 this.showSuccess(
                     'Prioridade Atualizada',
-                    `Prioridade do problema "${problemaNome}" atualizada para "${novaPrioridade}"`
+                    `Prioridade do problema "${problemaNome}" atualizada para "${novaPrioridade}" - SLA atualizado automaticamente`
                 );
             }
             
@@ -432,7 +435,13 @@ class PrioridadesManager {
             
             // Recarregar dados para garantir consistência
             await this.carregarProblemas();
-            
+
+            // Sincronizar configurações SLA após alterações em lote
+            if (sucessos.length > 0) {
+                console.log('Sincronizando SLA após alterações em lote...');
+                this.sincronizarSLAComPrioridades();
+            }
+
         } catch (error) {
             console.error('Erro geral ao salvar prioridades:', error);
             this.showError('Erro', 'Erro inesperado ao salvar prioridades');
@@ -578,6 +587,44 @@ class PrioridadesManager {
             }, {}),
             comItemInternet: this.problemas.filter(p => p.requer_item_internet).length
         };
+    }
+
+    // NOVA FUNÇÃO: Sincronizar configurações SLA com prioridades atualizadas
+    async sincronizarSLAComPrioridades() {
+        console.log('Sincronizando configurações SLA com prioridades...');
+
+        try {
+            // Buscar configurações atuais de SLA
+            const response = await fetch('/ti/painel/api/configuracoes', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao buscar configurações: ${response.status}`);
+            }
+
+            const configuracoes = await response.json();
+
+            // Forçar recarregamento completo das configurações SLA
+            if (typeof window.forcarRecarregamentoSLA === 'function') {
+                console.log('Forçando recarregamento completo dos dados SLA...');
+                window.forcarRecarregamentoSLA();
+            } else if (typeof window.carregarSLA === 'function') {
+                console.log('Recarregando dados SLA (fallback)...');
+                window.carregarSLA();
+            }
+
+            console.log('Sincronização SLA concluída');
+
+        } catch (error) {
+            console.error('Erro ao sincronizar SLA:', error);
+            // Não mostrar erro para não confundir o usuário, já que a prioridade foi salva
+        }
     }
 }
 

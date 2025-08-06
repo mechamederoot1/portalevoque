@@ -142,8 +142,15 @@ function atualizarIndicadorSLA(elementId, valor, isNegativo = false) {
 }
 
 // Carregar configurações SLA com tratamento robusto de erros
-function carregarConfiguracoesSLA() {
-    fetch('/ti/painel/api/configuracoes')
+function carregarConfiguracoesSLA(forcarRecarregamento = false) {
+    // Adicionar timestamp para evitar cache quando forçar recarregamento
+    const url = forcarRecarregamento ?
+        `/ti/painel/api/configuracoes?t=${Date.now()}` :
+        '/ti/painel/api/configuracoes';
+
+    console.log('Carregando configurações SLA...', forcarRecarregamento ? '(forçado)' : '');
+
+    fetch(url)
         .then(response => {
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers.get('content-type'));
@@ -741,8 +748,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Função para forçar recarregamento completo de SLA (chamada externamente)
+function forcarRecarregamentoSLA() {
+    console.log('=== FORÇANDO RECARREGAMENTO COMPLETO DE SLA ===');
+
+    // Resetar configurações para forçar reload
+    slaConfiguracoes = {};
+
+    // Recarregar configurações forçadamente
+    carregarConfiguracoesSLA(true);
+
+    // Pequeno delay e recarregar métricas
+    setTimeout(() => {
+        carregarMetricasSLA();
+        carregarChamadosDetalhados();
+    }, 1000);
+}
+
 // Exportar funções para uso global
 window.carregarSLA = carregarSLA;
+window.carregarConfiguracoesSLA = carregarConfiguracoesSLA;
+window.carregarMetricasSLA = carregarMetricasSLA;
+window.carregarChamadosDetalhados = carregarChamadosDetalhados;
+window.forcarRecarregamentoSLA = forcarRecarregamentoSLA;
 window.atualizarSLA = atualizarSLA;
 window.exportarRelatorioSLA = exportarRelatorioSLA;
 window.formatarTempo = formatarTempo;

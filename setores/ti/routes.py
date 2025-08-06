@@ -1,4 +1,5 @@
 import os
+import os
 import random
 import string
 from datetime import datetime, timedelta
@@ -36,30 +37,97 @@ def get_access_token():
         return None
 
     try:
+        current_app.logger.info(f"🔄 Configurando MSAL Client...")
+        current_app.logger.info(f"🔑 CLIENT_ID: {CLIENT_ID[:8]}...")
+        current_app.logger.info(f"🏢 TENANT_ID: {TENANT_ID}")
+        current_app.logger.info(f"🌐 Authority: https://login.microsoftonline.com/{TENANT_ID}")
+
         app = ConfidentialClientApplication(
             client_id=CLIENT_ID,
             client_credential=CLIENT_SECRET,
             authority=f"https://login.microsoftonline.com/{TENANT_ID}"
         )
+
+        current_app.logger.info(f"📋 Scopes: {SCOPES}")
+        current_app.logger.info("🔄 Solicitando token...")
+
         result = app.acquire_token_for_client(scopes=SCOPES)
+
+        current_app.logger.info(f"📥 Resultado recebido: {list(result.keys())}")
 
         if "access_token" in result:
             current_app.logger.info("✅ Token obtido com sucesso!")
             return result["access_token"]
         else:
-            current_app.logger.error(f"❌ Erro ao obter token: {result.get('error')}")
+            current_app.logger.error(f"❌ Erro ao obter token:")
+            current_app.logger.error(f"   - Error: {result.get('error', 'N/A')}")
+            current_app.logger.error(f"   - Error Description: {result.get('error_description', 'N/A')}")
+            current_app.logger.error(f"   - Error Codes: {result.get('error_codes', 'N/A')}")
+            current_app.logger.error(f"   - Correlation ID: {result.get('correlation_id', 'N/A')}")
             return None
     except Exception as e:
         current_app.logger.error(f"❌ Exceção ao obter token: {str(e)}")
+        import traceback
+        current_app.logger.error(f"🔍 Stack trace: {traceback.format_exc()}")
         return None
+
+def testar_configuracao_email():
+    """Função para testar se as configurações de e-mail estão funcionando"""
+    try:
+        current_app.logger.info("🔍 Testando configurações de e-mail...")
+        current_app.logger.info(f"EMAIL_ENABLED: {EMAIL_ENABLED}")
+        current_app.logger.info(f"CLIENT_ID presente: {'Sim' if CLIENT_ID else 'Não'}")
+        current_app.logger.info(f"CLIENT_SECRET presente: {'Sim' if CLIENT_SECRET else 'Não'}")
+        current_app.logger.info(f"TENANT_ID: {TENANT_ID}")
+        current_app.logger.info(f"USER_ID: {USER_ID}")
+        current_app.logger.info(f"EMAIL_TI: {EMAIL_TI}")
+
+        # Verificar se todas as variáveis estão presentes
+        if not all([CLIENT_ID, CLIENT_SECRET, TENANT_ID, USER_ID]):
+            current_app.logger.error("❌ Variáveis de ambiente obrigatórias não configuradas")
+            missing = []
+            if not CLIENT_ID: missing.append("CLIENT_ID")
+            if not CLIENT_SECRET: missing.append("CLIENT_SECRET")
+            if not TENANT_ID: missing.append("TENANT_ID")
+            if not USER_ID: missing.append("USER_ID")
+            current_app.logger.error(f"❌ Variáveis faltando: {', '.join(missing)}")
+            return False
+
+        if EMAIL_ENABLED:
+            current_app.logger.info("🔄 Tentando obter token...")
+            token = get_access_token()
+            if token:
+                current_app.logger.info("✅ Token obtido com sucesso! Sistema de e-mail funcionando")
+                current_app.logger.info(f"🔑 Token: {token[:20]}...")
+                return True
+            else:
+                current_app.logger.error("❌ Falha ao obter token")
+                return False
+        else:
+            current_app.logger.warning("⚠️ Sistema de e-mail desabilitado")
+            return False
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao testar configurações: {str(e)}")
+        import traceback
+        current_app.logger.error(f"🔍 Stack trace: {traceback.format_exc()}")
+        return False
 
 def enviar_email(assunto, corpo, destinatarios=None):
     if destinatarios is None:
         destinatarios = [EMAIL_TI]
 
+    current_app.logger.info(f"📧 === INICIANDO ENVIO DE EMAIL ===")
+    current_app.logger.info(f"📧 Destinatários: {destinatarios}")
+    current_app.logger.info(f"📋 Assunto: {assunto}")
+    current_app.logger.info(f"📄 Tamanho do corpo: {len(corpo)} caracteres")
+
     token = get_access_token()
     if not token:
+        current_app.logger.error("❌ Token não obtido, não é possível enviar e-mail")
         return False
+
+    current_app.logger.info(f"🔑 Token obtido: {token[:20]}...")
+    current_app.logger.info(f"🌐 Endpoint: {ENDPOINT}")
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -79,6 +147,8 @@ def enviar_email(assunto, corpo, destinatarios=None):
         },
         "saveToSentItems": "false"
     }
+
+    current_app.logger.info(f"📦 Email data preparado para: {[r['emailAddress']['address'] for r in email_data['message']['toRecipients']]}")
 
     try:
         response = requests.post(ENDPOINT, headers=headers, json=email_data)
@@ -113,6 +183,57 @@ def gerar_protocolo():
     count = Chamado.query.filter(Chamado.protocolo.like(f"{data_str}-%")).count()
     novo_num = count + 1
     return f"{data_str}-{novo_num}"
+
+@ti_bp.route('/test-email')
+@login_required
+@setor_required('ti')
+def test_email():
+    """Rota para testar envio de e-mail"""
+    try:
+        # Testar configurações
+        config_ok = testar_configuracao_email()
+
+        if config_ok:
+            # Tentar enviar e-mail de teste
+            assunto = "Teste de E-mail - Sistema Evoque"
+            corpo = f"""
+Este é um e-mail de teste do sistema Evoque Fitness.
+
+Dados do teste:
+- Data/Hora: {get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')}
+- Usuário: {current_user.nome} {current_user.sobrenome}
+- E-mail do usuário: {current_user.email}
+
+Se você recebeu este e-mail, o sistema está funcionando corretamente!
+
+---
+Sistema de Suporte TI - Evoque Fitness
+"""
+
+            resultado = enviar_email(assunto, corpo, [current_user.email])
+
+            if resultado:
+                return jsonify({
+                    'success': True,
+                    'message': f'E-mail de teste enviado com sucesso para {current_user.email}'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Falha ao enviar e-mail de teste'
+                })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Configurações de e-mail não estão funcionando'
+            })
+
+    except Exception as e:
+        current_app.logger.error(f"Erro no teste de e-mail: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Erro durante teste: {str(e)}'
+        })
 
 @ti_bp.route('/')
 @login_required

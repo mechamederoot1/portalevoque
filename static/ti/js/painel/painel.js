@@ -10,24 +10,43 @@ function toggleSidebar() {
 sidebarToggleBtn?.addEventListener('click', toggleSidebar);
 mobileSidebarToggleBtn?.addEventListener('click', toggleSidebar);
 
-// Submenu toggle
-document.querySelectorAll('.sidebar nav ul li.has-submenu > a').forEach(anchor => {
-    anchor.addEventListener('click', e => {
-        e.preventDefault();
-        const parentLi = anchor.parentElement;
-        const isOpen = parentLi.classList.contains('open');
-        document.querySelectorAll('.sidebar nav ul li.has-submenu.open').forEach(li => {
-            if (li !== parentLi) li.classList.remove('open');
+// Submenu toggle - aplicado após DOM carregar
+function initializeSubmenuToggles() {
+    console.log('Inicializando toggles de submenu...');
+    document.querySelectorAll('.sidebar nav ul li.has-submenu > a.submenu-toggle').forEach(anchor => {
+        // Remover listeners antigos clonando o elemento
+        const newAnchor = anchor.cloneNode(true);
+        anchor.parentNode.replaceChild(newAnchor, anchor);
+
+        newAnchor.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const parentLi = newAnchor.parentElement;
+            const isOpen = parentLi.classList.contains('open');
+
+            console.log('Toggle submenu:', newAnchor.textContent.trim(), 'isOpen:', isOpen);
+
+            // Fechar outros submenus
+            document.querySelectorAll('.sidebar nav ul li.has-submenu.open').forEach(li => {
+                if (li !== parentLi) {
+                    li.classList.remove('open');
+                    const toggle = li.querySelector('.submenu-toggle');
+                    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // Alternar submenu atual
+            if (isOpen) {
+                parentLi.classList.remove('open');
+                newAnchor.setAttribute('aria-expanded', 'false');
+            } else {
+                parentLi.classList.add('open');
+                newAnchor.setAttribute('aria-expanded', 'true');
+            }
         });
-        if (isOpen) {
-            parentLi.classList.remove('open');
-            anchor.setAttribute('aria-expanded', 'false');
-        } else {
-            parentLi.classList.add('open');
-            anchor.setAttribute('aria-expanded', 'true');
-        }
     });
-});
+}
 
 // Navigation will be initialized after DOM is loaded
 let navLinks = null;
@@ -35,6 +54,7 @@ let sections = null;
 
 function initializeNavigation() {
     console.log('=== INICIALIZANDO NAVEGAÇÃO ===');
+    console.log('Timestamp:', new Date().toISOString());
 
     // Always re-query the DOM to ensure we have the latest elements
     navLinks = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
@@ -42,6 +62,18 @@ function initializeNavigation() {
 
     console.log('Links de navegação encontrados:', navLinks.length);
     console.log('Seções encontradas:', sections.length);
+
+    // Debug mais detalhado se não encontrar elementos
+    if (navLinks.length === 0) {
+        console.error('PROBLEMA: Nenhum link de navegação encontrado!');
+        console.log('Sidebar existe?', !!document.getElementById('sidebar'));
+        console.log('Todos os links da sidebar:', document.querySelectorAll('.sidebar a').length);
+    }
+
+    if (sections.length === 0) {
+        console.error('PROBLEMA: Nenhuma seção content-section encontrada!');
+        console.log('Todas as sections do DOM:', document.querySelectorAll('section').length);
+    }
 
     // Debug: listar todos os links encontrados
     navLinks.forEach((link, index) => {
@@ -67,7 +99,13 @@ function initializeNavigation() {
     }
 
     navLinks.forEach((link, index) => {
-        // Remover listeners existentes
+        // Apenas links que têm href começando com # (não submenu toggles)
+        const href = link.getAttribute('href');
+        if (!href || !href.startsWith('#') || href === '#') {
+            return;
+        }
+
+        // Remover listeners existentes clonando
         const newLink = link.cloneNode(true);
         link.parentNode.replaceChild(newLink, link);
 
@@ -75,28 +113,15 @@ function initializeNavigation() {
             e.preventDefault();
             e.stopPropagation();
 
-            const href = this.getAttribute('href');
-            console.log(`=== CLICK NO LINK ${index} ===`);
-            console.log('href:', href);
-            console.log('elemento clicado:', this);
-
-            if (!href || href === '#' || !href.startsWith('#')) {
-                console.log('Link sem href válido ou é submenu toggle');
-                return;
-            }
-
             const targetId = href.substring(1);
-            console.log('ID da seção alvo:', targetId);
+            console.log(`=== NAVEGAÇÃO PARA: ${targetId} ===`);
 
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
             if (!targetSection) {
                 console.error('Seção não encontrada:', targetId);
-                console.log('Seções disponíveis:', Array.from(sections).map(s => s.id));
                 return;
             }
-
-            console.log('Seção encontrada, prosseguindo com navegação...');
 
             // Remove active class from all navigation links
             document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
@@ -105,25 +130,21 @@ function initializeNavigation() {
             this.classList.add('active');
 
             // Handle submenu parent activation
-            const submenu = this.closest('.submenu');
-            if (submenu) {
-                console.log('Link está em submenu, ativando parent...');
-                const parentToggle = submenu.previousElementSibling;
-                if (parentToggle && parentToggle.classList.contains('submenu-toggle')) {
+            const parentLi = this.closest('li.has-submenu');
+            if (parentLi) {
+                parentLi.classList.add('open');
+                const parentToggle = parentLi.querySelector('.submenu-toggle');
+                if (parentToggle) {
                     parentToggle.classList.add('active');
-                    parentToggle.parentElement.classList.add('open');
-                    console.log('Parent submenu ativado');
+                    parentToggle.setAttribute('aria-expanded', 'true');
                 }
             }
 
             // Activate the target section
-            console.log('Ativando seção:', targetId);
             activateSection(targetId);
 
             // Update URL hash
             window.location.hash = targetId;
-
-            console.log('=== NAVEGAÇÃO CONCLUÍDA ===');
         });
     });
 
@@ -2070,7 +2091,7 @@ function loadSectionContent(sectionId) {
                 try {
                     window.prioridadesManager.carregarProblemas();
                 } catch (error) {
-                    console.warn('Erro ao carregar prioridades (não crítico):', error);
+                    console.warn('Erro ao carregar prioridades (não cr��tico):', error);
                 }
             }
             // Carregar problemas e configurações de notificações
@@ -2212,6 +2233,28 @@ function resetInactivityTimer() {
 // Iniciar o timer quando a página carregar
 resetInactivityTimer();
 
+// Função de debug para testar navegação manualmente
+window.debugNavigation = function() {
+    console.log('=== DEBUG NAVEGAÇÃO ===');
+    const links = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
+    const sections = document.querySelectorAll('section.content-section');
+
+    console.log('Links encontrados:', links.length);
+    console.log('Seções encontradas:', sections.length);
+
+    links.forEach((link, i) => {
+        console.log(`Link ${i}: href="${link.getAttribute('href')}", text="${link.textContent.trim()}"`);
+    });
+
+    sections.forEach((section, i) => {
+        console.log(`Seção ${i}: id="${section.id}", active="${section.classList.contains('active')}"`);
+    });
+
+    // Teste navegação
+    console.log('Testando navegação para "sla-dashboard"...');
+    activateSection('sla-dashboard');
+};
+
 // Função de inicialização compreensiva
 function inicializarSistemaPainel() {
     console.log('=== INICIALIZANDO SISTEMA DO PAINEL ===');
@@ -2234,6 +2277,7 @@ function inicializarSistemaPainel() {
         }
 
         // 2. Inicializar navegação
+        initializeSubmenuToggles();
         initializeNavigation();
 
         // 3. Garantir que apenas uma seção esteja ativa
@@ -3419,7 +3463,7 @@ let currentUsuariosBusca = '';
 let isSearching = false;
 
 async function filtrarListaUsuarios(termoBusca, page = 1) {
-    console.log(`Filtrando usu��rios com termo: "${termoBusca}", página: ${page}`);
+    console.log(`Filtrando usu��rios com termo: "${termoBusca}", p��gina: ${page}`);
 
     // Prevent multiple simultaneous requests
     if (isSearching) {
@@ -4397,7 +4441,7 @@ function verDetalhesLog(id, detalhes, erroDetalhes) {
         if (conteudo) {
             conteudo.innerHTML = `
                 <div class="mb-3">
-                    <h6>Detalhes da Ação:</h6>
+                    <h6>Detalhes da A��ão:</h6>
                     <p class="text-muted">${detalhes || 'Sem detalhes disponíveis'}</p>
                 </div>
                 ${erroDetalhes ? `
@@ -4822,7 +4866,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500));
     }
 
-    // Filtros de mudança imediata
+    // Filtros de mudan��a imediata
     const filtroPrioridade = document.getElementById('filtroPrioridade');
     const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
     const filtroUnidade = document.getElementById('filtroUnidade');

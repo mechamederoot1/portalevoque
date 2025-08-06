@@ -434,7 +434,7 @@
                         <th>Problema</th>
                         <th>Status</th>
                         <th>Prioridade</th>
-                        <th>Atribuído em</th>
+                        <th>Atribu��do em</th>
                         <th>Ações</th>
                       </tr>
                     </thead>
@@ -1295,6 +1295,52 @@
     </div>
   </div>
 
+  <!-- Modal para Senha Gerada -->
+  <div class="modal fade" id="modalSenhaGerada" tabindex="-1" aria-labelledby="modalSenhaGeradaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="modalSenhaGeradaLabel">
+            <i class="fas fa-key me-2"></i>Senha Gerada com Sucesso
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            Copie a senha abaixo antes de fechar esta janela. Por segurança, ela não será exibida novamente.
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-bold">Nova Senha:</label>
+            <div class="input-group">
+              <input type="text" class="form-control form-control-lg text-center fw-bold"
+                     id="senhaGeradaModal"
+                     readonly
+                     style="font-family: monospace; letter-spacing: 2px; font-size: 1.25rem;">
+              <button class="btn btn-outline-primary" type="button" id="btnCopiarSenha" title="Copiar senha">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="text-muted small">
+            <i class="fas fa-shield-alt me-1"></i>
+            Esta senha foi gerada automaticamente e é segura para uso.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="btnCopiarFechar">
+            <i class="fas fa-copy me-1"></i>Copiar e Fechar
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-1"></i>Fechar
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Bootstrap JS -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Socket.IO -->
@@ -1302,96 +1348,151 @@
   
   <!-- Scripts customizados -->
   <script>
-    // Navegação entre seções
-    function showSection(sectionId) {
+    // NOVO SISTEMA DE NAVEGAÇÃO ULTRA ROBUSTO
+    function initializeAgentNavigation() {
+      console.log('=== INICIALIZANDO NAVEGAÇÃO ROBUSTA DO AGENTE ===');
+
+      // Aguardar um momento para garantir que o DOM está totalmente carregado
+      setTimeout(() => {
+        setupNavigation();
+      }, 100);
+    }
+
+    function setupNavigation() {
+      console.log('Configurando navegação...');
+
+      // 1. NAVEGAÇÃO PRINCIPAL - usando delegação de eventos
+      document.addEventListener('click', function(e) {
+        // Verificar se o clique foi em um link de navegação
+        const link = e.target.closest('a[href^="#"]');
+        if (!link) return;
+
+        const href = link.getAttribute('href');
+        if (!href || href === '#') return;
+
+        console.log('=== CLICK INTERCEPTADO ===');
+        console.log('Link:', link.textContent.trim());
+        console.log('Href:', href);
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const sectionId = href.substring(1);
+        console.log('Navegando para:', sectionId);
+
+        // Navegar para a seção
+        navigateToSection(sectionId);
+      });
+
+      // 2. SUBMENU TOGGLES - usando delegação de eventos
+      document.addEventListener('click', function(e) {
+        const toggle = e.target.closest('.submenu-toggle');
+        if (!toggle) return;
+
+        console.log('=== SUBMENU TOGGLE ===');
+        e.preventDefault();
+        e.stopPropagation();
+
+        const parentLi = toggle.closest('li.has-submenu');
+        if (!parentLi) return;
+
+        const isOpen = parentLi.classList.contains('open');
+
+        // Fechar todos os outros submenus
+        document.querySelectorAll('.sidebar li.has-submenu.open').forEach(li => {
+          if (li !== parentLi) {
+            li.classList.remove('open');
+          }
+        });
+
+        // Toggle submenu atual
+        if (isOpen) {
+          parentLi.classList.remove('open');
+        } else {
+          parentLi.classList.add('open');
+        }
+      });
+
+      console.log('Navegação configurada com delegação de eventos');
+
+      // Mostrar seção inicial
+      navigateToSection('dashboard-agente');
+    }
+
+    // Função robusta de navegação
+    function navigateToSection(sectionId) {
+      console.log(`Navegando para seção: ${sectionId}`);
+
       // Esconder todas as seções
-      document.querySelectorAll('.section-content').forEach(section => {
+      const allSections = document.querySelectorAll('.section-content');
+      allSections.forEach(section => {
         section.style.display = 'none';
+        section.classList.remove('active');
       });
-      
-      // Remover classe active de todos os links
-      document.querySelectorAll('.sidebar nav a').forEach(link => {
-        link.classList.remove('active');
-      });
-      
-      // Mostrar seção selecionada
+
+      // Mostrar seção específica
       const targetSection = document.getElementById(sectionId);
       if (targetSection) {
         targetSection.style.display = 'block';
+        targetSection.classList.add('active');
+        console.log(`Seção ${sectionId} ativada`);
+      } else {
+        console.error(`Seção ${sectionId} não encontrada`);
+        // Fallback para dashboard
+        const dashboard = document.getElementById('dashboard-agente');
+        if (dashboard) {
+          dashboard.style.display = 'block';
+          dashboard.classList.add('active');
+        }
       }
-      
+
+      // Atualizar links ativos
+      updateActiveLinks(sectionId);
+
+      // Carregar dados específicos da seção
+      loadSectionData(sectionId);
+    }
+
+    // Atualizar links ativos
+    function updateActiveLinks(sectionId) {
+      // Remover classe active de todos os links
+      document.querySelectorAll('.sidebar a').forEach(link => {
+        link.classList.remove('active');
+      });
+
       // Adicionar classe active ao link correspondente
       const targetLink = document.querySelector(`a[href="#${sectionId}"]`);
       if (targetLink) {
         targetLink.classList.add('active');
+
+        // Se o link está em um submenu, abrir o submenu
+        const parentSubmenu = targetLink.closest('.submenu');
+        if (parentSubmenu) {
+          const parentLi = parentSubmenu.closest('li.has-submenu');
+          if (parentLi) {
+            parentLi.classList.add('open');
+          }
+        }
       }
-      
-      // Carregar dados específicos da seção
-      if (window.painelAgente) {
+    }
+
+    // Carregar dados específicos da seção
+    function loadSectionData(sectionId) {
+      if (window.painelAgente && typeof window.painelAgente.carregarDadosSecao === 'function') {
         window.painelAgente.carregarDadosSecao(sectionId);
       }
     }
-    
-    // Event listeners para navegação
+
+    // Função showSection mantida para compatibilidade (chama a nova função)
+    function showSection(sectionId) {
+      navigateToSection(sectionId);
+    }
+
+    // Inicializar quando DOM estiver pronto
     document.addEventListener('DOMContentLoaded', function() {
-      // Configurar cliques na sidebar
-      document.querySelectorAll('.sidebar nav a[href^="#"]').forEach(link => {
-        link.addEventListener('click', function(e) {
-          e.preventDefault();
-          const sectionId = this.getAttribute('href').substring(1);
-          showSection(sectionId);
-        });
-      });
-      
-      // Configurar submenu
-      document.querySelectorAll('.submenu-toggle').forEach(toggle => {
-        toggle.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
+      console.log('DOM carregado - inicializando navegação do agente...');
+      initializeAgentNavigation();
 
-          const parentLi = this.closest('li.has-submenu');
-          const submenu = this.nextElementSibling;
-          const isExpanded = this.getAttribute('aria-expanded') === 'true';
-
-          // Fechar outros submenus
-          document.querySelectorAll('.has-submenu').forEach(otherLi => {
-            if (otherLi !== parentLi) {
-              const otherToggle = otherLi.querySelector('.submenu-toggle');
-              const otherSubmenu = otherLi.querySelector('.submenu');
-              if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
-              if (otherSubmenu) {
-                otherSubmenu.style.display = 'none';
-                otherSubmenu.style.maxHeight = '0';
-              }
-              otherLi.classList.remove('open');
-            }
-          });
-
-          // Toggle submenu atual
-          this.setAttribute('aria-expanded', !isExpanded);
-          if (submenu) {
-            if (isExpanded) {
-              submenu.style.display = 'none';
-              submenu.style.maxHeight = '0';
-              parentLi.classList.remove('open');
-            } else {
-              submenu.style.display = 'block';
-              submenu.style.maxHeight = '300px';
-              parentLi.classList.add('open');
-            }
-          }
-
-          // Rotacionar ícone - corrigido para usar o seletor ::after
-          if (parentLi) {
-            if (isExpanded) {
-              parentLi.classList.remove('open');
-            } else {
-              parentLi.classList.add('open');
-            }
-          }
-        });
-      });
-      
       // Configurar botão de notificações na navbar
       const btnNotificacoes = document.getElementById('btnNotificacoes');
       if (btnNotificacoes) {
@@ -1430,9 +1531,156 @@
         });
       }
 
-      // Mostrar dashboard inicialmente
-      showSection('dashboard-agente');
+      // Inicializar PainelAgente
+      setTimeout(async () => {
+        const autenticado = await testarAutenticacao();
+        if (autenticado) {
+          window.painelAgente = new PainelAgente();
+        }
+      }, 500);
+
+      console.log('Sistema de navegação do agente inicializado com sucesso');
     });
+
+    // Função global para debug de navegação
+    window.debugNavigationAgent = function() {
+      console.log('=== DEBUG NAVEGAÇÃO AGENTE ===');
+      console.log('Links de navegação:', document.querySelectorAll('.sidebar a[href^="#"]').length);
+      console.log('Seções:', document.querySelectorAll('.section-content').length);
+      console.log('Seção ativa:', document.querySelector('.section-content[style*="block"]')?.id || 'nenhuma');
+
+      // Testar navegação para todas as seções
+      const secoes = ['dashboard-agente', 'historico-agente', 'notificacoes-agente', 'gerenciar-usuarios', 'perfil-agente'];
+      console.log('Testando navegação para:', secoes);
+
+      secoes.forEach((secao, index) => {
+        setTimeout(() => {
+          console.log(`Testando navegação para: ${secao}`);
+          navigateToSection(secao);
+        }, index * 1000);
+      });
+    };
+
+    // Função para testar navegação específica
+    window.testNavigation = function(sectionId) {
+      console.log(`Testando navegação para: ${sectionId}`);
+      navigateToSection(sectionId);
+    };
+
+    // Função para testar sistema de e-mail
+    window.testarSistemaEmail = async function() {
+      console.log('=== TESTANDO SISTEMA DE E-MAIL ===');
+
+      try {
+        const response = await fetch('/ti/test-email');
+        const result = await response.json();
+
+        console.log('Resultado do teste:', result);
+
+        if (result.success) {
+          console.log('✅ Sistema de e-mail funcionando!');
+          if (window.painelAgente) {
+            window.painelAgente.showNotification(result.message, 'success', 8000);
+          }
+        } else {
+          console.error('❌ Problema no sistema de e-mail:', result.message);
+          if (window.painelAgente) {
+            window.painelAgente.showNotification('Erro no sistema de e-mail: ' + result.message, 'error', 10000);
+          }
+        }
+
+        return result;
+      } catch (error) {
+        console.error('❌ Erro ao testar sistema de e-mail:', error);
+        if (window.painelAgente) {
+          window.painelAgente.showNotification('Erro ao testar sistema de e-mail', 'error');
+        }
+        return { success: false, error: error.message };
+      }
+    };
+
+    // ========== FUNÇÕES DO MODAL DE SENHA ==========
+
+    // Função para mostrar modal com senha gerada
+    function mostrarModalSenha(senha) {
+      document.getElementById('senhaGeradaModal').value = senha;
+      const modal = new bootstrap.Modal(document.getElementById('modalSenhaGerada'));
+      modal.show();
+    }
+
+    // Função para copiar senha para área de transferência
+    async function copiarSenha() {
+      const senhaInput = document.getElementById('senhaGeradaModal');
+      const senha = senhaInput.value;
+
+      try {
+        await navigator.clipboard.writeText(senha);
+
+        // Feedback visual
+        const btnCopiar = document.getElementById('btnCopiarSenha');
+        const iconOriginal = btnCopiar.innerHTML;
+        btnCopiar.innerHTML = '<i class="fas fa-check text-success"></i>';
+        btnCopiar.classList.add('btn-success');
+        btnCopiar.classList.remove('btn-outline-primary');
+
+        // Voltar ao estado original após 2 segundos
+        setTimeout(() => {
+          btnCopiar.innerHTML = iconOriginal;
+          btnCopiar.classList.remove('btn-success');
+          btnCopiar.classList.add('btn-outline-primary');
+        }, 2000);
+
+        // Mostrar notificação de sucesso
+        if (window.painelAgente) {
+          window.painelAgente.showNotification('Senha copiada para a área de transferência!', 'success');
+        }
+
+      } catch (err) {
+        console.error('Erro ao copiar senha:', err);
+
+        // Fallback: selecionar texto
+        senhaInput.select();
+        senhaInput.setSelectionRange(0, 99999); // Para dispositivos móveis
+
+        try {
+          document.execCommand('copy');
+          if (window.painelAgente) {
+            window.painelAgente.showNotification('Senha selecionada. Use Ctrl+C para copiar.', 'info');
+          }
+        } catch (fallbackErr) {
+          if (window.painelAgente) {
+            window.painelAgente.showNotification('Não foi possível copiar automaticamente. Selecione e copie manualmente.', 'warning');
+          }
+        }
+      }
+    }
+
+    // Event listeners para o modal
+    document.addEventListener('DOMContentLoaded', function() {
+      // Botão copiar senha
+      document.getElementById('btnCopiarSenha')?.addEventListener('click', copiarSenha);
+
+      // Botão copiar e fechar
+      document.getElementById('btnCopiarFechar')?.addEventListener('click', function() {
+        copiarSenha().then(() => {
+          // Fechar modal após copiar
+          setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalSenhaGerada'));
+            if (modal) {
+              modal.hide();
+            }
+          }, 1000);
+        });
+      });
+
+      // Copiar ao dar duplo clique no campo
+      document.getElementById('senhaGeradaModal')?.addEventListener('dblclick', function() {
+        copiarSenha();
+      });
+    });
+
+    // Exportar função para uso global
+    window.mostrarModalSenha = mostrarModalSenha;
 
     // Painel do Agente de Suporte
     class PainelAgente {
@@ -1881,7 +2129,7 @@
         return classes[status] || 'secondary';
       }
 
-      showNotification(message, type) {
+      showNotification(message, type, duration = 5000) {
         const notification = document.createElement('div');
         notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade`;
         notification.style.cssText = `
@@ -1905,10 +2153,10 @@
           notification.style.opacity = '1';
         }, 100);
 
-        // Auto-remover após 5 segundos
+        // Auto-remover após duração especificada (padrão 5 segundos)
         setTimeout(() => {
           this.hideNotification(notification);
-        }, 5000);
+        }, duration);
 
         // Evento de fechar manual
         const closeBtn = notification.querySelector('.btn-close');
@@ -2414,12 +2662,6 @@
       resetarPaginacao() {
         this.currentPage = 1;
       }
-                <i class="fas fa-${usuario.bloqueado ? 'unlock' : 'lock'}"></i>
-              </button>
-            </td>
-          </tr>
-        `).join('');
-      }
 
       atualizarContadorUsuarios(total) {
         const totalElement = document.getElementById('totalUsuarios');
@@ -2836,7 +3078,7 @@
           if (response.ok) {
             const user = await response.json();
 
-            // Preencher formulário
+            // Preencher formul��rio
             document.getElementById('usuarioId').value = user.id;
             document.getElementById('usuarioNome').value = user.nome;
             document.getElementById('usuarioSobrenome').value = user.sobrenome;
@@ -2926,12 +3168,21 @@
 
           if (response.ok) {
             const data = await response.json();
-            this.showNotification(`Nova senha gerada: ${data.nova_senha}`, 'success');
 
-            // Se estiver no modal, mostrar a nova senha
+            // Mostrar modal com a senha gerada
+            mostrarModalSenha(data.nova_senha);
+
+            // Mostrar notificação por 5 segundos
+            this.showNotification(`Nova senha gerada com sucesso! Verifique o modal para copiar.`, 'success', 5000);
+
+            // Se estiver no modal de edição, mostrar a nova senha também
             if (!userId) {
-              document.getElementById('senhaGerada').textContent = data.nova_senha;
-              document.getElementById('usuarioSenha').value = data.nova_senha;
+              if (document.getElementById('senhaGerada')) {
+                document.getElementById('senhaGerada').textContent = data.nova_senha;
+              }
+              if (document.getElementById('usuarioSenha')) {
+                document.getElementById('usuarioSenha').value = data.nova_senha;
+              }
             }
           } else {
             const error = await response.json();
@@ -2964,14 +3215,23 @@
       }
 
       gerarSenhaAleatoria() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
         let senha = '';
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 10; i++) {
           senha += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
+        // Preencher campo no formulário
         document.getElementById('usuarioSenha').value = senha;
-        document.getElementById('senhaGerada').textContent = senha;
+        if (document.getElementById('senhaGerada')) {
+          document.getElementById('senhaGerada').textContent = senha;
+        }
+
+        // Mostrar modal com a senha
+        mostrarModalSenha(senha);
+
+        // Mostrar notificação por 5 segundos
+        this.showNotification(`Senha gerada com sucesso! Verifique o modal para copiar.`, 'success', 5000);
       }
 
       // ========== ENVIO DE E-MAIL ==========
@@ -3082,36 +3342,7 @@ Equipe de Suporte TI - Evoque Fitness`;
       }
     }
 
-    // Inicializar quando o DOM estiver carregado
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Verificar autenticação primeiro
-      const autenticado = await testarAutenticacao();
-      if (!autenticado) return;
-
-      window.painelAgente = new PainelAgente();
-      
-      // Event listeners para modal
-      document.getElementById('modalAtribuir')?.addEventListener('click', () => {
-        if (window.painelAgente.chamadoAtual) {
-          window.painelAgente.atribuirChamado(window.painelAgente.chamadoAtual.id);
-        }
-      });
-      
-      document.getElementById('modalAtualizar')?.addEventListener('click', () => {
-        window.painelAgente.atualizarChamado();
-      });
-      
-      document.getElementById('modalTransferir')?.addEventListener('click', () => {
-        window.painelAgente.transferirChamado();
-      });
-      
-      // Event listener para toggle de transferência
-      document.getElementById('modalTransferir')?.addEventListener('click', () => {
-        const transferSection = document.getElementById('modalTransferSection');
-        const isVisible = transferSection.style.display !== 'none';
-        transferSection.style.display = isVisible ? 'none' : 'block';
-      });
-    });
+    // DOMContentLoaded removido - inicialização consolidada acima
   </script>
 </body>
 </html>

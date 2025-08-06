@@ -290,7 +290,10 @@ def transferir_chamado(chamado_id):
         # Enviar e-mails de notificação
         try:
             from setores.ti.routes import enviar_email
-            
+            logger.info(f"🔄 Iniciando envio de e-mails para transferência do chamado {chamado.codigo}")
+            logger.info(f"📧 Email do solicitante: {chamado.email}")
+            logger.info(f"📧 Email do agente destino: {agente_destino.usuario.email}")
+
             # E-mail para o solicitante
             assunto_cliente = f"Chamado {chamado.codigo} - Transferência de Agente"
             corpo_cliente = f"""
@@ -300,55 +303,99 @@ Seu chamado {chamado.codigo} foi transferido para um novo agente.
 
 Detalhes da transferência:
 - Agente anterior: {agente_origem.usuario.nome} {agente_origem.usuario.sobrenome}
-- Novo agente: {agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}
+- Novo agente responsável: {agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}
 - E-mail do novo agente: {agente_destino.usuario.email}
 """
             if observacoes:
                 corpo_cliente += f"\n- Motivo da transferência: {observacoes}"
-                
+
             corpo_cliente += f"""
 
 O novo agente entrará em contato em breve para dar continuidade ao atendimento.
 
+Para acompanhar seu chamado ou fornecer informações adicionais, você pode responder a este e-mail.
+
 Atenciosamente,
 Equipe de Suporte TI - Evoque Fitness
 """
-            enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
-            
+            logger.info(f"📤 Enviando e-mail para solicitante: {chamado.email}")
+            resultado_cliente = enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
+            logger.info(f"📥 Resultado do envio para solicitante: {'✅ Sucesso' if resultado_cliente else '❌ Falha'}")
+
             # E-mail para o agente destino
-            assunto_agente = f"Novo Chamado Atribuído - {chamado.codigo}"
+            assunto_agente = f"Novo Chamado Atribuído por Transferência - {chamado.codigo}"
             corpo_agente = f"""
 Olá {agente_destino.usuario.nome},
 
 Você recebeu um novo chamado por transferência.
 
-Detalhes do chamado:
+📋 DETALHES DO CHAMADO:
 - Código: {chamado.codigo}
 - Protocolo: {chamado.protocolo}
 - Solicitante: {chamado.solicitante}
 - E-mail: {chamado.email}
-- Telefone: {chamado.telefone}
+- Telefone: {chamado.telefone or 'Não informado'}
 - Problema: {chamado.problema}
 - Prioridade: {chamado.prioridade}
+- Status: {chamado.status}
 - Transferido por: {agente_origem.usuario.nome} {agente_origem.usuario.sobrenome}
 """
             if observacoes:
-                corpo_agente += f"\n- Observações da transferência: {observacoes}"
-                
+                corpo_agente += f"\n💬 OBSERVAÇÕES DA TRANSFERÊNCIA:\n{observacoes}\n"
+
             corpo_agente += f"""
 
-Descrição do problema:
+📝 DESCRIÇÃO DO PROBLEMA:
 {chamado.descricao or 'Não informada'}
 
-Acesse o painel para gerenciar este chamado.
+🚀 PRÓXIMOS PASSOS:
+- Acesse o painel de agente para gerenciar este chamado
+- Entre em contato com o solicitante para dar início ao atendimento
+- Se necessário, consulte o agente anterior para mais informações
 
 Atenciosamente,
-Sistema de Suporte TI
+Sistema de Suporte TI - Evoque Fitness
 """
-            enviar_email(assunto_agente, corpo_agente, [agente_destino.usuario.email])
-            
+            logger.info(f"📤 Enviando e-mail para agente destino: {agente_destino.usuario.email}")
+            resultado_agente = enviar_email(assunto_agente, corpo_agente, [agente_destino.usuario.email])
+            logger.info(f"📥 Resultado do envio para agente: {'✅ Sucesso' if resultado_agente else '❌ Falha'}")
+
+            if resultado_cliente and resultado_agente:
+                logger.info("✅ Todos os e-mails de transferência enviados com sucesso")
+            elif resultado_cliente:
+                logger.warning("⚠️ E-mail enviado para solicitante, mas falhou para o agente")
+            elif resultado_agente:
+                logger.warning("⚠️ E-mail enviado para agente, mas falhou para o solicitante")
+            else:
+                logger.error("❌ Falha no envio de ambos os e-mails")
+
         except Exception as email_error:
-            logger.warning(f"Erro ao enviar e-mails de transferência: {str(email_error)}")
+            logger.error(f"❌ Erro crítico ao enviar e-mails de transferência: {str(email_error)}")
+            import traceback
+            logger.error(f"🔍 Stack trace: {traceback.format_exc()}")
+
+        # Criar notificação para o agente que recebeu a transferência
+        try:
+            criar_notificacao_agente(
+                agente_id=agente_destino.id,
+                titulo=f"Chamado Transferido - {chamado.codigo}",
+                mensagem=f"Você recebeu o chamado {chamado.codigo} por transferência de {agente_origem.usuario.nome}",
+                tipo='chamado_transferido',
+                chamado_id=chamado.id,
+                metadados={
+                    'agente_origem': f"{agente_origem.usuario.nome} {agente_origem.usuario.sobrenome}",
+                    'agente_origem_email': agente_origem.usuario.email,
+                    'solicitante': chamado.solicitante,
+                    'problema': chamado.problema,
+                    'prioridade': chamado.prioridade,
+                    'unidade': chamado.unidade,
+                    'observacoes': observacoes
+                },
+                prioridade='alta' if chamado.prioridade in ['Crítica', 'Alta'] else 'normal'
+            )
+
+        except Exception as notif_error:
+            logger.warning(f"Erro ao criar notificação de transferência: {str(notif_error)}")
 
         # Emitir evento Socket.IO para notificação em tempo real
         try:
@@ -713,7 +760,7 @@ def atribuir_chamado_para_mim(chamado_id):
         criar_notificacao_agente(
             agente_id=agente.id,
             titulo=f"Chamado {chamado.codigo} Atribuído",
-            mensagem=f"Você recebeu um novo chamado: {chamado.problema}",
+            mensagem=f"Voc�� recebeu um novo chamado: {chamado.problema}",
             tipo='chamado_atribuido',
             chamado_id=chamado.id,
             metadados={
@@ -735,6 +782,8 @@ def atribuir_chamado_para_mim(chamado_id):
         # Enviar e-mails de notificação
         try:
             from setores.ti.routes import enviar_email
+            logger.info(f"🔄 Iniciando envio de e-mail de atribuição para chamado {chamado.codigo}")
+            logger.info(f"📧 Email do solicitante: {chamado.email}")
 
             # E-mail para o solicitante
             assunto_cliente = f"Chamado {chamado.codigo} - Agente Atribuído"
@@ -743,19 +792,33 @@ Olá {chamado.solicitante},
 
 Seu chamado {chamado.codigo} foi atribuído para atendimento.
 
-Detalhes do agente responsável:
+📋 DETALHES DO CHAMADO:
+- Código: {chamado.codigo}
+- Protocolo: {chamado.protocolo}
+- Problema: {chamado.problema}
+- Prioridade: {chamado.prioridade}
+- Status: {chamado.status}
+
+👨‍💻 AGENTE RESPONSÁVEL:
 - Nome: {current_user.nome} {current_user.sobrenome}
 - E-mail: {current_user.email}
 
-O agente entrará em contato em breve para dar início ao atendimento.
+🚀 PRÓXIMOS PASSOS:
+O agente responsável irá analisar seu chamado e entrará em contato em breve para dar início ao atendimento.
+
+Para fornecer informações adicionais que possam ajudar na resolução, você pode responder a este e-mail.
 
 Atenciosamente,
 Equipe de Suporte TI - Evoque Fitness
 """
-            enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
+            logger.info(f"📤 Enviando e-mail de atribuição para: {chamado.email}")
+            resultado = enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
+            logger.info(f"📥 Resultado do envio: {'✅ Sucesso' if resultado else '❌ Falha'}")
 
         except Exception as email_error:
-            logger.warning(f"Erro ao enviar e-mail de atribuição: {str(email_error)}")
+            logger.error(f"❌ Erro ao enviar e-mail de atribuição: {str(email_error)}")
+            import traceback
+            logger.error(f"🔍 Stack trace: {traceback.format_exc()}")
 
         # Emitir evento Socket.IO para notificação em tempo real
         try:
