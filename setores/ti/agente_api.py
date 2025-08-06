@@ -314,8 +314,10 @@ O novo agente entrará em contato em breve para dar continuidade ao atendimento.
 Atenciosamente,
 Equipe de Suporte TI - Evoque Fitness
 """
-            enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
-            
+            logger.info(f"Enviando e-mail para solicitante: {chamado.email}")
+            resultado_cliente = enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
+            logger.info(f"Resultado do envio para solicitante: {resultado_cliente}")
+
             # E-mail para o agente destino
             assunto_agente = f"Novo Chamado Atribuído - {chamado.codigo}"
             corpo_agente = f"""
