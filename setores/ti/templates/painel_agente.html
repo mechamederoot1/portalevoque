@@ -1437,56 +1437,9 @@
       }
     }
 
-    // Função para mostrar seções
+    // Função showSection mantida para compatibilidade (chama a nova função)
     function showSection(sectionId) {
-      console.log('=== MOSTRANDO SEÇÃO:', sectionId, '===');
-
-      // Esconder todas as seções
-      document.querySelectorAll('.section-content').forEach(section => {
-        section.style.display = 'none';
-        section.classList.remove('active');
-      });
-
-      // Remover classe active de todos os links
-      document.querySelectorAll('.sidebar nav a').forEach(link => {
-        link.classList.remove('active');
-      });
-
-      // Mostrar seção selecionada
-      const targetSection = document.getElementById(sectionId);
-      if (targetSection) {
-        targetSection.style.display = 'block';
-        targetSection.classList.add('active');
-        console.log('Seção ativada:', sectionId);
-      } else {
-        console.error('Seção não encontrada:', sectionId);
-      }
-
-      // Adicionar classe active ao link correspondente
-      const targetLink = document.querySelector(`a[href="#${sectionId}"]`);
-      if (targetLink) {
-        targetLink.classList.add('active');
-
-        // Se o link está em um submenu, expandir o submenu
-        const parentLi = targetLink.closest('li.has-submenu');
-        if (parentLi) {
-          parentLi.classList.add('open');
-          const parentToggle = parentLi.querySelector('.submenu-toggle');
-          if (parentToggle) {
-            parentToggle.setAttribute('aria-expanded', 'true');
-          }
-          const submenu = parentLi.querySelector('.submenu');
-          if (submenu) {
-            submenu.style.display = 'block';
-            submenu.style.maxHeight = '300px';
-          }
-        }
-      }
-
-      // Carregar dados específicos da seção
-      if (window.painelAgente) {
-        window.painelAgente.carregarDadosSecao(sectionId);
-      }
+      navigateToSection(sectionId);
     }
 
     // Inicializar quando DOM estiver pronto
