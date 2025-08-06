@@ -1476,6 +1476,14 @@
         });
       }
 
+      // Inicializar PainelAgente
+      setTimeout(async () => {
+        const autenticado = await testarAutenticacao();
+        if (autenticado) {
+          window.painelAgente = new PainelAgente();
+        }
+      }, 500);
+
       // Mostrar dashboard inicialmente
       showSection('dashboard-agente');
     });
