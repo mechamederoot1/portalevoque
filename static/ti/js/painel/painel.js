@@ -35,6 +35,7 @@ let sections = null;
 
 function initializeNavigation() {
     console.log('=== INICIALIZANDO NAVEGAÇÃO ===');
+    console.log('Timestamp:', new Date().toISOString());
 
     // Always re-query the DOM to ensure we have the latest elements
     navLinks = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
@@ -42,6 +43,18 @@ function initializeNavigation() {
 
     console.log('Links de navegação encontrados:', navLinks.length);
     console.log('Seções encontradas:', sections.length);
+
+    // Debug mais detalhado se não encontrar elementos
+    if (navLinks.length === 0) {
+        console.error('PROBLEMA: Nenhum link de navegação encontrado!');
+        console.log('Sidebar existe?', !!document.getElementById('sidebar'));
+        console.log('Todos os links da sidebar:', document.querySelectorAll('.sidebar a').length);
+    }
+
+    if (sections.length === 0) {
+        console.error('PROBLEMA: Nenhuma seção content-section encontrada!');
+        console.log('Todas as sections do DOM:', document.querySelectorAll('section').length);
+    }
 
     // Debug: listar todos os links encontrados
     navLinks.forEach((link, index) => {
@@ -2070,7 +2083,7 @@ function loadSectionContent(sectionId) {
                 try {
                     window.prioridadesManager.carregarProblemas();
                 } catch (error) {
-                    console.warn('Erro ao carregar prioridades (não crítico):', error);
+                    console.warn('Erro ao carregar prioridades (não cr��tico):', error);
                 }
             }
             // Carregar problemas e configurações de notificações
@@ -4419,7 +4432,7 @@ function verDetalhesLog(id, detalhes, erroDetalhes) {
         if (conteudo) {
             conteudo.innerHTML = `
                 <div class="mb-3">
-                    <h6>Detalhes da Ação:</h6>
+                    <h6>Detalhes da A��ão:</h6>
                     <p class="text-muted">${detalhes || 'Sem detalhes disponíveis'}</p>
                 </div>
                 ${erroDetalhes ? `
