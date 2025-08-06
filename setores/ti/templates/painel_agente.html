@@ -3136,36 +3136,7 @@ Equipe de Suporte TI - Evoque Fitness`;
       }
     }
 
-    // Inicializar quando o DOM estiver carregado
-    document.addEventListener('DOMContentLoaded', async () => {
-      // Verificar autenticação primeiro
-      const autenticado = await testarAutenticacao();
-      if (!autenticado) return;
-
-      window.painelAgente = new PainelAgente();
-      
-      // Event listeners para modal
-      document.getElementById('modalAtribuir')?.addEventListener('click', () => {
-        if (window.painelAgente.chamadoAtual) {
-          window.painelAgente.atribuirChamado(window.painelAgente.chamadoAtual.id);
-        }
-      });
-      
-      document.getElementById('modalAtualizar')?.addEventListener('click', () => {
-        window.painelAgente.atualizarChamado();
-      });
-      
-      document.getElementById('modalTransferir')?.addEventListener('click', () => {
-        window.painelAgente.transferirChamado();
-      });
-      
-      // Event listener para toggle de transferência
-      document.getElementById('modalTransferir')?.addEventListener('click', () => {
-        const transferSection = document.getElementById('modalTransferSection');
-        const isVisible = transferSection.style.display !== 'none';
-        transferSection.style.display = isVisible ? 'none' : 'block';
-      });
-    });
+    // DOMContentLoaded removido - inicialização consolidada acima
   </script>
 </body>
 </html>
