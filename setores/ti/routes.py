@@ -24,7 +24,7 @@ EMAIL_ENABLED = all([CLIENT_ID, CLIENT_SECRET, TENANT_ID, USER_ID])
 if EMAIL_ENABLED:
     SCOPES = ["https://graph.microsoft.com/.default"]
     ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{USER_ID}/sendMail"
-    print("✅ Configurações de email Microsoft Graph carregadas")
+    print("✅ Configuraç��es de email Microsoft Graph carregadas")
 else:
     SCOPES = []
     ENDPOINT = None
@@ -53,12 +53,42 @@ def get_access_token():
         current_app.logger.error(f"❌ Exceção ao obter token: {str(e)}")
         return None
 
+def testar_configuracao_email():
+    """Função para testar se as configurações de e-mail estão funcionando"""
+    try:
+        current_app.logger.info("🔍 Testando configurações de e-mail...")
+        current_app.logger.info(f"EMAIL_ENABLED: {EMAIL_ENABLED}")
+        current_app.logger.info(f"CLIENT_ID presente: {'Sim' if CLIENT_ID else 'Não'}")
+        current_app.logger.info(f"CLIENT_SECRET presente: {'Sim' if CLIENT_SECRET else 'Não'}")
+        current_app.logger.info(f"TENANT_ID: {TENANT_ID}")
+        current_app.logger.info(f"USER_ID: {USER_ID}")
+        current_app.logger.info(f"EMAIL_TI: {EMAIL_TI}")
+
+        if EMAIL_ENABLED:
+            token = get_access_token()
+            if token:
+                current_app.logger.info("✅ Token obtido com sucesso! Sistema de e-mail funcionando")
+                return True
+            else:
+                current_app.logger.error("❌ Falha ao obter token")
+                return False
+        else:
+            current_app.logger.warning("⚠️ Sistema de e-mail desabilitado")
+            return False
+    except Exception as e:
+        current_app.logger.error(f"❌ Erro ao testar configurações: {str(e)}")
+        return False
+
 def enviar_email(assunto, corpo, destinatarios=None):
     if destinatarios is None:
         destinatarios = [EMAIL_TI]
 
+    current_app.logger.info(f"📧 Tentando enviar e-mail para: {destinatarios}")
+    current_app.logger.info(f"📋 Assunto: {assunto}")
+
     token = get_access_token()
     if not token:
+        current_app.logger.error("��� Token não obtido, não é possível enviar e-mail")
         return False
 
     headers = {
