@@ -1567,6 +1567,38 @@
       navigateToSection(sectionId);
     };
 
+    // Função para testar sistema de e-mail
+    window.testarSistemaEmail = async function() {
+      console.log('=== TESTANDO SISTEMA DE E-MAIL ===');
+
+      try {
+        const response = await fetch('/ti/test-email');
+        const result = await response.json();
+
+        console.log('Resultado do teste:', result);
+
+        if (result.success) {
+          console.log('✅ Sistema de e-mail funcionando!');
+          if (window.painelAgente) {
+            window.painelAgente.showNotification(result.message, 'success', 8000);
+          }
+        } else {
+          console.error('❌ Problema no sistema de e-mail:', result.message);
+          if (window.painelAgente) {
+            window.painelAgente.showNotification('Erro no sistema de e-mail: ' + result.message, 'error', 10000);
+          }
+        }
+
+        return result;
+      } catch (error) {
+        console.error('❌ Erro ao testar sistema de e-mail:', error);
+        if (window.painelAgente) {
+          window.painelAgente.showNotification('Erro ao testar sistema de e-mail', 'error');
+        }
+        return { success: false, error: error.message };
+      }
+    };
+
     // ========== FUNÇÕES DO MODAL DE SENHA ==========
 
     // Função para mostrar modal com senha gerada
