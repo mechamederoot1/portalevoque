@@ -65,10 +65,23 @@ def testar_configuracao_email():
         current_app.logger.info(f"USER_ID: {USER_ID}")
         current_app.logger.info(f"EMAIL_TI: {EMAIL_TI}")
 
+        # Verificar se todas as variáveis estão presentes
+        if not all([CLIENT_ID, CLIENT_SECRET, TENANT_ID, USER_ID]):
+            current_app.logger.error("❌ Variáveis de ambiente obrigatórias não configuradas")
+            missing = []
+            if not CLIENT_ID: missing.append("CLIENT_ID")
+            if not CLIENT_SECRET: missing.append("CLIENT_SECRET")
+            if not TENANT_ID: missing.append("TENANT_ID")
+            if not USER_ID: missing.append("USER_ID")
+            current_app.logger.error(f"❌ Variáveis faltando: {', '.join(missing)}")
+            return False
+
         if EMAIL_ENABLED:
+            current_app.logger.info("🔄 Tentando obter token...")
             token = get_access_token()
             if token:
                 current_app.logger.info("✅ Token obtido com sucesso! Sistema de e-mail funcionando")
+                current_app.logger.info(f"🔑 Token: {token[:20]}...")
                 return True
             else:
                 current_app.logger.error("❌ Falha ao obter token")
@@ -78,6 +91,8 @@ def testar_configuracao_email():
             return False
     except Exception as e:
         current_app.logger.error(f"❌ Erro ao testar configurações: {str(e)}")
+        import traceback
+        current_app.logger.error(f"🔍 Stack trace: {traceback.format_exc()}")
         return False
 
 def enviar_email(assunto, corpo, destinatarios=None):
