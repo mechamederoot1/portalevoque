@@ -350,6 +350,29 @@ Sistema de Suporte TI
         except Exception as email_error:
             logger.warning(f"Erro ao enviar e-mails de transferência: {str(email_error)}")
 
+        # Criar notificação para o agente que recebeu a transferência
+        try:
+            criar_notificacao_agente(
+                agente_id=agente_destino.id,
+                titulo=f"Chamado Transferido - {chamado.codigo}",
+                mensagem=f"Você recebeu o chamado {chamado.codigo} por transferência de {agente_origem.usuario.nome}",
+                tipo='chamado_transferido',
+                chamado_id=chamado.id,
+                metadados={
+                    'agente_origem': f"{agente_origem.usuario.nome} {agente_origem.usuario.sobrenome}",
+                    'agente_origem_email': agente_origem.usuario.email,
+                    'solicitante': chamado.solicitante,
+                    'problema': chamado.problema,
+                    'prioridade': chamado.prioridade,
+                    'unidade': chamado.unidade,
+                    'observacoes': observacoes
+                },
+                prioridade='alta' if chamado.prioridade in ['Crítica', 'Alta'] else 'normal'
+            )
+
+        except Exception as notif_error:
+            logger.warning(f"Erro ao criar notificação de transferência: {str(notif_error)}")
+
         # Emitir evento Socket.IO para notificação em tempo real
         try:
             from flask import current_app
