@@ -1326,17 +1326,16 @@
         console.log(`Seção ${i}: id="${section.id}", visível="${section.style.display !== 'none'}"`);
       });
 
+      // Adicionar event listeners SIMPLES sem clonagem
       navLinks.forEach(link => {
         const href = link.getAttribute('href');
         if (!href || !href.startsWith('#') || href === '#') return;
 
-        // Clonar para remover listeners antigos
-        const newLink = link.cloneNode(true);
-        link.parentNode.replaceChild(newLink, link);
+        console.log('Adicionando listener para:', href);
 
-        newLink.addEventListener('click', function(e) {
+        link.addEventListener('click', function(e) {
           console.log('=== CLICK DETECTADO ===');
-          console.log('Elemento clicado:', this);
+          console.log('Elemento clicado:', this.textContent.trim());
           console.log('href original:', href);
 
           e.preventDefault();
@@ -1344,7 +1343,8 @@
 
           const sectionId = href.substring(1);
           console.log('Navegando para seção:', sectionId);
-          console.log('Calling showSection...');
+
+          // Chamada direta e simples
           showSection(sectionId);
         });
       });
