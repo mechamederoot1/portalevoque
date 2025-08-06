@@ -610,29 +610,13 @@ class PrioridadesManager {
 
             const configuracoes = await response.json();
 
-            // Forçar recarregamento das configurações SLA se disponível
-            if (typeof window.carregarSLA === 'function') {
-                console.log('Recarregando dados SLA...');
+            // Forçar recarregamento completo das configurações SLA
+            if (typeof window.forcarRecarregamentoSLA === 'function') {
+                console.log('Forçando recarregamento completo dos dados SLA...');
+                window.forcarRecarregamentoSLA();
+            } else if (typeof window.carregarSLA === 'function') {
+                console.log('Recarregando dados SLA (fallback)...');
                 window.carregarSLA();
-            }
-
-            // Se estivermos na seção SLA, atualizar dados
-            const slaSection = document.getElementById('sla-dashboard');
-            if (slaSection && slaSection.classList.contains('active')) {
-                console.log('Seção SLA ativa - atualizando dados...');
-                if (typeof window.carregarConfiguracoesSLA === 'function') {
-                    window.carregarConfiguracoesSLA();
-                }
-
-                // Pequeno delay para garantir que as configurações foram carregadas
-                setTimeout(() => {
-                    if (typeof window.carregarMetricasSLA === 'function') {
-                        window.carregarMetricasSLA();
-                    }
-                    if (typeof window.carregarChamadosDetalhados === 'function') {
-                        window.carregarChamadosDetalhados();
-                    }
-                }, 500);
             }
 
             console.log('Sincronização SLA concluída');
