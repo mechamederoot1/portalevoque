@@ -276,20 +276,23 @@ class PrioridadesManager {
             
             // Invalidar cache
             this.cache.delete('problemas_list');
-            
+
             // Atualizar o atributo data-prioridade-original
             const select = document.querySelector(`[data-problema-id="${problemaId}"]`);
             if (select) {
                 select.dataset.prioridadeOriginal = novaPrioridade;
                 select.classList.remove('is-warning');
             }
-            
+
             console.log(`Prioridade do problema "${problemaNome}" atualizada para "${novaPrioridade}"`);
-            
+
+            // IMPORTANTE: Sincronizar configurações SLA após mudança de prioridade
+            this.sincronizarSLAComPrioridades();
+
             if (mostrarNotificacao) {
                 this.showSuccess(
                     'Prioridade Atualizada',
-                    `Prioridade do problema "${problemaNome}" atualizada para "${novaPrioridade}"`
+                    `Prioridade do problema "${problemaNome}" atualizada para "${novaPrioridade}" - SLA atualizado automaticamente`
                 );
             }
             
