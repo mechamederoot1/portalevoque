@@ -24,7 +24,7 @@ EMAIL_ENABLED = all([CLIENT_ID, CLIENT_SECRET, TENANT_ID, USER_ID])
 if EMAIL_ENABLED:
     SCOPES = ["https://graph.microsoft.com/.default"]
     ENDPOINT = f"https://graph.microsoft.com/v1.0/users/{USER_ID}/sendMail"
-    print("✅ Configuraç��es de email Microsoft Graph carregadas")
+    print("✅ Configurações de email Microsoft Graph carregadas")
 else:
     SCOPES = []
     ENDPOINT = None
@@ -88,7 +88,7 @@ def enviar_email(assunto, corpo, destinatarios=None):
 
     token = get_access_token()
     if not token:
-        current_app.logger.error("��� Token não obtido, não é possível enviar e-mail")
+        current_app.logger.error("❌ Token não obtido, não é possível enviar e-mail")
         return False
 
     headers = {
@@ -143,6 +143,57 @@ def gerar_protocolo():
     count = Chamado.query.filter(Chamado.protocolo.like(f"{data_str}-%")).count()
     novo_num = count + 1
     return f"{data_str}-{novo_num}"
+
+@ti_bp.route('/test-email')
+@login_required
+@setor_required('ti')
+def test_email():
+    """Rota para testar envio de e-mail"""
+    try:
+        # Testar configurações
+        config_ok = testar_configuracao_email()
+
+        if config_ok:
+            # Tentar enviar e-mail de teste
+            assunto = "Teste de E-mail - Sistema Evoque"
+            corpo = f"""
+Este é um e-mail de teste do sistema Evoque Fitness.
+
+Dados do teste:
+- Data/Hora: {get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')}
+- Usuário: {current_user.nome} {current_user.sobrenome}
+- E-mail do usuário: {current_user.email}
+
+Se você recebeu este e-mail, o sistema está funcionando corretamente!
+
+---
+Sistema de Suporte TI - Evoque Fitness
+"""
+
+            resultado = enviar_email(assunto, corpo, [current_user.email])
+
+            if resultado:
+                return jsonify({
+                    'success': True,
+                    'message': f'E-mail de teste enviado com sucesso para {current_user.email}'
+                })
+            else:
+                return jsonify({
+                    'success': False,
+                    'message': 'Falha ao enviar e-mail de teste'
+                })
+        else:
+            return jsonify({
+                'success': False,
+                'message': 'Configurações de e-mail não estão funcionando'
+            })
+
+    except Exception as e:
+        current_app.logger.error(f"Erro no teste de e-mail: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': f'Erro durante teste: {str(e)}'
+        })
 
 @ti_bp.route('/')
 @login_required
