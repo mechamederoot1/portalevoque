@@ -116,13 +116,18 @@ def enviar_email(assunto, corpo, destinatarios=None):
     if destinatarios is None:
         destinatarios = [EMAIL_TI]
 
-    current_app.logger.info(f"📧 Tentando enviar e-mail para: {destinatarios}")
+    current_app.logger.info(f"📧 === INICIANDO ENVIO DE EMAIL ===")
+    current_app.logger.info(f"📧 Destinatários: {destinatarios}")
     current_app.logger.info(f"📋 Assunto: {assunto}")
+    current_app.logger.info(f"📄 Tamanho do corpo: {len(corpo)} caracteres")
 
     token = get_access_token()
     if not token:
         current_app.logger.error("❌ Token não obtido, não é possível enviar e-mail")
         return False
+
+    current_app.logger.info(f"🔑 Token obtido: {token[:20]}...")
+    current_app.logger.info(f"🌐 Endpoint: {ENDPOINT}")
 
     headers = {
         "Authorization": f"Bearer {token}",
@@ -142,6 +147,8 @@ def enviar_email(assunto, corpo, destinatarios=None):
         },
         "saveToSentItems": "false"
     }
+
+    current_app.logger.info(f"📦 Email data preparado para: {[r['emailAddress']['address'] for r in email_data['message']['toRecipients']]}")
 
     try:
         response = requests.post(ENDPOINT, headers=headers, json=email_data)
