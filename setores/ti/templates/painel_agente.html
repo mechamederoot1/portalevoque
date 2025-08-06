@@ -2654,7 +2654,7 @@
       }
 
       abrirModalNovoUsuario() {
-        // Implementar cria��ão de usuário
+        // Implementar criação de usuário
         this.showNotification('Funcionalidade de criação de usuário em desenvolvimento', 'info');
       }
 
@@ -3136,12 +3136,21 @@
 
           if (response.ok) {
             const data = await response.json();
-            this.showNotification(`Nova senha gerada: ${data.nova_senha}`, 'success');
 
-            // Se estiver no modal, mostrar a nova senha
+            // Mostrar modal com a senha gerada
+            mostrarModalSenha(data.nova_senha);
+
+            // Mostrar notificação por 5 segundos
+            this.showNotification(`Nova senha gerada com sucesso! Verifique o modal para copiar.`, 'success', 5000);
+
+            // Se estiver no modal de edição, mostrar a nova senha também
             if (!userId) {
-              document.getElementById('senhaGerada').textContent = data.nova_senha;
-              document.getElementById('usuarioSenha').value = data.nova_senha;
+              if (document.getElementById('senhaGerada')) {
+                document.getElementById('senhaGerada').textContent = data.nova_senha;
+              }
+              if (document.getElementById('usuarioSenha')) {
+                document.getElementById('usuarioSenha').value = data.nova_senha;
+              }
             }
           } else {
             const error = await response.json();
