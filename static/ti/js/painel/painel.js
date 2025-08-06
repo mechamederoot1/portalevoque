@@ -1925,7 +1925,7 @@ document.getElementById('btnSalvarUsuario').addEventListener('click', async () =
         }
         
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showSuccess('Usuário Atualizado', 'Usu��rio atualizado com sucesso!');
+            window.advancedNotificationSystem.showSuccess('Usuário Atualizado', 'Usuário atualizado com sucesso!');
         }
         document.getElementById('modalEditarUsuario').classList.remove('active');
         await loadUsuarios();
@@ -2277,6 +2277,7 @@ function inicializarSistemaPainel() {
         }
 
         // 2. Inicializar navegação
+        initializeSubmenuToggles();
         initializeNavigation();
 
         // 3. Garantir que apenas uma seção esteja ativa
@@ -3462,7 +3463,7 @@ let currentUsuariosBusca = '';
 let isSearching = false;
 
 async function filtrarListaUsuarios(termoBusca, page = 1) {
-    console.log(`Filtrando usu��rios com termo: "${termoBusca}", página: ${page}`);
+    console.log(`Filtrando usu��rios com termo: "${termoBusca}", p��gina: ${page}`);
 
     // Prevent multiple simultaneous requests
     if (isSearching) {
@@ -4865,7 +4866,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 500));
     }
 
-    // Filtros de mudança imediata
+    // Filtros de mudan��a imediata
     const filtroPrioridade = document.getElementById('filtroPrioridade');
     const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
     const filtroUnidade = document.getElementById('filtroUnidade');
