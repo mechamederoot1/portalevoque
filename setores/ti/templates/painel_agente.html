@@ -1438,45 +1438,6 @@
       console.log('DOM carregado - inicializando navegação do agente...');
       initializeAgentNavigation();
 
-          // Fechar outros submenus
-          document.querySelectorAll('.has-submenu').forEach(otherLi => {
-            if (otherLi !== parentLi) {
-              const otherToggle = otherLi.querySelector('.submenu-toggle');
-              const otherSubmenu = otherLi.querySelector('.submenu');
-              if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
-              if (otherSubmenu) {
-                otherSubmenu.style.display = 'none';
-                otherSubmenu.style.maxHeight = '0';
-              }
-              otherLi.classList.remove('open');
-            }
-          });
-
-          // Toggle submenu atual
-          this.setAttribute('aria-expanded', !isExpanded);
-          if (submenu) {
-            if (isExpanded) {
-              submenu.style.display = 'none';
-              submenu.style.maxHeight = '0';
-              parentLi.classList.remove('open');
-            } else {
-              submenu.style.display = 'block';
-              submenu.style.maxHeight = '300px';
-              parentLi.classList.add('open');
-            }
-          }
-
-          // Rotacionar ícone - corrigido para usar o seletor ::after
-          if (parentLi) {
-            if (isExpanded) {
-              parentLi.classList.remove('open');
-            } else {
-              parentLi.classList.add('open');
-            }
-          }
-        });
-      });
-      
       // Configurar botão de notificações na navbar
       const btnNotificacoes = document.getElementById('btnNotificacoes');
       if (btnNotificacoes) {
