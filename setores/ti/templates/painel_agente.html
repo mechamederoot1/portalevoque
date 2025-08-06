@@ -1349,48 +1349,38 @@
         });
       });
 
-      // 2. Configurar submenu toggles
+      // 2. Configurar submenu toggles SIMPLES
       document.querySelectorAll('.submenu-toggle').forEach(toggle => {
-        // Clonar para remover listeners antigos
-        const newToggle = toggle.cloneNode(true);
-        toggle.parentNode.replaceChild(newToggle, toggle);
+        console.log('Configurando toggle para:', toggle.textContent.trim());
 
-        newToggle.addEventListener('click', function(e) {
+        toggle.addEventListener('click', function(e) {
+          console.log('=== TOGGLE SUBMENU ===', this.textContent.trim());
+
           e.preventDefault();
           e.stopPropagation();
 
           const parentLi = this.closest('li.has-submenu');
           const submenu = this.nextElementSibling;
-          const isExpanded = this.getAttribute('aria-expanded') === 'true';
+          const isOpen = parentLi.classList.contains('open');
 
-          console.log('Toggle submenu:', this.textContent.trim(), 'isExpanded:', isExpanded);
+          console.log('Submenu atual isOpen:', isOpen);
 
           // Fechar outros submenus
-          document.querySelectorAll('.sidebar li.has-submenu.open').forEach(otherLi => {
+          document.querySelectorAll('.sidebar li.has-submenu').forEach(otherLi => {
             if (otherLi !== parentLi) {
-              const otherToggle = otherLi.querySelector('.submenu-toggle');
-              const otherSubmenu = otherLi.querySelector('.submenu');
-              if (otherToggle) otherToggle.setAttribute('aria-expanded', 'false');
-              if (otherSubmenu) {
-                otherSubmenu.style.display = 'none';
-                otherSubmenu.style.maxHeight = '0';
-              }
               otherLi.classList.remove('open');
+              const otherSubmenu = otherLi.querySelector('.submenu');
+              if (otherSubmenu) otherSubmenu.style.display = 'none';
             }
           });
 
           // Toggle submenu atual
-          this.setAttribute('aria-expanded', !isExpanded);
-          if (submenu) {
-            if (isExpanded) {
-              submenu.style.display = 'none';
-              submenu.style.maxHeight = '0';
-              parentLi.classList.remove('open');
-            } else {
-              submenu.style.display = 'block';
-              submenu.style.maxHeight = '300px';
-              parentLi.classList.add('open');
-            }
+          if (isOpen) {
+            parentLi.classList.remove('open');
+            if (submenu) submenu.style.display = 'none';
+          } else {
+            parentLi.classList.add('open');
+            if (submenu) submenu.style.display = 'block';
           }
         });
       });
