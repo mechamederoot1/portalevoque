@@ -348,8 +348,15 @@ Acesse o painel para gerenciar este chamado.
 Atenciosamente,
 Sistema de Suporte TI
 """
-            enviar_email(assunto_agente, corpo_agente, [agente_destino.usuario.email])
-            
+            logger.info(f"Enviando e-mail para agente destino: {agente_destino.usuario.email}")
+            resultado_agente = enviar_email(assunto_agente, corpo_agente, [agente_destino.usuario.email])
+            logger.info(f"Resultado do envio para agente: {resultado_agente}")
+
+            if resultado_cliente and resultado_agente:
+                logger.info("✅ Todos os e-mails de transferência enviados com sucesso")
+            else:
+                logger.warning(f"⚠️ Problemas no envio: Cliente={resultado_cliente}, Agente={resultado_agente}")
+
         except Exception as email_error:
             logger.warning(f"Erro ao enviar e-mails de transferência: {str(email_error)}")
 
@@ -739,7 +746,7 @@ def atribuir_chamado_para_mim(chamado_id):
         criar_notificacao_agente(
             agente_id=agente.id,
             titulo=f"Chamado {chamado.codigo} Atribuído",
-            mensagem=f"Você recebeu um novo chamado: {chamado.problema}",
+            mensagem=f"Voc�� recebeu um novo chamado: {chamado.problema}",
             tipo='chamado_atribuido',
             chamado_id=chamado.id,
             metadados={
