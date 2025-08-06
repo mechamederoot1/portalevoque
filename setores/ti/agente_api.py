@@ -782,6 +782,8 @@ def atribuir_chamado_para_mim(chamado_id):
         # Enviar e-mails de notificação
         try:
             from setores.ti.routes import enviar_email
+            logger.info(f"🔄 Iniciando envio de e-mail de atribuição para chamado {chamado.codigo}")
+            logger.info(f"📧 Email do solicitante: {chamado.email}")
 
             # E-mail para o solicitante
             assunto_cliente = f"Chamado {chamado.codigo} - Agente Atribuído"
@@ -790,19 +792,33 @@ Olá {chamado.solicitante},
 
 Seu chamado {chamado.codigo} foi atribuído para atendimento.
 
-Detalhes do agente responsável:
+📋 DETALHES DO CHAMADO:
+- Código: {chamado.codigo}
+- Protocolo: {chamado.protocolo}
+- Problema: {chamado.problema}
+- Prioridade: {chamado.prioridade}
+- Status: {chamado.status}
+
+👨‍💻 AGENTE RESPONSÁVEL:
 - Nome: {current_user.nome} {current_user.sobrenome}
 - E-mail: {current_user.email}
 
-O agente entrará em contato em breve para dar início ao atendimento.
+🚀 PRÓXIMOS PASSOS:
+O agente responsável irá analisar seu chamado e entrará em contato em breve para dar início ao atendimento.
+
+Para fornecer informações adicionais que possam ajudar na resolução, você pode responder a este e-mail.
 
 Atenciosamente,
 Equipe de Suporte TI - Evoque Fitness
 """
-            enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
+            logger.info(f"📤 Enviando e-mail de atribuição para: {chamado.email}")
+            resultado = enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
+            logger.info(f"📥 Resultado do envio: {'✅ Sucesso' if resultado else '❌ Falha'}")
 
         except Exception as email_error:
-            logger.warning(f"Erro ao enviar e-mail de atribuição: {str(email_error)}")
+            logger.error(f"❌ Erro ao enviar e-mail de atribuição: {str(email_error)}")
+            import traceback
+            logger.error(f"🔍 Stack trace: {traceback.format_exc()}")
 
         # Emitir evento Socket.IO para notificação em tempo real
         try:
