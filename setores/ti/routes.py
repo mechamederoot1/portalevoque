@@ -37,21 +37,38 @@ def get_access_token():
         return None
 
     try:
+        current_app.logger.info(f"🔄 Configurando MSAL Client...")
+        current_app.logger.info(f"🔑 CLIENT_ID: {CLIENT_ID[:8]}...")
+        current_app.logger.info(f"🏢 TENANT_ID: {TENANT_ID}")
+        current_app.logger.info(f"🌐 Authority: https://login.microsoftonline.com/{TENANT_ID}")
+
         app = ConfidentialClientApplication(
             client_id=CLIENT_ID,
             client_credential=CLIENT_SECRET,
             authority=f"https://login.microsoftonline.com/{TENANT_ID}"
         )
+
+        current_app.logger.info(f"📋 Scopes: {SCOPES}")
+        current_app.logger.info("🔄 Solicitando token...")
+
         result = app.acquire_token_for_client(scopes=SCOPES)
+
+        current_app.logger.info(f"📥 Resultado recebido: {list(result.keys())}")
 
         if "access_token" in result:
             current_app.logger.info("✅ Token obtido com sucesso!")
             return result["access_token"]
         else:
-            current_app.logger.error(f"❌ Erro ao obter token: {result.get('error')}")
+            current_app.logger.error(f"❌ Erro ao obter token:")
+            current_app.logger.error(f"   - Error: {result.get('error', 'N/A')}")
+            current_app.logger.error(f"   - Error Description: {result.get('error_description', 'N/A')}")
+            current_app.logger.error(f"   - Error Codes: {result.get('error_codes', 'N/A')}")
+            current_app.logger.error(f"   - Correlation ID: {result.get('correlation_id', 'N/A')}")
             return None
     except Exception as e:
         current_app.logger.error(f"❌ Exceção ao obter token: {str(e)}")
+        import traceback
+        current_app.logger.error(f"🔍 Stack trace: {traceback.format_exc()}")
         return None
 
 def testar_configuracao_email():
