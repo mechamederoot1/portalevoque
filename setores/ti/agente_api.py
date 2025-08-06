@@ -290,7 +290,9 @@ def transferir_chamado(chamado_id):
         # Enviar e-mails de notificação
         try:
             from setores.ti.routes import enviar_email
-            logger.info(f"Iniciando envio de e-mails para transferência do chamado {chamado.codigo}")
+            logger.info(f"🔄 Iniciando envio de e-mails para transferência do chamado {chamado.codigo}")
+            logger.info(f"📧 Email do solicitante: {chamado.email}")
+            logger.info(f"📧 Email do agente destino: {agente_destino.usuario.email}")
 
             # E-mail para o solicitante
             assunto_cliente = f"Chamado {chamado.codigo} - Transferência de Agente"
@@ -301,64 +303,76 @@ Seu chamado {chamado.codigo} foi transferido para um novo agente.
 
 Detalhes da transferência:
 - Agente anterior: {agente_origem.usuario.nome} {agente_origem.usuario.sobrenome}
-- Novo agente: {agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}
+- Novo agente responsável: {agente_destino.usuario.nome} {agente_destino.usuario.sobrenome}
 - E-mail do novo agente: {agente_destino.usuario.email}
 """
             if observacoes:
                 corpo_cliente += f"\n- Motivo da transferência: {observacoes}"
-                
+
             corpo_cliente += f"""
 
 O novo agente entrará em contato em breve para dar continuidade ao atendimento.
 
+Para acompanhar seu chamado ou fornecer informações adicionais, você pode responder a este e-mail.
+
 Atenciosamente,
 Equipe de Suporte TI - Evoque Fitness
 """
-            logger.info(f"Enviando e-mail para solicitante: {chamado.email}")
+            logger.info(f"📤 Enviando e-mail para solicitante: {chamado.email}")
             resultado_cliente = enviar_email(assunto_cliente, corpo_cliente, [chamado.email])
-            logger.info(f"Resultado do envio para solicitante: {resultado_cliente}")
+            logger.info(f"📥 Resultado do envio para solicitante: {'✅ Sucesso' if resultado_cliente else '❌ Falha'}")
 
             # E-mail para o agente destino
-            assunto_agente = f"Novo Chamado Atribuído - {chamado.codigo}"
+            assunto_agente = f"Novo Chamado Atribuído por Transferência - {chamado.codigo}"
             corpo_agente = f"""
 Olá {agente_destino.usuario.nome},
 
 Você recebeu um novo chamado por transferência.
 
-Detalhes do chamado:
+📋 DETALHES DO CHAMADO:
 - Código: {chamado.codigo}
 - Protocolo: {chamado.protocolo}
 - Solicitante: {chamado.solicitante}
 - E-mail: {chamado.email}
-- Telefone: {chamado.telefone}
+- Telefone: {chamado.telefone or 'Não informado'}
 - Problema: {chamado.problema}
 - Prioridade: {chamado.prioridade}
+- Status: {chamado.status}
 - Transferido por: {agente_origem.usuario.nome} {agente_origem.usuario.sobrenome}
 """
             if observacoes:
-                corpo_agente += f"\n- Observações da transferência: {observacoes}"
-                
+                corpo_agente += f"\n💬 OBSERVAÇÕES DA TRANSFERÊNCIA:\n{observacoes}\n"
+
             corpo_agente += f"""
 
-Descrição do problema:
+📝 DESCRIÇÃO DO PROBLEMA:
 {chamado.descricao or 'Não informada'}
 
-Acesse o painel para gerenciar este chamado.
+🚀 PRÓXIMOS PASSOS:
+- Acesse o painel de agente para gerenciar este chamado
+- Entre em contato com o solicitante para dar início ao atendimento
+- Se necessário, consulte o agente anterior para mais informações
 
 Atenciosamente,
-Sistema de Suporte TI
+Sistema de Suporte TI - Evoque Fitness
 """
-            logger.info(f"Enviando e-mail para agente destino: {agente_destino.usuario.email}")
+            logger.info(f"📤 Enviando e-mail para agente destino: {agente_destino.usuario.email}")
             resultado_agente = enviar_email(assunto_agente, corpo_agente, [agente_destino.usuario.email])
-            logger.info(f"Resultado do envio para agente: {resultado_agente}")
+            logger.info(f"📥 Resultado do envio para agente: {'✅ Sucesso' if resultado_agente else '❌ Falha'}")
 
             if resultado_cliente and resultado_agente:
                 logger.info("✅ Todos os e-mails de transferência enviados com sucesso")
+            elif resultado_cliente:
+                logger.warning("⚠️ E-mail enviado para solicitante, mas falhou para o agente")
+            elif resultado_agente:
+                logger.warning("⚠️ E-mail enviado para agente, mas falhou para o solicitante")
             else:
-                logger.warning(f"⚠️ Problemas no envio: Cliente={resultado_cliente}, Agente={resultado_agente}")
+                logger.error("❌ Falha no envio de ambos os e-mails")
 
         except Exception as email_error:
-            logger.warning(f"Erro ao enviar e-mails de transferência: {str(email_error)}")
+            logger.error(f"❌ Erro crítico ao enviar e-mails de transferência: {str(email_error)}")
+            import traceback
+            logger.error(f"🔍 Stack trace: {traceback.format_exc()}")
 
         # Criar notificação para o agente que recebeu a transferência
         try:
