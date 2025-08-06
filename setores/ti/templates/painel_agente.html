@@ -1263,7 +1263,7 @@
             <div class="col-12">
               <div class="mb-3">
                 <label for="modalObservacoes" class="form-label"><strong>Observações da Atualização:</strong></label>
-                <textarea class="form-control" id="modalObservacoes" rows="3" placeholder="Adicione observa��ões sobre as ações realizadas..."></textarea>
+                <textarea class="form-control" id="modalObservacoes" rows="3" placeholder="Adicione observações sobre as ações realizadas..."></textarea>
               </div>
             </div>
           </div>
@@ -1435,7 +1435,7 @@
       if (targetSection) {
         targetSection.style.display = 'block';
         targetSection.classList.add('active');
-        console.log(`Se��ão ${sectionId} ativada`);
+        console.log(`Seção ${sectionId} ativada`);
       } else {
         console.error(`Seção ${sectionId} não encontrada`);
         // Fallback para dashboard
@@ -1566,6 +1566,89 @@
       console.log(`Testando navegação para: ${sectionId}`);
       navigateToSection(sectionId);
     };
+
+    // ========== FUNÇÕES DO MODAL DE SENHA ==========
+
+    // Função para mostrar modal com senha gerada
+    function mostrarModalSenha(senha) {
+      document.getElementById('senhaGeradaModal').value = senha;
+      const modal = new bootstrap.Modal(document.getElementById('modalSenhaGerada'));
+      modal.show();
+    }
+
+    // Função para copiar senha para área de transferência
+    async function copiarSenha() {
+      const senhaInput = document.getElementById('senhaGeradaModal');
+      const senha = senhaInput.value;
+
+      try {
+        await navigator.clipboard.writeText(senha);
+
+        // Feedback visual
+        const btnCopiar = document.getElementById('btnCopiarSenha');
+        const iconOriginal = btnCopiar.innerHTML;
+        btnCopiar.innerHTML = '<i class="fas fa-check text-success"></i>';
+        btnCopiar.classList.add('btn-success');
+        btnCopiar.classList.remove('btn-outline-primary');
+
+        // Voltar ao estado original após 2 segundos
+        setTimeout(() => {
+          btnCopiar.innerHTML = iconOriginal;
+          btnCopiar.classList.remove('btn-success');
+          btnCopiar.classList.add('btn-outline-primary');
+        }, 2000);
+
+        // Mostrar notificação de sucesso
+        if (window.painelAgente) {
+          window.painelAgente.showNotification('Senha copiada para a área de transferência!', 'success');
+        }
+
+      } catch (err) {
+        console.error('Erro ao copiar senha:', err);
+
+        // Fallback: selecionar texto
+        senhaInput.select();
+        senhaInput.setSelectionRange(0, 99999); // Para dispositivos móveis
+
+        try {
+          document.execCommand('copy');
+          if (window.painelAgente) {
+            window.painelAgente.showNotification('Senha selecionada. Use Ctrl+C para copiar.', 'info');
+          }
+        } catch (fallbackErr) {
+          if (window.painelAgente) {
+            window.painelAgente.showNotification('Não foi possível copiar automaticamente. Selecione e copie manualmente.', 'warning');
+          }
+        }
+      }
+    }
+
+    // Event listeners para o modal
+    document.addEventListener('DOMContentLoaded', function() {
+      // Botão copiar senha
+      document.getElementById('btnCopiarSenha')?.addEventListener('click', copiarSenha);
+
+      // Botão copiar e fechar
+      document.getElementById('btnCopiarFechar')?.addEventListener('click', function() {
+        copiarSenha().then(() => {
+          // Fechar modal após copiar
+          setTimeout(() => {
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalSenhaGerada'));
+            if (modal) {
+              modal.hide();
+            }
+          }, 1000);
+        });
+      });
+
+      // Copiar ao dar duplo clique no campo
+      document.getElementById('senhaGeradaModal')?.addEventListener('dblclick', function() {
+        copiarSenha();
+      });
+    });
+
+    // Exportar função para uso global
+    window.mostrarModalSenha = mostrarModalSenha;
 
     // Painel do Agente de Suporte
     class PainelAgente {
