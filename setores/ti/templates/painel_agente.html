@@ -1263,7 +1263,7 @@
             <div class="col-12">
               <div class="mb-3">
                 <label for="modalObservacoes" class="form-label"><strong>Observações da Atualização:</strong></label>
-                <textarea class="form-control" id="modalObservacoes" rows="3" placeholder="Adicione observações sobre as ações realizadas..."></textarea>
+                <textarea class="form-control" id="modalObservacoes" rows="3" placeholder="Adicione observa��ões sobre as ações realizadas..."></textarea>
               </div>
             </div>
           </div>
@@ -1290,6 +1290,52 @@
               </button>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal para Senha Gerada -->
+  <div class="modal fade" id="modalSenhaGerada" tabindex="-1" aria-labelledby="modalSenhaGeradaLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header bg-success text-white">
+          <h5 class="modal-title" id="modalSenhaGeradaLabel">
+            <i class="fas fa-key me-2"></i>Senha Gerada com Sucesso
+          </h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body text-center">
+          <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            Copie a senha abaixo antes de fechar esta janela. Por segurança, ela não será exibida novamente.
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label fw-bold">Nova Senha:</label>
+            <div class="input-group">
+              <input type="text" class="form-control form-control-lg text-center fw-bold"
+                     id="senhaGeradaModal"
+                     readonly
+                     style="font-family: monospace; letter-spacing: 2px; font-size: 1.25rem;">
+              <button class="btn btn-outline-primary" type="button" id="btnCopiarSenha" title="Copiar senha">
+                <i class="fas fa-copy"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="text-muted small">
+            <i class="fas fa-shield-alt me-1"></i>
+            Esta senha foi gerada automaticamente e é segura para uso.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-primary" id="btnCopiarFechar">
+            <i class="fas fa-copy me-1"></i>Copiar e Fechar
+          </button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+            <i class="fas fa-times me-1"></i>Fechar
+          </button>
         </div>
       </div>
     </div>
@@ -1389,7 +1435,7 @@
       if (targetSection) {
         targetSection.style.display = 'block';
         targetSection.classList.add('active');
-        console.log(`Seção ${sectionId} ativada`);
+        console.log(`Se��ão ${sectionId} ativada`);
       } else {
         console.error(`Seção ${sectionId} não encontrada`);
         // Fallback para dashboard
