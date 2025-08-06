@@ -442,7 +442,7 @@ class PrioridadesManager {
         } finally {
             this.isUpdating = false;
             
-            // Reabilitar botão de salvar
+            // Reabilitar bot��o de salvar
             if (btnSalvar) {
                 btnSalvar.disabled = false;
                 btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Todas';
@@ -581,6 +581,60 @@ class PrioridadesManager {
             }, {}),
             comItemInternet: this.problemas.filter(p => p.requer_item_internet).length
         };
+    }
+
+    // NOVA FUNÇÃO: Sincronizar configurações SLA com prioridades atualizadas
+    async sincronizarSLAComPrioridades() {
+        console.log('Sincronizando configurações SLA com prioridades...');
+
+        try {
+            // Buscar configurações atuais de SLA
+            const response = await fetch('/ti/painel/api/configuracoes', {
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                },
+                credentials: 'same-origin'
+            });
+
+            if (!response.ok) {
+                throw new Error(`Erro ao buscar configurações: ${response.status}`);
+            }
+
+            const configuracoes = await response.json();
+
+            // Forçar recarregamento das configurações SLA se disponível
+            if (typeof window.carregarSLA === 'function') {
+                console.log('Recarregando dados SLA...');
+                window.carregarSLA();
+            }
+
+            // Se estivermos na seção SLA, atualizar dados
+            const slaSection = document.getElementById('sla-dashboard');
+            if (slaSection && slaSection.classList.contains('active')) {
+                console.log('Seção SLA ativa - atualizando dados...');
+                if (typeof window.carregarConfiguracoesSLA === 'function') {
+                    window.carregarConfiguracoesSLA();
+                }
+
+                // Pequeno delay para garantir que as configurações foram carregadas
+                setTimeout(() => {
+                    if (typeof window.carregarMetricasSLA === 'function') {
+                        window.carregarMetricasSLA();
+                    }
+                    if (typeof window.carregarChamadosDetalhados === 'function') {
+                        window.carregarChamadosDetalhados();
+                    }
+                }, 500);
+            }
+
+            console.log('Sincronização SLA concluída');
+
+        } catch (error) {
+            console.error('Erro ao sincronizar SLA:', error);
+            // Não mostrar erro para não confundir o usuário, já que a prioridade foi salva
+        }
     }
 }
 
