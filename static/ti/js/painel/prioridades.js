@@ -435,14 +435,20 @@ class PrioridadesManager {
             
             // Recarregar dados para garantir consistência
             await this.carregarProblemas();
-            
+
+            // Sincronizar configurações SLA após alterações em lote
+            if (sucessos.length > 0) {
+                console.log('Sincronizando SLA após alterações em lote...');
+                this.sincronizarSLAComPrioridades();
+            }
+
         } catch (error) {
             console.error('Erro geral ao salvar prioridades:', error);
             this.showError('Erro', 'Erro inesperado ao salvar prioridades');
         } finally {
             this.isUpdating = false;
             
-            // Reabilitar bot��o de salvar
+            // Reabilitar botão de salvar
             if (btnSalvar) {
                 btnSalvar.disabled = false;
                 btnSalvar.innerHTML = '<i class="fas fa-save"></i> Salvar Todas';
