@@ -1335,11 +1335,16 @@
         link.parentNode.replaceChild(newLink, link);
 
         newLink.addEventListener('click', function(e) {
+          console.log('=== CLICK DETECTADO ===');
+          console.log('Elemento clicado:', this);
+          console.log('href original:', href);
+
           e.preventDefault();
           e.stopPropagation();
 
           const sectionId = href.substring(1);
           console.log('Navegando para seção:', sectionId);
+          console.log('Calling showSection...');
           showSection(sectionId);
         });
       });
@@ -2587,7 +2592,7 @@
           document.body.appendChild(container);
         }
 
-        // Renderizar notifica��ões recentes
+        // Renderizar notificações recentes
         notificacoes.slice(0, 3).forEach(notif => {
           if (notif.exibir_popup) {
             this.exibirNotificacaoPopup(notif);
