@@ -2654,7 +2654,7 @@
       }
 
       abrirModalNovoUsuario() {
-        // Implementar criação de usuário
+        // Implementar cria��ão de usuário
         this.showNotification('Funcionalidade de criação de usuário em desenvolvimento', 'info');
       }
 
@@ -3174,14 +3174,23 @@
       }
 
       gerarSenhaAleatoria() {
-        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%&*';
         let senha = '';
-        for (let i = 0; i < 8; i++) {
+        for (let i = 0; i < 10; i++) {
           senha += chars.charAt(Math.floor(Math.random() * chars.length));
         }
 
+        // Preencher campo no formulário
         document.getElementById('usuarioSenha').value = senha;
-        document.getElementById('senhaGerada').textContent = senha;
+        if (document.getElementById('senhaGerada')) {
+          document.getElementById('senhaGerada').textContent = senha;
+        }
+
+        // Mostrar modal com a senha
+        mostrarModalSenha(senha);
+
+        // Mostrar notificação por 5 segundos
+        this.showNotification(`Senha gerada com sucesso! Verifique o modal para copiar.`, 'success', 5000);
       }
 
       // ========== ENVIO DE E-MAIL ==========
