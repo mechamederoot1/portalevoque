@@ -2212,6 +2212,28 @@ function resetInactivityTimer() {
 // Iniciar o timer quando a página carregar
 resetInactivityTimer();
 
+// Função de debug para testar navegação manualmente
+window.debugNavigation = function() {
+    console.log('=== DEBUG NAVEGAÇÃO ===');
+    const links = document.querySelectorAll('.sidebar nav ul li a[href^="#"]');
+    const sections = document.querySelectorAll('section.content-section');
+
+    console.log('Links encontrados:', links.length);
+    console.log('Seções encontradas:', sections.length);
+
+    links.forEach((link, i) => {
+        console.log(`Link ${i}: href="${link.getAttribute('href')}", text="${link.textContent.trim()}"`);
+    });
+
+    sections.forEach((section, i) => {
+        console.log(`Seção ${i}: id="${section.id}", active="${section.classList.contains('active')}"`);
+    });
+
+    // Teste navegação
+    console.log('Testando navegação para "sla-dashboard"...');
+    activateSection('sla-dashboard');
+};
+
 // Função de inicialização compreensiva
 function inicializarSistemaPainel() {
     console.log('=== INICIALIZANDO SISTEMA DO PAINEL ===');
