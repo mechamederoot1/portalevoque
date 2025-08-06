@@ -1305,13 +1305,26 @@
     // Sistema de navegação robusto para painel do agente
     function initializeAgentNavigation() {
       console.log('=== INICIALIZANDO NAVEGAÇÃO DO AGENTE ===');
+      console.log('Timestamp:', new Date().toISOString());
 
-      // 1. Configurar navegação entre seções
+      // 1. Debug detalhado dos elementos
+      const sidebar = document.getElementById('sidebar');
       const navLinks = document.querySelectorAll('.sidebar nav a[href^="#"]');
       const sections = document.querySelectorAll('.section-content');
 
+      console.log('Sidebar existe:', !!sidebar);
       console.log('Links encontrados:', navLinks.length);
       console.log('Seções encontradas:', sections.length);
+
+      // Debug de cada link
+      navLinks.forEach((link, i) => {
+        console.log(`Link ${i}: href="${link.getAttribute('href')}", texto="${link.textContent.trim()}"`);
+      });
+
+      // Debug de cada seção
+      sections.forEach((section, i) => {
+        console.log(`Seção ${i}: id="${section.id}", visível="${section.style.display !== 'none'}"`);
+      });
 
       navLinks.forEach(link => {
         const href = link.getAttribute('href');
@@ -2574,7 +2587,7 @@
           document.body.appendChild(container);
         }
 
-        // Renderizar notificações recentes
+        // Renderizar notifica��ões recentes
         notificacoes.slice(0, 3).forEach(notif => {
           if (notif.exibir_popup) {
             this.exibirNotificacaoPopup(notif);
