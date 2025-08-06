@@ -142,8 +142,15 @@ function atualizarIndicadorSLA(elementId, valor, isNegativo = false) {
 }
 
 // Carregar configurações SLA com tratamento robusto de erros
-function carregarConfiguracoesSLA() {
-    fetch('/ti/painel/api/configuracoes')
+function carregarConfiguracoesSLA(forcarRecarregamento = false) {
+    // Adicionar timestamp para evitar cache quando forçar recarregamento
+    const url = forcarRecarregamento ?
+        `/ti/painel/api/configuracoes?t=${Date.now()}` :
+        '/ti/painel/api/configuracoes';
+
+    console.log('Carregando configurações SLA...', forcarRecarregamento ? '(forçado)' : '');
+
+    fetch(url)
         .then(response => {
             console.log('Response status:', response.status);
             console.log('Response headers:', response.headers.get('content-type'));
