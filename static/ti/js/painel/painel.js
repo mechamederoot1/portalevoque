@@ -10,24 +10,43 @@ function toggleSidebar() {
 sidebarToggleBtn?.addEventListener('click', toggleSidebar);
 mobileSidebarToggleBtn?.addEventListener('click', toggleSidebar);
 
-// Submenu toggle
-document.querySelectorAll('.sidebar nav ul li.has-submenu > a').forEach(anchor => {
-    anchor.addEventListener('click', e => {
-        e.preventDefault();
-        const parentLi = anchor.parentElement;
-        const isOpen = parentLi.classList.contains('open');
-        document.querySelectorAll('.sidebar nav ul li.has-submenu.open').forEach(li => {
-            if (li !== parentLi) li.classList.remove('open');
+// Submenu toggle - aplicado após DOM carregar
+function initializeSubmenuToggles() {
+    console.log('Inicializando toggles de submenu...');
+    document.querySelectorAll('.sidebar nav ul li.has-submenu > a.submenu-toggle').forEach(anchor => {
+        // Remover listeners antigos clonando o elemento
+        const newAnchor = anchor.cloneNode(true);
+        anchor.parentNode.replaceChild(newAnchor, anchor);
+
+        newAnchor.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const parentLi = newAnchor.parentElement;
+            const isOpen = parentLi.classList.contains('open');
+
+            console.log('Toggle submenu:', newAnchor.textContent.trim(), 'isOpen:', isOpen);
+
+            // Fechar outros submenus
+            document.querySelectorAll('.sidebar nav ul li.has-submenu.open').forEach(li => {
+                if (li !== parentLi) {
+                    li.classList.remove('open');
+                    const toggle = li.querySelector('.submenu-toggle');
+                    if (toggle) toggle.setAttribute('aria-expanded', 'false');
+                }
+            });
+
+            // Alternar submenu atual
+            if (isOpen) {
+                parentLi.classList.remove('open');
+                newAnchor.setAttribute('aria-expanded', 'false');
+            } else {
+                parentLi.classList.add('open');
+                newAnchor.setAttribute('aria-expanded', 'true');
+            }
         });
-        if (isOpen) {
-            parentLi.classList.remove('open');
-            anchor.setAttribute('aria-expanded', 'false');
-        } else {
-            parentLi.classList.add('open');
-            anchor.setAttribute('aria-expanded', 'true');
-        }
     });
-});
+}
 
 // Navigation will be initialized after DOM is loaded
 let navLinks = null;
@@ -4310,7 +4329,7 @@ async function carregarBackupManutencao() {
             btnCriarBackup.addEventListener('click', criarBackup);
         }
 
-        console.log('Seção backup/manutenção carregada');
+        console.log('Se��ão backup/manutenção carregada');
     } catch (error) {
         console.error('Erro ao carregar backup/manutenção:', error);
     }
