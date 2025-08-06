@@ -2097,7 +2097,7 @@
         return classes[status] || 'secondary';
       }
 
-      showNotification(message, type) {
+      showNotification(message, type, duration = 5000) {
         const notification = document.createElement('div');
         notification.className = `alert alert-${type === 'error' ? 'danger' : type} alert-dismissible fade`;
         notification.style.cssText = `
@@ -2121,10 +2121,10 @@
           notification.style.opacity = '1';
         }, 100);
 
-        // Auto-remover após 5 segundos
+        // Auto-remover após duração especificada (padrão 5 segundos)
         setTimeout(() => {
           this.hideNotification(notification);
-        }, 5000);
+        }, duration);
 
         // Evento de fechar manual
         const closeBtn = notification.querySelector('.btn-close');
