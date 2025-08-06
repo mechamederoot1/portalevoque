@@ -748,8 +748,29 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Função para forçar recarregamento completo de SLA (chamada externamente)
+function forcarRecarregamentoSLA() {
+    console.log('=== FORÇANDO RECARREGAMENTO COMPLETO DE SLA ===');
+
+    // Resetar configurações para forçar reload
+    slaConfiguracoes = {};
+
+    // Recarregar configurações forçadamente
+    carregarConfiguracoesSLA(true);
+
+    // Pequeno delay e recarregar métricas
+    setTimeout(() => {
+        carregarMetricasSLA();
+        carregarChamadosDetalhados();
+    }, 1000);
+}
+
 // Exportar funções para uso global
 window.carregarSLA = carregarSLA;
+window.carregarConfiguracoesSLA = carregarConfiguracoesSLA;
+window.carregarMetricasSLA = carregarMetricasSLA;
+window.carregarChamadosDetalhados = carregarChamadosDetalhados;
+window.forcarRecarregamentoSLA = forcarRecarregamentoSLA;
 window.atualizarSLA = atualizarSLA;
 window.exportarRelatorioSLA = exportarRelatorioSLA;
 window.formatarTempo = formatarTempo;
