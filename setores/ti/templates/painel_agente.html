@@ -434,7 +434,7 @@
                         <th>Problema</th>
                         <th>Status</th>
                         <th>Prioridade</th>
-                        <th>Atribuído em</th>
+                        <th>Atribu��do em</th>
                         <th>Ações</th>
                       </tr>
                     </thead>
@@ -1495,6 +1495,31 @@
 
       console.log('Sistema de navegação do agente inicializado com sucesso');
     });
+
+    // Função global para debug de navegação
+    window.debugNavigationAgent = function() {
+      console.log('=== DEBUG NAVEGAÇÃO AGENTE ===');
+      console.log('Links de navegação:', document.querySelectorAll('.sidebar a[href^="#"]').length);
+      console.log('Seções:', document.querySelectorAll('.section-content').length);
+      console.log('Seção ativa:', document.querySelector('.section-content[style*="block"]')?.id || 'nenhuma');
+
+      // Testar navegação para todas as seções
+      const secoes = ['dashboard-agente', 'historico-agente', 'notificacoes-agente', 'gerenciar-usuarios', 'perfil-agente'];
+      console.log('Testando navegação para:', secoes);
+
+      secoes.forEach((secao, index) => {
+        setTimeout(() => {
+          console.log(`Testando navegação para: ${secao}`);
+          navigateToSection(secao);
+        }, index * 1000);
+      });
+    };
+
+    // Função para testar navegação específica
+    window.testNavigation = function(sectionId) {
+      console.log(`Testando navegação para: ${sectionId}`);
+      navigateToSection(sectionId);
+    };
 
     // Painel do Agente de Suporte
     class PainelAgente {
@@ -2892,7 +2917,7 @@
           if (response.ok) {
             const user = await response.json();
 
-            // Preencher formulário
+            // Preencher formul��rio
             document.getElementById('usuarioId').value = user.id;
             document.getElementById('usuarioNome').value = user.nome;
             document.getElementById('usuarioSobrenome').value = user.sobrenome;
