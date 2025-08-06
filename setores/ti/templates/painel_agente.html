@@ -1302,50 +1302,42 @@
   
   <!-- Scripts customizados -->
   <script>
-    // Navegação entre seções
-    function showSection(sectionId) {
-      // Esconder todas as seções
-      document.querySelectorAll('.section-content').forEach(section => {
-        section.style.display = 'none';
-      });
-      
-      // Remover classe active de todos os links
-      document.querySelectorAll('.sidebar nav a').forEach(link => {
-        link.classList.remove('active');
-      });
-      
-      // Mostrar seção selecionada
-      const targetSection = document.getElementById(sectionId);
-      if (targetSection) {
-        targetSection.style.display = 'block';
-      }
-      
-      // Adicionar classe active ao link correspondente
-      const targetLink = document.querySelector(`a[href="#${sectionId}"]`);
-      if (targetLink) {
-        targetLink.classList.add('active');
-      }
-      
-      // Carregar dados específicos da seção
-      if (window.painelAgente) {
-        window.painelAgente.carregarDadosSecao(sectionId);
-      }
-    }
-    
-    // Event listeners para navegação
-    document.addEventListener('DOMContentLoaded', function() {
-      // Configurar cliques na sidebar
-      document.querySelectorAll('.sidebar nav a[href^="#"]').forEach(link => {
-        link.addEventListener('click', function(e) {
+    // Sistema de navegação robusto para painel do agente
+    function initializeAgentNavigation() {
+      console.log('=== INICIALIZANDO NAVEGAÇÃO DO AGENTE ===');
+
+      // 1. Configurar navegação entre seções
+      const navLinks = document.querySelectorAll('.sidebar nav a[href^="#"]');
+      const sections = document.querySelectorAll('.section-content');
+
+      console.log('Links encontrados:', navLinks.length);
+      console.log('Seções encontradas:', sections.length);
+
+      navLinks.forEach(link => {
+        const href = link.getAttribute('href');
+        if (!href || !href.startsWith('#') || href === '#') return;
+
+        // Clonar para remover listeners antigos
+        const newLink = link.cloneNode(true);
+        link.parentNode.replaceChild(newLink, link);
+
+        newLink.addEventListener('click', function(e) {
           e.preventDefault();
-          const sectionId = this.getAttribute('href').substring(1);
+          e.stopPropagation();
+
+          const sectionId = href.substring(1);
+          console.log('Navegando para seção:', sectionId);
           showSection(sectionId);
         });
       });
-      
-      // Configurar submenu
+
+      // 2. Configurar submenu toggles
       document.querySelectorAll('.submenu-toggle').forEach(toggle => {
-        toggle.addEventListener('click', function(e) {
+        // Clonar para remover listeners antigos
+        const newToggle = toggle.cloneNode(true);
+        toggle.parentNode.replaceChild(newToggle, toggle);
+
+        newToggle.addEventListener('click', function(e) {
           e.preventDefault();
           e.stopPropagation();
 
