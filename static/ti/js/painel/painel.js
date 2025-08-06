@@ -99,7 +99,13 @@ function initializeNavigation() {
     }
 
     navLinks.forEach((link, index) => {
-        // Remover listeners existentes
+        // Apenas links que têm href começando com # (não submenu toggles)
+        const href = link.getAttribute('href');
+        if (!href || !href.startsWith('#') || href === '#') {
+            return;
+        }
+
+        // Remover listeners existentes clonando
         const newLink = link.cloneNode(true);
         link.parentNode.replaceChild(newLink, link);
 
@@ -107,28 +113,15 @@ function initializeNavigation() {
             e.preventDefault();
             e.stopPropagation();
 
-            const href = this.getAttribute('href');
-            console.log(`=== CLICK NO LINK ${index} ===`);
-            console.log('href:', href);
-            console.log('elemento clicado:', this);
-
-            if (!href || href === '#' || !href.startsWith('#')) {
-                console.log('Link sem href válido ou é submenu toggle');
-                return;
-            }
-
             const targetId = href.substring(1);
-            console.log('ID da seção alvo:', targetId);
+            console.log(`=== NAVEGAÇÃO PARA: ${targetId} ===`);
 
             // Verificar se a seção existe
             const targetSection = document.getElementById(targetId);
             if (!targetSection) {
                 console.error('Seção não encontrada:', targetId);
-                console.log('Seções disponíveis:', Array.from(sections).map(s => s.id));
                 return;
             }
-
-            console.log('Seção encontrada, prosseguindo com navegação...');
 
             // Remove active class from all navigation links
             document.querySelectorAll('.sidebar nav ul li a').forEach(l => l.classList.remove('active'));
@@ -137,25 +130,21 @@ function initializeNavigation() {
             this.classList.add('active');
 
             // Handle submenu parent activation
-            const submenu = this.closest('.submenu');
-            if (submenu) {
-                console.log('Link está em submenu, ativando parent...');
-                const parentToggle = submenu.previousElementSibling;
-                if (parentToggle && parentToggle.classList.contains('submenu-toggle')) {
+            const parentLi = this.closest('li.has-submenu');
+            if (parentLi) {
+                parentLi.classList.add('open');
+                const parentToggle = parentLi.querySelector('.submenu-toggle');
+                if (parentToggle) {
                     parentToggle.classList.add('active');
-                    parentToggle.parentElement.classList.add('open');
-                    console.log('Parent submenu ativado');
+                    parentToggle.setAttribute('aria-expanded', 'true');
                 }
             }
 
             // Activate the target section
-            console.log('Ativando seção:', targetId);
             activateSection(targetId);
 
             // Update URL hash
             window.location.hash = targetId;
-
-            console.log('=== NAVEGAÇÃO CONCLUÍDA ===');
         });
     });
 
@@ -1936,7 +1925,7 @@ document.getElementById('btnSalvarUsuario').addEventListener('click', async () =
         }
         
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showSuccess('Usuário Atualizado', 'Usuário atualizado com sucesso!');
+            window.advancedNotificationSystem.showSuccess('Usuário Atualizado', 'Usu��rio atualizado com sucesso!');
         }
         document.getElementById('modalEditarUsuario').classList.remove('active');
         await loadUsuarios();
@@ -4329,7 +4318,7 @@ async function carregarBackupManutencao() {
             btnCriarBackup.addEventListener('click', criarBackup);
         }
 
-        console.log('Se��ão backup/manutenção carregada');
+        console.log('Seção backup/manutenção carregada');
     } catch (error) {
         console.error('Erro ao carregar backup/manutenção:', error);
     }
