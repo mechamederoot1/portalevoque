@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, date
 import json
 import os
 import pytz
@@ -835,7 +835,7 @@ class SessaoAtiva(db.Model):
     ultima_atividade = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
     ativo = db.Column(db.Boolean, default=True)
 
-    # Informações de localiza��ão
+    # Informações de localização
     pais = db.Column(db.String(100), nullable=True)
     cidade = db.Column(db.String(100), nullable=True)
     navegador = db.Column(db.String(100), nullable=True)
