@@ -520,7 +520,7 @@ def salvar_configuracoes_db(config):
         return False
 
 def calcular_sla_chamado(chamado, config_sla):
-    """Calcula informações de SLA para um chamado específico"""
+    """Calcula informaç��es de SLA para um chamado específico"""
     agora_brazil = get_brazil_time()
     
     # Se não tem data de abertura, retorna valores padr��o
@@ -1506,6 +1506,288 @@ def marcar_notificacao_lida(notificacao_id):
 
     except Exception as e:
         logger.error(f"Erro ao marcar notificação como lida: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+# ==================== APIS DE MÉTRICAS SLA CORRETAS ====================
+
+@painel_bp.route('/api/sla/configuracoes', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def obter_configuracoes_sla():
+    """Retorna configurações de SLA"""
+    try:
+        config_sla = carregar_configuracoes_sla()
+        config_horario = carregar_configuracoes_horario_comercial()
+
+        # Converter objetos time para strings para serialização JSON
+        if 'inicio' in config_horario and hasattr(config_horario['inicio'], 'strftime'):
+            config_horario['inicio'] = config_horario['inicio'].strftime('%H:%M')
+        if 'fim' in config_horario and hasattr(config_horario['fim'], 'strftime'):
+            config_horario['fim'] = config_horario['fim'].strftime('%H:%M')
+
+        return json_response({
+            'sla': config_sla,
+            'horario_comercial': config_horario
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter configurações SLA: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/sla/configuracoes', methods=['POST'])
+@login_required
+@setor_required('Administrador')
+def salvar_configuracoes_sla_api():
+    """Salva configurações de SLA"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        # Validar configurações SLA
+        if 'sla' in data:
+            sla_config = data['sla']
+            campos_obrigatorios = ['primeira_resposta', 'resolucao_critica', 'resolucao_alta', 'resolucao_normal', 'resolucao_baixa']
+
+            for campo in campos_obrigatorios:
+                if campo not in sla_config:
+                    return error_response(f'Campo SLA obrigatório ausente: {campo}', 400)
+                if not isinstance(sla_config[campo], (int, float)) or sla_config[campo] <= 0:
+                    return error_response(f'Campo SLA {campo} deve ser um número positivo', 400)
+
+            # Salvar configurações SLA
+            if not salvar_configuracoes_sla(sla_config):
+                return error_response('Erro ao salvar configurações SLA')
+
+        # Validar e salvar configurações de horário comercial
+        if 'horario_comercial' in data:
+            horario_config = data['horario_comercial']
+
+            # Validar formato dos horários
+            try:
+                if 'inicio' in horario_config:
+                    hora, minuto = map(int, horario_config['inicio'].split(':'))
+                    if not (0 <= hora <= 23 and 0 <= minuto <= 59):
+                        return error_response('Horário de início inválido', 400)
+
+                if 'fim' in horario_config:
+                    hora, minuto = map(int, horario_config['fim'].split(':'))
+                    if not (0 <= hora <= 23 and 0 <= minuto <= 59):
+                        return error_response('Horário de fim inválido', 400)
+
+                if 'dias_semana' in horario_config:
+                    if not isinstance(horario_config['dias_semana'], list):
+                        return error_response('Dias da semana devem ser uma lista', 400)
+                    for dia in horario_config['dias_semana']:
+                        if not isinstance(dia, int) or not (0 <= dia <= 6):
+                            return error_response('Dias da semana inválidos (0-6)', 400)
+
+                # Salvar configurações de horário comercial
+                config_horario_obj = Configuracao.query.filter_by(chave='horario_comercial').first()
+                if config_horario_obj:
+                    config_horario_obj.valor = json.dumps(horario_config)
+                    config_horario_obj.data_atualizacao = get_brazil_time().replace(tzinfo=None)
+                else:
+                    config_horario_obj = Configuracao(
+                        chave='horario_comercial',
+                        valor=json.dumps(horario_config)
+                    )
+                    db.session.add(config_horario_obj)
+
+                db.session.commit()
+
+            except ValueError:
+                return error_response('Formato de horário inválido (use HH:MM)', 400)
+
+        # Registrar log da ação
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao='Configurações SLA atualizadas',
+            categoria='sistema',
+            detalhes=f'Configurações de SLA e horário comercial atualizadas',
+            recurso_afetado='configuracoes_sla',
+            tipo_recurso='configuracao'
+        )
+
+        return json_response({
+            'message': 'Configurações salvas com sucesso',
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar configurações SLA: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/sla/metricas', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def obter_metricas_sla():
+    """Retorna métricas consolidadas de SLA"""
+    try:
+        period_days = request.args.get('period_days', 30, type=int)
+        if period_days <= 0:
+            period_days = 30
+
+        metricas = obter_metricas_sla_consolidadas(period_days)
+
+        return json_response(metricas)
+
+    except Exception as e:
+        logger.error(f"Erro ao obter métricas SLA: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/sla/chamados', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def obter_chamados_com_sla():
+    """Retorna lista de chamados com informações detalhadas de SLA"""
+    try:
+        # Parâmetros de filtro
+        status_filtro = request.args.get('status', '')
+        prioridade_filtro = request.args.get('prioridade', '')
+        sla_status_filtro = request.args.get('sla_status', '')
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+
+        # Construir query
+        query = Chamado.query
+
+        if status_filtro:
+            query = query.filter(Chamado.status == status_filtro)
+
+        if prioridade_filtro:
+            query = query.filter(Chamado.prioridade == prioridade_filtro)
+
+        # Ordenar por data de abertura (mais recentes primeiro)
+        query = query.order_by(Chamado.data_abertura.desc())
+
+        # Aplicar paginação
+        chamados = query.offset(offset).limit(limit).all()
+
+        # Carregar configurações
+        config_sla = carregar_configuracoes_sla()
+        config_horario = carregar_configuracoes_horario_comercial()
+
+        chamados_list = []
+        for chamado in chamados:
+            sla_info = calcular_sla_chamado_correto(chamado, config_sla, config_horario)
+
+            # Filtrar por status SLA se especificado
+            if sla_status_filtro and sla_info['sla_status'] != sla_status_filtro:
+                continue
+
+            data_abertura_brazil = chamado.get_data_abertura_brazil()
+            data_conclusao_brazil = chamado.get_data_conclusao_brazil()
+
+            chamado_data = {
+                'id': chamado.id,
+                'codigo': chamado.codigo,
+                'protocolo': getattr(chamado, 'protocolo', None),
+                'solicitante': chamado.solicitante,
+                'problema': chamado.problema,
+                'status': chamado.status,
+                'prioridade': chamado.prioridade,
+                'data_abertura': data_abertura_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_abertura_brazil else None,
+                'data_conclusao': data_conclusao_brazil.strftime('%d/%m/%Y %H:%M:%S') if data_conclusao_brazil else None,
+                'sla': sla_info
+            }
+
+            chamados_list.append(chamado_data)
+
+        return json_response({
+            'chamados': chamados_list,
+            'total': len(chamados_list),
+            'offset': offset,
+            'limit': limit
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter chamados com SLA: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/sla/dashboard', methods=['GET'])
+@login_required
+@setor_required('Administrador')
+def obter_dashboard_sla():
+    """Retorna dados completos para o dashboard de SLA"""
+    try:
+        period_days = request.args.get('period_days', 30, type=int)
+
+        # Obter métricas consolidadas
+        metricas = obter_metricas_sla_consolidadas(period_days)
+
+        # Obter configurações
+        config_sla = carregar_configuracoes_sla()
+        config_horario = carregar_configuracoes_horario_comercial()
+
+        # Converter objetos time para strings
+        if 'inicio' in config_horario and hasattr(config_horario['inicio'], 'strftime'):
+            config_horario['inicio'] = config_horario['inicio'].strftime('%H:%M')
+        if 'fim' in config_horario and hasattr(config_horario['fim'], 'strftime'):
+            config_horario['fim'] = config_horario['fim'].strftime('%H:%M')
+
+        # Obter chamados abertos em risco
+        chamados_abertos = Chamado.query.filter(
+            Chamado.status.in_(['Aberto', 'Aguardando'])
+        ).order_by(Chamado.data_abertura.asc()).all()
+
+        chamados_risco = []
+        for chamado in chamados_abertos:
+            sla_info = calcular_sla_chamado_correto(chamado, config_sla, config_horario)
+            if sla_info['sla_status'] in ['Em Risco', 'Violado']:
+                data_abertura_brazil = chamado.get_data_abertura_brazil()
+                chamados_risco.append({
+                    'id': chamado.id,
+                    'codigo': chamado.codigo,
+                    'solicitante': chamado.solicitante,
+                    'problema': chamado.problema,
+                    'prioridade': chamado.prioridade,
+                    'data_abertura': data_abertura_brazil.strftime('%d/%m/%Y %H:%M') if data_abertura_brazil else None,
+                    'sla_status': sla_info['sla_status'],
+                    'percentual_tempo_usado': sla_info['percentual_tempo_usado']
+                })
+
+        # Estatísticas por status
+        stats_status = db.session.query(
+            Chamado.status,
+            func.count(Chamado.id).label('count')
+        ).group_by(Chamado.status).all()
+
+        status_counts = {status: count for status, count in stats_status}
+
+        # Estatísticas por prioridade (últimos 30 dias)
+        data_corte = get_brazil_time() - timedelta(days=30)
+        stats_prioridade = db.session.query(
+            Chamado.prioridade,
+            func.count(Chamado.id).label('count')
+        ).filter(
+            Chamado.data_abertura >= data_corte.replace(tzinfo=None)
+        ).group_by(Chamado.prioridade).all()
+
+        prioridade_counts = {prioridade: count for prioridade, count in stats_prioridade}
+
+        dashboard_data = {
+            'metricas': metricas,
+            'configuracoes': {
+                'sla': config_sla,
+                'horario_comercial': config_horario
+            },
+            'chamados_risco': chamados_risco,
+            'estatisticas': {
+                'status': status_counts,
+                'prioridade': prioridade_counts
+            },
+            'timestamp': get_brazil_time().isoformat()
+        }
+
+        return json_response(dashboard_data)
+
+    except Exception as e:
+        logger.error(f"Erro ao obter dashboard SLA: {str(e)}")
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/auth/teste', methods=['GET'])
