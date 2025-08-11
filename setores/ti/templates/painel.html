@@ -3431,6 +3431,11 @@ async function carregarConfiguracoesSLACorretas() {
 
         console.log('Configurações SLA carregadas:', data);
 
+        // Atualizar também os badges no dashboard SLA
+        if (sla) {
+            atualizarBadgesConfiguracaoSLA(sla);
+        }
+
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showSuccess(
                 'Configurações SLA',
