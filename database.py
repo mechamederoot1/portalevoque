@@ -1036,6 +1036,11 @@ def init_app(app):
                 'maximo_tentativas_login': 5,
                 'backup_automatico': True,
                 'log_nivel': 'INFO'
+            },
+            'horario_comercial': {
+                'inicio': '08:00',
+                'fim': '18:00',
+                'dias_semana': [0, 1, 2, 3, 4]  # Segunda a sexta (0=segunda)
             }
         }
 
