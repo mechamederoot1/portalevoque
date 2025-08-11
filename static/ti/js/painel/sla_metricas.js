@@ -292,7 +292,11 @@ class SLAMetricas {
 
         // Destruir gráfico existente se houver
         if (window.chartStatus && typeof window.chartStatus.destroy === 'function') {
-            window.chartStatus.destroy();
+            try {
+                window.chartStatus.destroy();
+            } catch (e) {
+                console.warn('Erro ao destruir gráfico de status:', e);
+            }
         }
 
         window.chartStatus = new Chart(ctx, {
