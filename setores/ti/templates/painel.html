@@ -229,7 +229,7 @@
         </button>
       </div>
 
-      <!-- Cards de Métricas Principais -->
+      <!-- Cards de M��tricas Principais -->
       <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
           <div class="card bg-info text-white">
@@ -1644,21 +1644,124 @@
       <h2>Configuraç��es do Sistema</h2>
       
       <div class="row">
+        <!-- Configurações de SLA -->
+        <div class="col-12 mb-4">
+          <div class="collapsible-section">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#slaConfigCollapse" aria-expanded="true">
+              <h5><i class="fas fa-clock me-2"></i>Configurações de SLA</h5>
+              <i class="fas fa-chevron-down collapsible-toggle"></i>
+            </div>
+            <div class="collapse show" id="slaConfigCollapse">
+              <div class="collapsible-content">
+                <p class="text-muted mb-3">Configure os tempos de SLA por prioridade e horário comercial. Os tempos são calculados considerando apenas horas úteis.</p>
+
+                <div class="row">
+                  <div class="col-md-6">
+                    <h6><i class="fas fa-tachometer-alt me-1"></i> Tempos de SLA (em horas)</h6>
+
+                    <div class="mb-3">
+                      <label for="slaFirstResponse" class="form-label">Primeira Resposta</label>
+                      <input type="number" class="form-control" id="slaFirstResponse" value="4" min="0.5" step="0.5">
+                      <small class="text-muted">Tempo para dar primeira resposta ao cliente</small>
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="slaCritica" class="form-label">Prioridade Crítica</label>
+                      <input type="number" class="form-control" id="slaCritica" value="2" min="0.5" step="0.5">
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="slaAlta" class="form-label">Prioridade Alta</label>
+                      <input type="number" class="form-control" id="slaAlta" value="8" min="0.5" step="0.5">
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="slaNormal" class="form-label">Prioridade Normal</label>
+                      <input type="number" class="form-control" id="slaNormal" value="24" min="0.5" step="0.5">
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="slaBaixa" class="form-label">Prioridade Baixa</label>
+                      <input type="number" class="form-control" id="slaBaixa" value="72" min="0.5" step="0.5">
+                    </div>
+                  </div>
+
+                  <div class="col-md-6">
+                    <h6><i class="fas fa-business-time me-1"></i> Horário Comercial</h6>
+                    <p class="text-muted mb-3">O SLA considera apenas horário comercial. Fins de semana e feriados pausam a contagem.</p>
+
+                    <div class="mb-3">
+                      <label for="horarioInicio" class="form-label">Início do Expediente</label>
+                      <input type="time" class="form-control" id="horarioInicio" value="08:00">
+                    </div>
+
+                    <div class="mb-3">
+                      <label for="horarioFim" class="form-label">Fim do Expediente</label>
+                      <input type="time" class="form-control" id="horarioFim" value="18:00">
+                    </div>
+
+                    <div class="mb-3">
+                      <label class="form-label">Dias de Funcionamento</label>
+                      <div class="form-check">
+                        <input class="form-check-input dias-semana" type="checkbox" id="diaSeg" value="0" checked>
+                        <label class="form-check-label" for="diaSeg">Segunda-feira</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input dias-semana" type="checkbox" id="diaTer" value="1" checked>
+                        <label class="form-check-label" for="diaTer">Terça-feira</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input dias-semana" type="checkbox" id="diaQua" value="2" checked>
+                        <label class="form-check-label" for="diaQua">Quarta-feira</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input dias-semana" type="checkbox" id="diaQui" value="3" checked>
+                        <label class="form-check-label" for="diaQui">Quinta-feira</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input dias-semana" type="checkbox" id="diaSex" value="4" checked>
+                        <label class="form-check-label" for="diaSex">Sexta-feira</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input dias-semana" type="checkbox" id="diaSab" value="5">
+                        <label class="form-check-label" for="diaSab">Sábado</label>
+                      </div>
+                      <div class="form-check">
+                        <input class="form-check-input dias-semana" type="checkbox" id="diaDom" value="6">
+                        <label class="form-check-label" for="diaDom">Domingo</label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <button class="btn btn-primary me-2" id="btnSalvarSLA">
+                    <i class="fas fa-save"></i> Salvar Configurações SLA
+                  </button>
+                  <button class="btn btn-outline-secondary" id="btnCarregarSLA">
+                    <i class="fas fa-sync"></i> Recarregar
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Prioridades dos Problemas - Seção Separada -->
         <div class="col-12 mb-4">
           <div class="collapsible-section">
-            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#prioridadesCollapse" aria-expanded="true">
+            <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#prioridadesCollapse" aria-expanded="false">
               <h5><i class="fas fa-exclamation-triangle me-2"></i>Prioridades dos Problemas</h5>
-              <i class="fas fa-chevron-down collapsible-toggle"></i>
+              <i class="fas fa-chevron-down collapsible-toggle collapsed"></i>
             </div>
-            <div class="collapse show" id="prioridadesCollapse">
+            <div class="collapse" id="prioridadesCollapse">
               <div class="collapsible-content">
                 <p class="text-muted mb-3">Configure as prioridades padrão para cada tipo de problema reportado.</p>
-                
+
                 <div id="problemas-container">
                   <!-- Lista de problemas será carregada aqui dinamicamente -->
                 </div>
-                
+
                 <div class="mt-3">
                   <button class="btn btn-primary me-2" id="btnSalvarTodasPrioridades">
                     <i class="fas fa-save"></i> Salvar Todas
