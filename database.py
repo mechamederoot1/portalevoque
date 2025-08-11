@@ -1,6 +1,6 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
-from datetime import datetime
+from datetime import datetime, date
 import json
 import os
 import pytz
@@ -964,6 +964,69 @@ class HistoricoAtendimento(db.Model):
     def __repr__(self):
         return f'<HistoricoAtendimento {self.id} - Chamado {self.chamado_id}>'
 
+class HistoricoSLA(db.Model):
+    """Tabela para histórico de violações e ajustes de SLA"""
+    __tablename__ = 'historico_sla'
+
+    id = db.Column(db.Integer, primary_key=True)
+    chamado_id = db.Column(db.Integer, db.ForeignKey('chamado.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    acao = db.Column(db.String(100), nullable=False)  # 'violacao', 'correcao', 'ajuste'
+    status_anterior = db.Column(db.String(50), nullable=True)
+    status_novo = db.Column(db.String(50), nullable=True)
+    data_conclusao_anterior = db.Column(db.DateTime, nullable=True)
+    data_conclusao_nova = db.Column(db.DateTime, nullable=True)
+    tempo_resolucao_horas = db.Column(db.Float, nullable=True)
+    limite_sla_horas = db.Column(db.Float, nullable=True)
+    status_sla = db.Column(db.String(50), nullable=True)  # 'Cumprido', 'Violado', 'Em Risco'
+    observacoes = db.Column(db.Text, nullable=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+
+    # Relacionamentos
+    chamado = db.relationship('Chamado', backref='historicos_sla')
+    usuario = db.relationship('User', backref='acoes_sla')
+
+    def __repr__(self):
+        return f'<HistoricoSLA {self.id} - Chamado {self.chamado_id} - {self.acao}>'
+
+class Feriado(db.Model):
+    """Tabela para feriados nacionais e locais"""
+    __tablename__ = 'feriados'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(255), nullable=False)
+    data = db.Column(db.Date, nullable=False)
+    tipo = db.Column(db.String(50), default='nacional')  # nacional, estadual, municipal
+    recorrente = db.Column(db.Boolean, default=False)  # Se é anual (ex: Natal)
+    ativo = db.Column(db.Boolean, default=True)
+    descricao = db.Column(db.Text, nullable=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    usuario_criacao = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    def __repr__(self):
+        return f'<Feriado {self.nome} - {self.data}>'
+
+class ConfiguracaoSLA(db.Model):
+    """Tabela específica para configurações detalhadas de SLA"""
+    __tablename__ = 'configuracoes_sla'
+
+    id = db.Column(db.Integer, primary_key=True)
+    prioridade = db.Column(db.String(50), nullable=False)  # Crítica, Alta, Normal, Baixa
+    tempo_primeira_resposta = db.Column(db.Float, default=4.0)  # em horas
+    tempo_resolucao = db.Column(db.Float, nullable=False)  # em horas
+    considera_horario_comercial = db.Column(db.Boolean, default=True)
+    considera_feriados = db.Column(db.Boolean, default=True)
+    escalar_automaticamente = db.Column(db.Boolean, default=True)
+    notificar_em_risco = db.Column(db.Boolean, default=True)
+    percentual_risco = db.Column(db.Float, default=80.0)  # % do tempo para considerar "em risco"
+    ativo = db.Column(db.Boolean, default=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_atualizacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    usuario_atualizacao = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    def __repr__(self):
+        return f'<ConfiguracaoSLA {self.prioridade} - {self.tempo_resolucao}h>'
+
 def init_app(app):
     db.init_app(app)
     
@@ -1015,9 +1078,14 @@ def init_app(app):
             'sla': {
                 'primeira_resposta': 4,
                 'resolucao_critico': 2,
+                'resolucao_urgente': 2,  # Urgente usa mesmo SLA que Crítico
                 'resolucao_alto': 8,
                 'resolucao_normal': 24,
-                'resolucao_baixo': 72
+                'resolucao_baixo': 72,
+                'ativo': True,
+                'considerar_horario_comercial': True,
+                'incluir_fins_semana': False,
+                'feriados_nacionais': True
             },
             'notificacoes': {
                 'email_novo_chamado': True,
@@ -1040,7 +1108,23 @@ def init_app(app):
             'horario_comercial': {
                 'inicio': '08:00',
                 'fim': '18:00',
-                'dias_semana': [0, 1, 2, 3, 4]  # Segunda a sexta (0=segunda)
+                'dias_semana': [0, 1, 2, 3, 4],  # Segunda a sexta (0=segunda)
+                'intervalo_almoco_inicio': '12:00',
+                'intervalo_almoco_fim': '13:00',
+                'considerar_intervalo_almoco': False,
+                'timezone': 'America/Sao_Paulo',
+                'horario_emergencia': {
+                    'ativo': False,
+                    'inicio': '18:00',
+                    'fim': '22:00',
+                    'dias_semana': [0, 1, 2, 3, 4]
+                },
+                'plantao_final_semana': {
+                    'ativo': False,
+                    'inicio': '08:00',
+                    'fim': '17:00',
+                    'dias': [5, 6]  # Sábado e domingo
+                }
             }
         }
 
@@ -1052,6 +1136,71 @@ def init_app(app):
                 )
                 db.session.add(config)
         
+        # Inicializar feriados brasileiros padrão para o ano atual
+        try:
+            from datetime import date
+            ano_atual = date.today().year
+
+            feriados_brasileiros = [
+                {'nome': 'Confraternização Universal', 'data': f'{ano_atual}-01-01', 'recorrente': True},
+                {'nome': 'Tiradentes', 'data': f'{ano_atual}-04-21', 'recorrente': True},
+                {'nome': 'Dia do Trabalhador', 'data': f'{ano_atual}-05-01', 'recorrente': True},
+                {'nome': 'Independência do Brasil', 'data': f'{ano_atual}-09-07', 'recorrente': True},
+                {'nome': 'Nossa Senhora Aparecida', 'data': f'{ano_atual}-10-12', 'recorrente': True},
+                {'nome': 'Finados', 'data': f'{ano_atual}-11-02', 'recorrente': True},
+                {'nome': 'Proclamação da República', 'data': f'{ano_atual}-11-15', 'recorrente': True},
+                {'nome': 'Natal', 'data': f'{ano_atual}-12-25', 'recorrente': True},
+            ]
+
+            for feriado_data in feriados_brasileiros:
+                if not Feriado.query.filter_by(
+                    nome=feriado_data['nome'],
+                    data=datetime.strptime(feriado_data['data'], '%Y-%m-%d').date()
+                ).first():
+                    feriado = Feriado(
+                        nome=feriado_data['nome'],
+                        data=datetime.strptime(feriado_data['data'], '%Y-%m-%d').date(),
+                        tipo='nacional',
+                        recorrente=feriado_data['recorrente'],
+                        ativo=True
+                    )
+                    db.session.add(feriado)
+
+            print(f"✅ Feriados brasileiros inicializados para {ano_atual}")
+
+        except Exception as e:
+            print(f"⚠️ Erro ao inicializar feriados: {str(e)}")
+
+        # Inicializar configurações detalhadas de SLA
+        try:
+            configuracoes_sla_detalhadas = [
+                {'prioridade': 'Crítica', 'tempo_primeira_resposta': 1.0, 'tempo_resolucao': 2.0, 'percentual_risco': 90.0},
+                {'prioridade': 'Urgente', 'tempo_primeira_resposta': 1.0, 'tempo_resolucao': 2.0, 'percentual_risco': 90.0},
+                {'prioridade': 'Alta', 'tempo_primeira_resposta': 2.0, 'tempo_resolucao': 8.0, 'percentual_risco': 80.0},
+                {'prioridade': 'Normal', 'tempo_primeira_resposta': 4.0, 'tempo_resolucao': 24.0, 'percentual_risco': 75.0},
+                {'prioridade': 'Baixa', 'tempo_primeira_resposta': 8.0, 'tempo_resolucao': 72.0, 'percentual_risco': 70.0},
+            ]
+
+            for config_data in configuracoes_sla_detalhadas:
+                if not ConfiguracaoSLA.query.filter_by(prioridade=config_data['prioridade']).first():
+                    config_sla = ConfiguracaoSLA(
+                        prioridade=config_data['prioridade'],
+                        tempo_primeira_resposta=config_data['tempo_primeira_resposta'],
+                        tempo_resolucao=config_data['tempo_resolucao'],
+                        considera_horario_comercial=True,
+                        considera_feriados=True,
+                        escalar_automaticamente=True,
+                        notificar_em_risco=True,
+                        percentual_risco=config_data['percentual_risco'],
+                        ativo=True
+                    )
+                    db.session.add(config_sla)
+
+            print("✅ Configurações detalhadas de SLA inicializadas")
+
+        except Exception as e:
+            print(f"⚠️ Erro ao inicializar configurações SLA: {str(e)}")
+
         # Inicializar configurações avançadas padrão
         configuracoes_avancadas_padrao = {
             'sistema.manutencao_modo': {

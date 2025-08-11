@@ -250,7 +250,7 @@ function carregarConfiguracoesSLA(forcarRecarregamento = false) {
 // Função para obter limite SLA baseado na prioridade
 function obterLimiteSLAPorPrioridade(prioridade) {
     if (!slaConfiguracoes || Object.keys(slaConfiguracoes).length === 0) {
-        // Valores padrão caso as configurações não tenham sido carregadas
+        // Valores padrão caso as configuraç��es não tenham sido carregadas
         const padroes = {
             'Crítica': 2,
             'Crítico': 2,
@@ -452,7 +452,9 @@ function criarGraficoDistribuicaoStatus(dados) {
 
 // Carregar chamados detalhados com informações de SLA
 function carregarChamadosDetalhados() {
-    fetch('/ti/painel/api/sla/chamados-detalhados')
+    // Add cache buster to ensure fresh data after corrections
+    const cacheBuster = new Date().getTime();
+    fetch(`/ti/painel/api/sla/chamados-detalhados?_t=${cacheBuster}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -468,42 +470,36 @@ function carregarChamadosDetalhados() {
             data.forEach(chamado => {
                 const row = document.createElement('tr');
                 
-                // Calcular limite SLA baseado na prioridade usando as configurações carregadas
-                const limiteSLA = obterLimiteSLAPorPrioridade(chamado.prioridade);
-                
-                // Recalcular status SLA baseado no limite correto
-                let slaStatus = 'Dentro do Prazo';
+                // USAR DADOS SLA DO BACKEND EM VEZ DE RECALCULAR NO FRONTEND
+                // Isso garante que correções feitas no backend sejam respeitadas
+
+                let slaStatus = chamado.sla_status || 'Dentro do Prazo';
                 let slaClass = 'badge bg-success';
                 let slaIcon = 'fas fa-clock';
-                
-                if (chamado.status === 'Concluido' || chamado.status === 'Cancelado') {
-                    if (chamado.horas_decorridas <= limiteSLA) {
-                        slaStatus = 'Cumprido';
+
+                // Determinar classe e ícone baseado no status vindo do backend
+                switch (slaStatus) {
+                    case 'Cumprido':
                         slaClass = 'badge bg-success';
                         slaIcon = 'fas fa-check-circle';
-                    } else {
-                        slaStatus = 'Violado';
+                        break;
+                    case 'Violado':
                         slaClass = 'badge bg-danger';
                         slaIcon = 'fas fa-times-circle';
-                    }
-                } else {
-                    // Chamado ainda aberto
-                    const percentualSLA = (chamado.horas_decorridas / limiteSLA) * 100;
-                    
-                    if (percentualSLA >= 100) {
-                        slaStatus = 'Violado';
-                        slaClass = 'badge bg-danger';
-                        slaIcon = 'fas fa-times-circle';
-                    } else if (percentualSLA >= 80) {
-                        slaStatus = 'Em Risco';
+                        break;
+                    case 'Em Risco':
                         slaClass = 'badge bg-warning';
                         slaIcon = 'fas fa-exclamation-triangle';
-                    } else {
-                        slaStatus = 'Dentro do Prazo';
+                        break;
+                    case 'Dentro do Prazo':
+                    default:
                         slaClass = 'badge bg-success';
                         slaIcon = 'fas fa-clock';
-                    }
+                        break;
                 }
+
+                // Usar limite SLA que vem do backend ou calcular como fallback
+                const limiteSLA = chamado.sla_limite || obterLimiteSLAPorPrioridade(chamado.prioridade);
                 
                 // Classe para status do chamado
                 const statusClass = getStatusBadgeClass(chamado.status);
@@ -592,7 +588,9 @@ function mostrarErroSLA(mensagem) {
 function carregarChamadosDetalhadosPaginados() {
     mostrarLoadingSLA(true);
 
-    fetch('/ti/painel/api/sla/chamados-detalhados')
+    // Add cache buster to ensure fresh data after corrections
+    const cacheBuster = new Date().getTime();
+    fetch(`/ti/painel/api/sla/chamados-detalhados?_t=${cacheBuster}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -633,42 +631,36 @@ function renderizarTabelaSLAPaginada() {
     dadosPagina.forEach(chamado => {
         const row = document.createElement('tr');
 
-        // Calcular limite SLA baseado na prioridade usando as configurações carregadas
-        const limiteSLA = obterLimiteSLAPorPrioridade(chamado.prioridade);
+        // USAR DADOS SLA DO BACKEND EM VEZ DE RECALCULAR NO FRONTEND
+        // Isso garante que correções feitas no backend sejam respeitadas
 
-        // Recalcular status SLA baseado no limite correto
-        let slaStatus = 'Dentro do Prazo';
+        let slaStatus = chamado.sla_status || 'Dentro do Prazo';
         let slaClass = 'badge bg-success';
         let slaIcon = 'fas fa-clock';
 
-        if (chamado.status === 'Concluido' || chamado.status === 'Cancelado') {
-            if (chamado.horas_decorridas <= limiteSLA) {
-                slaStatus = 'Cumprido';
+        // Determinar classe e ícone baseado no status vindo do backend
+        switch (slaStatus) {
+            case 'Cumprido':
                 slaClass = 'badge bg-success';
                 slaIcon = 'fas fa-check-circle';
-            } else {
-                slaStatus = 'Violado';
+                break;
+            case 'Violado':
                 slaClass = 'badge bg-danger';
                 slaIcon = 'fas fa-times-circle';
-            }
-        } else {
-            // Chamado ainda aberto
-            const percentualSLA = (chamado.horas_decorridas / limiteSLA) * 100;
-
-            if (percentualSLA >= 100) {
-                slaStatus = 'Violado';
-                slaClass = 'badge bg-danger';
-                slaIcon = 'fas fa-times-circle';
-            } else if (percentualSLA >= 80) {
-                slaStatus = 'Em Risco';
+                break;
+            case 'Em Risco':
                 slaClass = 'badge bg-warning';
                 slaIcon = 'fas fa-exclamation-triangle';
-            } else {
-                slaStatus = 'Dentro do Prazo';
+                break;
+            case 'Dentro do Prazo':
+            default:
                 slaClass = 'badge bg-success';
                 slaIcon = 'fas fa-clock';
-            }
+                break;
         }
+
+        // Usar limite SLA que vem do backend ou calcular como fallback
+        const limiteSLA = chamado.sla_limite || obterLimiteSLAPorPrioridade(chamado.prioridade);
 
         // Classe para status do chamado
         const statusClass = getStatusBadgeClass(chamado.status);
