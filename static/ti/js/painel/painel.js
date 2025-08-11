@@ -377,9 +377,14 @@ const pagination = document.getElementById('pagination');
 // Fun��ão para carregar os chamados da API
 async function loadChamados() {
     try {
-        const response = await fetch('/ti/painel/api/chamados');
+        const response = await fetch('/ti/painel/api/chamados', {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         if (!response.ok) {
-            throw new Error('Erro ao carregar chamados');
+            throw new Error(`Erro ao carregar chamados: ${response.status} ${response.statusText}`);
         }
         chamadosData = await response.json();
         renderChamadosPage(currentPage);
@@ -4968,7 +4973,7 @@ async function carregarDashboardAvancado() {
             });
         }
 
-        console.log('Dashboard avançado carregado');
+        console.log('Dashboard avan��ado carregado');
     } catch (error) {
         console.error('Erro ao carregar dashboard avançado:', error);
     }
