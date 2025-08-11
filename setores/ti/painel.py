@@ -2207,7 +2207,8 @@ def listar_chamados():
         return error_response('Erro interno ao listar chamados', details=str(e))
 
 @painel_bp.route('/api/chamados/estatisticas', methods=['GET'])
-@api_login_required
+@login_required
+@setor_required('TI')
 def obter_estatisticas_chamados():
     """Retorna estatísticas dos chamados por status"""
     try:
