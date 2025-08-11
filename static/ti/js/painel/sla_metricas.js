@@ -331,23 +331,8 @@ class SLAMetricas {
             }]
         };
 
-        // Destruir gráfico existente se houver - melhorado
-        if (window.chartDistribuicaoPrioridade && typeof window.chartDistribuicaoPrioridade.destroy === 'function') {
-            try {
-                window.chartDistribuicaoPrioridade.destroy();
-                window.chartDistribuicaoPrioridade = null;
-            } catch (e) {
-                console.warn('Erro ao destruir gráfico de prioridade:', e);
-            }
-        }
-
-        // Verificar se existe instância ativa do Chart.js para este canvas
-        const chartInstance = Chart.getChart(ctx);
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        window.chartDistribuicaoPrioridade = new Chart(ctx, {
+        // Usar utilitário seguro para Chart.js
+        window.chartDistribuicaoPrioridade = createChartSafely('chartDistribuicaoPrioridade', {
             type: 'bar',
             data: data,
             options: {
@@ -412,23 +397,8 @@ class SLAMetricas {
             ]
         };
 
-        // Destruir gráfico existente se houver - melhorado
-        if (window.chartSemanal && typeof window.chartSemanal.destroy === 'function') {
-            try {
-                window.chartSemanal.destroy();
-                window.chartSemanal = null;
-            } catch (e) {
-                console.warn('Erro ao destruir gráfico semanal:', e);
-            }
-        }
-
-        // Verificar se existe instância ativa do Chart.js para este canvas
-        const chartInstance = Chart.getChart(ctx);
-        if (chartInstance) {
-            chartInstance.destroy();
-        }
-
-        window.chartSemanal = new Chart(ctx, {
+        // Usar utilitário seguro para Chart.js
+        window.chartSemanal = createChartSafely('chartSemanal', {
             type: 'line',
             data: data,
             options: {
