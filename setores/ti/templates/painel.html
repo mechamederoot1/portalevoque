@@ -2633,7 +2633,7 @@
             const sections = document.querySelectorAll('section.content-section');
 
             console.log('Links encontrados após DOMContentLoaded:', links.length);
-            console.log('Seções encontradas após DOMContentLoaded:', sections.length);
+            console.log('Seções encontradas ap��s DOMContentLoaded:', sections.length);
 
             // Se não há navegação ativa, forçar inicialização
             if (links.length > 0 && sections.length > 0) {
@@ -3376,9 +3376,9 @@ async function carregarConfiguracoes() {
         if (!response.ok) {
             throw new Error('Erro ao carregar configurações');
         }
-        
+
         const config = await response.json();
-        
+
         // Preencher formulário de chamados
         if (config.chamados) {
             document.getElementById('autoAtribuicao').checked = config.chamados.auto_atribuicao || false;
@@ -3387,11 +3387,127 @@ async function carregarConfiguracoes() {
             document.getElementById('prazoSLA').value = config.chamados.prazo_padrao_sla || 24;
             document.getElementById('prioridadePadrao').value = config.chamados.prioridade_padrao || 'Normal';
         }
-        
+
         return config;
     } catch (error) {
         console.error('Erro ao carregar configurações:', error);
         return CONFIGURACOES_PADRAO;
+    }
+}
+
+// Funções para gerenciar configurações SLA corretas
+async function carregarConfiguracoesSLACorretas() {
+    try {
+        const response = await fetch('/ti/painel/api/sla/configuracoes');
+        if (!response.ok) {
+            throw new Error('Erro ao carregar configurações SLA');
+        }
+
+        const data = await response.json();
+        const { sla, horario_comercial } = data;
+
+        // Preencher tempos de SLA
+        if (sla) {
+            document.getElementById('slaFirstResponse').value = sla.primeira_resposta || 4;
+            document.getElementById('slaCritica').value = sla.resolucao_critica || 2;
+            document.getElementById('slaAlta').value = sla.resolucao_alta || 8;
+            document.getElementById('slaNormal').value = sla.resolucao_normal || 24;
+            document.getElementById('slaBaixa').value = sla.resolucao_baixa || 72;
+        }
+
+        // Preencher horário comercial
+        if (horario_comercial) {
+            document.getElementById('horarioInicio').value = horario_comercial.inicio || '08:00';
+            document.getElementById('horarioFim').value = horario_comercial.fim || '18:00';
+
+            // Dias da semana
+            const diasCheckboxes = document.querySelectorAll('.dias-semana');
+            diasCheckboxes.forEach(checkbox => {
+                const dia = parseInt(checkbox.value);
+                checkbox.checked = horario_comercial.dias_semana ? horario_comercial.dias_semana.includes(dia) : false;
+            });
+        }
+
+        console.log('Configurações SLA carregadas:', data);
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess(
+                'Configurações SLA',
+                'Configurações carregadas com sucesso!'
+            );
+        }
+
+    } catch (error) {
+        console.error('Erro ao carregar configurações SLA:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError(
+                'Erro',
+                'Erro ao carregar configurações SLA: ' + error.message
+            );
+        }
+    }
+}
+
+async function salvarConfiguracoesSLACorretas() {
+    try {
+        // Coletar dias da semana selecionados
+        const diasSelecionados = [];
+        document.querySelectorAll('.dias-semana:checked').forEach(checkbox => {
+            diasSelecionados.push(parseInt(checkbox.value));
+        });
+
+        const configuracoes = {
+            sla: {
+                primeira_resposta: parseFloat(document.getElementById('slaFirstResponse').value) || 4,
+                resolucao_critica: parseFloat(document.getElementById('slaCritica').value) || 2,
+                resolucao_alta: parseFloat(document.getElementById('slaAlta').value) || 8,
+                resolucao_normal: parseFloat(document.getElementById('slaNormal').value) || 24,
+                resolucao_baixa: parseFloat(document.getElementById('slaBaixa').value) || 72
+            },
+            horario_comercial: {
+                inicio: document.getElementById('horarioInicio').value || '08:00',
+                fim: document.getElementById('horarioFim').value || '18:00',
+                dias_semana: diasSelecionados
+            }
+        };
+
+        const response = await fetch('/ti/painel/api/sla/configuracoes', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(configuracoes)
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Erro ao salvar configurações SLA');
+        }
+
+        const data = await response.json();
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showSuccess(
+                'Configurações SLA Salvas',
+                'Configurações de SLA e horário comercial salvas com sucesso!'
+            );
+        }
+
+        // Atualizar dashboard SLA se estiver ativo
+        if (window.slaMetricas) {
+            window.slaMetricas.carregarDashboardCompleto();
+        }
+
+        console.log('Configurações SLA salvas:', data);
+
+    } catch (error) {
+        console.error('Erro ao salvar configurações SLA:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError(
+                'Erro',
+                'Erro ao salvar configurações SLA: ' + error.message
+            );
+        }
     }
 }
   </script>
