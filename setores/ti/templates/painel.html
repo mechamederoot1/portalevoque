@@ -2633,7 +2633,7 @@
             const sections = document.querySelectorAll('section.content-section');
 
             console.log('Links encontrados após DOMContentLoaded:', links.length);
-            console.log('Seções encontradas ap��s DOMContentLoaded:', sections.length);
+            console.log('Seções encontradas após DOMContentLoaded:', sections.length);
 
             // Se não há navegação ativa, forçar inicialização
             if (links.length > 0 && sections.length > 0) {
@@ -3117,6 +3117,7 @@
           // Carregar configurações de prioridades e notificações
           carregarProblemas();
           carregarConfiguracaoNotificacoes();
+          carregarConfiguracoesSLACorretas();
           atualizarContadoresVisaoGeral();
           break;
         case 'adicionar-problema':
