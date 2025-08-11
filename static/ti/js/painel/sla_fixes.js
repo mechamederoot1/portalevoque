@@ -356,6 +356,100 @@ async function forcarAtualizacaoSLA() {
     }
 }
 
+// Function to test backend SLA data and identify inconsistencies
+async function testarDadosSLABackend() {
+    console.log('🔬 Testando dados SLA do backend...');
+
+    try {
+        const response = await fetch('/ti/painel/api/sla/chamados-detalhados', {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const dados = await response.json();
+        console.log(`📊 Dados recebidos: ${dados.length} chamados`);
+
+        // Analisar status SLA
+        let cumpridos = 0;
+        let violados = 0;
+        let emRisco = 0;
+        let indefinidos = 0;
+
+        const violacoesDetalhadas = [];
+
+        dados.forEach((chamado, index) => {
+            const status = chamado.sla_status;
+
+            switch (status) {
+                case 'Cumprido':
+                    cumpridos++;
+                    break;
+                case 'Violado':
+                    violados++;
+                    violacoesDetalhadas.push({
+                        codigo: chamado.codigo,
+                        status: chamado.status,
+                        prioridade: chamado.prioridade,
+                        horas_decorridas: chamado.horas_decorridas,
+                        sla_limite: chamado.sla_limite,
+                        sla_status: status
+                    });
+                    break;
+                case 'Em Risco':
+                    emRisco++;
+                    break;
+                default:
+                    indefinidos++;
+                    break;
+            }
+        });
+
+        console.log('📈 ANÁLISE DOS DADOS DO BACKEND:');
+        console.log(`   ✅ Cumpridos: ${cumpridos}`);
+        console.log(`   🚨 Violados: ${violados}`);
+        console.log(`   ⚠️  Em Risco: ${emRisco}`);
+        console.log(`   ❓ Indefinidos: ${indefinidos}`);
+
+        if (violados > 0) {
+            console.log('\n🚨 VIOLAÇÕES ENCONTRADAS NO BACKEND:');
+            violacoesDetalhadas.forEach((v, i) => {
+                console.log(`${i + 1}. ${v.codigo} (${v.status})`);
+                console.log(`   Prioridade: ${v.prioridade}`);
+                console.log(`   Tempo: ${v.horas_decorridas}h / Limite: ${v.sla_limite}h`);
+                console.log(`   Status SLA: ${v.sla_status}`);
+            });
+
+            console.log('\n💡 RECOMENDAÇÃO:');
+            console.log('   As violações ainda existem no backend.');
+            console.log('   Execute forcarCumprimentoSLA() para corrigir.');
+        } else {
+            console.log('\n🎉 BACKEND ESTÁ CORRETO!');
+            console.log('   Se ainda há violações no frontend, execute forcarAtualizacaoSLA()');
+        }
+
+        return {
+            success: true,
+            total: dados.length,
+            cumpridos,
+            violados,
+            emRisco,
+            indefinidos,
+            violacoesDetalhadas
+        };
+
+    } catch (error) {
+        console.error('❌ Erro ao testar dados do backend:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Function to force SLA compliance by adjusting completion dates
 async function forcarCumprimentoSLA() {
     console.log('⚡ Forçando cumprimento de SLA...');
@@ -460,9 +554,11 @@ window.testLimparHistorico = testLimparHistorico;
 window.debugSLAViolations = debugSLAViolations;
 window.forcarAtualizacaoSLA = forcarAtualizacaoSLA;
 window.forcarCumprimentoSLA = forcarCumprimentoSLA;
+window.testarDadosSLABackend = testarDadosSLABackend;
 
 console.log('SLA Fixes loaded - Chart.js error handling improved');
 console.log('Available functions:');
+console.log('  - testarDadosSLABackend() - Test backend SLA data consistency');
 console.log('  - testLimparHistorico() - Test the limpar-historico endpoint');
 console.log('  - debugSLAViolations() - Debug SLA violations in detail');
 console.log('  - forcarAtualizacaoSLA() - Force complete SLA data refresh');
