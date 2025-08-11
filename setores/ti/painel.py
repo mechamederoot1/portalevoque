@@ -621,7 +621,7 @@ def salvar_configuracoes_api():
 @login_required
 @setor_required('Administrador')
 def salvar_configuracoes_notificacoes():
-    """Endpoint específico para salvar configura��ões de notificações"""
+    """Endpoint específico para salvar configurações de notificações"""
     try:
         if not request.is_json:
             return error_response('Content-Type deve ser application/json', 400)
@@ -959,7 +959,7 @@ Data de Abertura: {chamado.get_data_abertura_brazil().strftime('%d/%m/%Y %H:%M:%
 def atribuir_chamado_para_mim(chamado_id):
     """Atribui um chamado ao agente logado"""
     try:
-        logger.info(f"Tentativa de atribui��ão do chamado {chamado_id} pelo usuário {current_user.id}")
+        logger.info(f"Tentativa de atribuição do chamado {chamado_id} pelo usuário {current_user.id}")
 
         # Processar dados JSON se fornecidos
         data = {}
@@ -3365,6 +3365,18 @@ def obter_chamados_detalhados_sla():
 def limpar_historico_violacoes_sla():
     """Limpa histórico de violações de SLA corrigindo datas de conclusão faltantes"""
     try:
+        # Verificar se o usuário tem permissão
+        if not current_user.is_authenticated:
+            return json_response({
+                'success': False,
+                'error': 'Usuário não autenticado'
+            }, status_code=401)
+
+        if current_user.setor != 'TI' and current_user.nivel_acesso != 'Administrador':
+            return json_response({
+                'success': False,
+                'error': 'Acesso negado'
+            }, status_code=403)
         from datetime import datetime, timedelta
         from ..sla_utils import verificar_sla_chamado
 
@@ -3436,6 +3448,18 @@ def limpar_historico_violacoes_sla():
 def debug_sla_violations_api():
     """Debug de violações de SLA persistentes"""
     try:
+        # Verificar se o usuário tem permissão
+        if not current_user.is_authenticated:
+            return json_response({
+                'success': False,
+                'error': 'Usuário não autenticado'
+            }, status_code=401)
+
+        if current_user.setor != 'TI' and current_user.nivel_acesso != 'Administrador':
+            return json_response({
+                'success': False,
+                'error': 'Acesso negado'
+            }, status_code=403)
         from datetime import datetime, timedelta
         from .sla_utils import verificar_sla_chamado
 

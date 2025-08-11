@@ -428,14 +428,20 @@ class SLAMetricas {
             ]
         };
 
-        // Destruir gráfico existente se houver
-        if (window.chartSemanal) {
+        // Destruir gráfico existente se houver - melhorado
+        if (window.chartSemanal && typeof window.chartSemanal.destroy === 'function') {
             try {
                 window.chartSemanal.destroy();
                 window.chartSemanal = null;
             } catch (e) {
                 console.warn('Erro ao destruir gráfico semanal:', e);
             }
+        }
+
+        // Verificar se existe instância ativa do Chart.js para este canvas
+        const chartInstance = Chart.getChart(ctx);
+        if (chartInstance) {
+            chartInstance.destroy();
         }
 
         window.chartSemanal = new Chart(ctx, {

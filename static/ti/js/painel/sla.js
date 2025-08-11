@@ -389,18 +389,29 @@ function criarGraficoDistribuicaoStatus(dados) {
     const ctx = document.getElementById('chartStatus');
     if (!ctx) return;
     
-    // Destruir gráfico existente
-    if (graficoStatusInstance) {
-        graficoStatusInstance.destroy();
+    // Destruir gráfico existente - melhorado
+    if (graficoStatusInstance && typeof graficoStatusInstance.destroy === 'function') {
+        try {
+            graficoStatusInstance.destroy();
+            graficoStatusInstance = null;
+        } catch (e) {
+            console.warn('Erro ao destruir gráfico de status:', e);
+        }
     }
-    
+
+    // Verificar se existe instância ativa do Chart.js para este canvas
+    const chartInstance = Chart.getChart(ctx);
+    if (chartInstance) {
+        chartInstance.destroy();
+    }
+
     const cores = {
         'Aberto': '#f59e0b',
         'Aguardando': '#3b82f6',
         'Concluido': '#10b981',
         'Cancelado': '#ef4444'
     };
-    
+
     graficoStatusInstance = new Chart(ctx, {
         type: 'doughnut',
         data: {
