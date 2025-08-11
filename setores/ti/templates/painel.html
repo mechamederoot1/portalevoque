@@ -3128,6 +3128,8 @@
           if (typeof carregarSLA === 'function') {
             carregarSLA();
           }
+          // Carregar configurações SLA para exibir nos badges
+          carregarConfiguracoesSLACorretas();
           break;
         case 'configuracoes':
           // Carregar configurações de prioridades e notificações
