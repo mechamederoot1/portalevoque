@@ -219,7 +219,7 @@ function activateSection(id) {
         return;
     }
 
-    console.log(`Encontradas ${allSections.length} seções. Procurando seção: ${id}`);
+    console.log(`Encontradas ${allSections.length} seções. Procurando se��ão: ${id}`);
     console.log('Seções disponíveis:', Array.from(allSections).map(s => `${s.id} (classes: ${s.className})`));
 
     let sectionFound = false;
@@ -377,10 +377,16 @@ const pagination = document.getElementById('pagination');
 // Fun��ão para carregar os chamados da API
 async function loadChamados() {
     try {
-        const response = await fetch('/ti/painel/api/chamados');
+        const response = await fetch('/ti/painel/api/chamados', {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         if (!response.ok) {
-            throw new Error('Erro ao carregar chamados');
+            throw new Error(`Erro ao carregar chamados: ${response.status} ${response.statusText}`);
         }
+
         chamadosData = await response.json();
         renderChamadosPage(currentPage);
 
@@ -451,9 +457,15 @@ function popularFiltrosDinamicos() {
 async function atualizarContadoresVisaoGeral() {
     try {
         console.log('Atualizando contadores da visão geral...');
-        const response = await fetch('/ti/painel/api/chamados/estatisticas');
+        const response = await fetch('/ti/painel/api/chamados/estatisticas', {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         if (!response.ok) {
-            throw new Error('Erro ao carregar estatísticas');
+            console.error('Erro na resposta:', response.status, response.statusText);
+            throw new Error(`Erro ao carregar estatísticas: ${response.status}`);
         }
         const stats = await response.json();
 
@@ -664,7 +676,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
     }
 }
 
-// Função para renderizar a página de chamados
+// Função para renderizar a p��gina de chamados
 function renderChamadosPage(page) {
     chamadosGrid.innerHTML = '';
     const start = (page - 1) * chamadosPerPage;
@@ -882,7 +894,7 @@ function attachCardEventListeners() {
                 if (window.advancedNotificationSystem) {
                     window.advancedNotificationSystem.showSuccess('Status Atualizado', mensagem);
                 }
-                renderChamadosPage(currentPage); // Atualiza a visualização
+                renderChamadosPage(currentPage); // Atualiza a visualizaç��o
             } catch (error) {
                 if (window.advancedNotificationSystem) {
                     window.advancedNotificationSystem.showError('Erro', error.message);
@@ -2015,7 +2027,7 @@ function renderUsuariosBloqueadosPage(page) {
     attachBloqueadosEventListeners();
 }
 
-// Função para renderizar a paginação dos bloqueados
+// Fun��ão para renderizar a paginação dos bloqueados
 function renderBloqueadosPagination(totalItems) {
     const bloqueadosPagination = document.getElementById('usuariosBloqueadosPagination');
     bloqueadosPagination.innerHTML = '';
@@ -4968,7 +4980,7 @@ async function carregarDashboardAvancado() {
             });
         }
 
-        console.log('Dashboard avançado carregado');
+        console.log('Dashboard avan��ado carregado');
     } catch (error) {
         console.error('Erro ao carregar dashboard avançado:', error);
     }
@@ -5132,6 +5144,15 @@ function debugSistemaPainel() {
 
 // Disponibilizar globalmente
 window.debugSistemaPainel = debugSistemaPainel;
+
+// Tornar funções críticas disponíveis globalmente
+window.loadChamados = loadChamados;
+window.activateSection = activateSection;
+window.showSection = showSection;
+window.loadSectionContent = loadSectionContent;
+window.atualizarContadoresVisaoGeral = atualizarContadoresVisaoGeral;
+
+console.log('Funções globais do painel registradas');
 
 // Executar debug automaticamente em desenvolvimento
 setTimeout(() => {
