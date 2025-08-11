@@ -1765,7 +1765,7 @@ function abrirModalEditarUsuario(usuarioId) {
         return;
     }
 
-    console.log('Abrindo modal para editar usuário:', usuario);
+    console.log('Abrindo modal para editar usu��rio:', usuario);
 
     // Preencher formulário
     document.getElementById('editUsuarioId').value = usuario.id;
@@ -5148,6 +5148,20 @@ function debugSistemaPainel() {
 
 // Disponibilizar globalmente
 window.debugSistemaPainel = debugSistemaPainel;
+
+// Tornar funções críticas disponíveis globalmente
+window.loadChamados = loadChamados;
+window.activateSection = activateSection;
+window.showSection = showSection;
+window.loadSectionContent = loadSectionContent;
+window.atualizarContadoresVisaoGeral = atualizarContadoresVisaoGeral;
+
+console.log('Funções globais registradas:', {
+    loadChamados: typeof window.loadChamados,
+    activateSection: typeof window.activateSection,
+    showSection: typeof window.showSection,
+    loadSectionContent: typeof window.loadSectionContent
+});
 
 // Executar debug automaticamente em desenvolvimento
 setTimeout(() => {
