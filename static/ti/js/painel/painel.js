@@ -387,10 +387,17 @@ async function loadChamados() {
                 'Accept': 'application/json'
             }
         });
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
         if (!response.ok) {
+            const errorText = await response.text();
+            console.error('Response error text:', errorText);
             throw new Error(`Erro ao carregar chamados: ${response.status} ${response.statusText}`);
         }
+
         chamadosData = await response.json();
+        console.log('Chamados data received:', chamadosData.length, 'chamados');
         renderChamadosPage(currentPage);
 
         // Atualizar contadores da visão geral
@@ -673,7 +680,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
     }
 }
 
-// Função para renderizar a página de chamados
+// Função para renderizar a p��gina de chamados
 function renderChamadosPage(page) {
     chamadosGrid.innerHTML = '';
     const start = (page - 1) * chamadosPerPage;
@@ -3099,7 +3106,7 @@ async function criarGrupo() {
 
     if (!nome) {
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', 'Nome do grupo �� obrigatório');
+            window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigatório');
         }
         return;
     }
