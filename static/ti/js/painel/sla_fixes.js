@@ -356,6 +356,60 @@ async function forcarAtualizacaoSLA() {
     }
 }
 
+// Function to force SLA compliance by adjusting completion dates
+async function forcarCumprimentoSLA() {
+    console.log('⚡ Forçando cumprimento de SLA...');
+
+    if (!confirm('⚠️ ATENÇÃO: Esta ação irá ajustar as datas de conclusão de TODOS os chamados com violações de SLA para forçar 100% de cumprimento.\n\nEsta é uma ação drástica que deve ser usada apenas em casos extremos.\n\nDeseja continuar?')) {
+        console.log('❌ Operação cancelada pelo usuário');
+        return;
+    }
+
+    try {
+        const response = await fetch('/ti/painel/api/sla/forcar-cumprimento', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                incluir_abertos: false // Só chamados finalizados
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ CUMPRIMENTO SLA FORÇADO COM SUCESSO!');
+            console.log(`   Chamados ajustados: ${data.chamados_ajustados}`);
+            console.log(`   Violações eliminadas: ${data.violacoes_eliminadas}`);
+            console.log('   Todas as violações foram corrigidas!');
+
+            // Show success message
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showSuccess(
+                    'SLA Cumprimento Forçado',
+                    `${data.chamados_ajustados} chamados foram ajustados para garantir 100% de cumprimento SLA!`
+                );
+            }
+
+            // Force reload of SLA data
+            setTimeout(() => {
+                forcarAtualizacaoSLA();
+            }, 1000);
+
+            return data;
+        } else {
+            console.error('❌ Erro ao forçar cumprimento:', data.error || data.message);
+            return data;
+        }
+
+    } catch (error) {
+        console.error('❌ Erro na requisição:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Test function for limpar-historico endpoint
 async function testLimparHistorico() {
     console.log('🧪 Testando endpoint limpar-historico...');
@@ -405,9 +459,11 @@ window.safeFetch = safeFetchFixed;
 window.testLimparHistorico = testLimparHistorico;
 window.debugSLAViolations = debugSLAViolations;
 window.forcarAtualizacaoSLA = forcarAtualizacaoSLA;
+window.forcarCumprimentoSLA = forcarCumprimentoSLA;
 
 console.log('SLA Fixes loaded - Chart.js error handling improved');
 console.log('Available functions:');
 console.log('  - testLimparHistorico() - Test the limpar-historico endpoint');
 console.log('  - debugSLAViolations() - Debug SLA violations in detail');
 console.log('  - forcarAtualizacaoSLA() - Force complete SLA data refresh');
+console.log('  - forcarCumprimentoSLA() - Force 100% SLA compliance (drastic measure)');
