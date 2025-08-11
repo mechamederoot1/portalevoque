@@ -250,7 +250,7 @@ function carregarConfiguracoesSLA(forcarRecarregamento = false) {
 // Função para obter limite SLA baseado na prioridade
 function obterLimiteSLAPorPrioridade(prioridade) {
     if (!slaConfiguracoes || Object.keys(slaConfiguracoes).length === 0) {
-        // Valores padrão caso as configurações não tenham sido carregadas
+        // Valores padrão caso as configuraç��es não tenham sido carregadas
         const padroes = {
             'Crítica': 2,
             'Crítico': 2,
@@ -452,7 +452,9 @@ function criarGraficoDistribuicaoStatus(dados) {
 
 // Carregar chamados detalhados com informações de SLA
 function carregarChamadosDetalhados() {
-    fetch('/ti/painel/api/sla/chamados-detalhados')
+    // Add cache buster to ensure fresh data after corrections
+    const cacheBuster = new Date().getTime();
+    fetch(`/ti/painel/api/sla/chamados-detalhados?_t=${cacheBuster}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -586,7 +588,9 @@ function mostrarErroSLA(mensagem) {
 function carregarChamadosDetalhadosPaginados() {
     mostrarLoadingSLA(true);
 
-    fetch('/ti/painel/api/sla/chamados-detalhados')
+    // Add cache buster to ensure fresh data after corrections
+    const cacheBuster = new Date().getTime();
+    fetch(`/ti/painel/api/sla/chamados-detalhados?_t=${cacheBuster}`)
         .then(response => {
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);

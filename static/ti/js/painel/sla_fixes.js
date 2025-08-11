@@ -361,7 +361,9 @@ async function testarDadosSLABackend() {
     console.log('🔬 Testando dados SLA do backend...');
 
     try {
-        const response = await fetch('/ti/painel/api/sla/chamados-detalhados', {
+        // Add cache buster to ensure fresh data
+        const cacheBuster = new Date().getTime();
+        const response = await fetch(`/ti/painel/api/sla/chamados-detalhados?_t=${cacheBuster}`, {
             method: 'GET',
             headers: {
                 'Content-Type': 'application/json',
