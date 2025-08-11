@@ -3630,6 +3630,139 @@ def forcar_cumprimento_sla():
             'message': str(e)
         }, status_code=500)
 
+@painel_bp.route('/api/sla/sincronizar-database', methods=['POST'])
+@login_required
+@setor_required('TI')
+def sincronizar_sla_database():
+    """Sincroniza banco de dados SLA com horário de São Paulo"""
+    try:
+        logger.info(f"Iniciando sincronização SLA - usuário: {current_user.usuario}")
+
+        data = request.get_json() or {}
+        timezone_alvo = data.get('timezone', 'America/Sao_Paulo')
+        incluir_feriados = data.get('incluir_feriados', True)
+        corrigir_chamados = data.get('corrigir_chamados', True)
+
+        # Importar timezone
+        import pytz
+        tz_sp = pytz.timezone(timezone_alvo)
+
+        # Contadores de correções
+        configuracoes_corrigidas = 0
+        chamados_corrigidos = 0
+        feriados_adicionados = 0
+
+        # 1. Atualizar configurações SLA
+        config_sla = Configuracao.query.filter_by(chave='sla').first()
+        if config_sla:
+            dados_sla = json.loads(config_sla.valor)
+            if dados_sla.get('timezone') != timezone_alvo:
+                dados_sla['timezone'] = timezone_alvo
+                dados_sla['ultima_atualizacao'] = get_brazil_time().isoformat()
+                config_sla.valor = json.dumps(dados_sla)
+                config_sla.data_atualizacao = get_brazil_time().replace(tzinfo=None)
+                configuracoes_corrigidas += 1
+
+        # 2. Atualizar configurações de horário comercial
+        config_horario = Configuracao.query.filter_by(chave='horario_comercial').first()
+        if config_horario:
+            dados_horario = json.loads(config_horario.valor)
+            if dados_horario.get('timezone') != timezone_alvo:
+                dados_horario['timezone'] = timezone_alvo
+                dados_horario['ultima_atualizacao'] = get_brazil_time().isoformat()
+                config_horario.valor = json.dumps(dados_horario)
+                config_horario.data_atualizacao = get_brazil_time().replace(tzinfo=None)
+                configuracoes_corrigidas += 1
+
+        # 3. Adicionar feriados brasileiros se solicitado
+        if incluir_feriados:
+            from datetime import date
+            ano_atual = date.today().year
+
+            feriados_brasileiros = [
+                {'nome': 'Confraternização Universal', 'mes': 1, 'dia': 1},
+                {'nome': 'Tiradentes', 'mes': 4, 'dia': 21},
+                {'nome': 'Dia do Trabalhador', 'mes': 5, 'dia': 1},
+                {'nome': 'Independência do Brasil', 'mes': 9, 'dia': 7},
+                {'nome': 'Nossa Senhora Aparecida', 'mes': 10, 'dia': 12},
+                {'nome': 'Finados', 'mes': 11, 'dia': 2},
+                {'nome': 'Proclamação da República', 'mes': 11, 'dia': 15},
+                {'nome': 'Natal', 'mes': 12, 'dia': 25},
+            ]
+
+            for ano in [ano_atual, ano_atual + 1]:
+                for feriado_info in feriados_brasileiros:
+                    data_feriado = date(ano, feriado_info['mes'], feriado_info['dia'])
+
+                    if not Feriado.query.filter_by(nome=feriado_info['nome'], data=data_feriado).first():
+                        feriado = Feriado(
+                            nome=feriado_info['nome'],
+                            data=data_feriado,
+                            tipo='nacional',
+                            recorrente=True,
+                            ativo=True,
+                            descricao=f"Feriado nacional brasileiro - {ano}"
+                        )
+                        db.session.add(feriado)
+                        feriados_adicionados += 1
+
+        # 4. Corrigir timezone de chamados se solicitado
+        if corrigir_chamados:
+            chamados = Chamado.query.all()
+
+            for chamado in chamados:
+                alterou = False
+
+                # Corrigir data de abertura
+                if chamado.data_abertura and chamado.data_abertura.tzinfo is not None:
+                    chamado.data_abertura = chamado.data_abertura.astimezone(tz_sp).replace(tzinfo=None)
+                    alterou = True
+
+                # Corrigir data de conclusão
+                if chamado.data_conclusao and chamado.data_conclusao.tzinfo is not None:
+                    chamado.data_conclusao = chamado.data_conclusao.astimezone(tz_sp).replace(tzinfo=None)
+                    alterou = True
+
+                if alterou:
+                    chamados_corrigidos += 1
+
+        # Commit das alterações
+        db.session.commit()
+
+        # Registrar ação de auditoria
+        client_info = get_client_info(request)
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao='Sincronização SLA Database',
+            categoria='sla',
+            detalhes=f'Sincronizado com timezone {timezone_alvo}. Configurações: {configuracoes_corrigidas}, Chamados: {chamados_corrigidos}, Feriados: {feriados_adicionados}',
+            ip_address=client_info['ip_address'],
+            user_agent=client_info['user_agent'],
+            recurso_afetado='sla_database',
+            tipo_recurso='sla'
+        )
+
+        logger.info(f"Sincronização SLA concluída: {configuracoes_corrigidas} configs, {chamados_corrigidos} chamados, {feriados_adicionados} feriados")
+
+        return json_response({
+            'success': True,
+            'message': 'Database SLA sincronizado com sucesso',
+            'timezone': timezone_alvo,
+            'configuracoes_corrigidas': configuracoes_corrigidas,
+            'chamados_corrigidos': chamados_corrigidos,
+            'feriados_adicionados': feriados_adicionados,
+            'timestamp': get_brazil_time().strftime('%d/%m/%Y %H:%M:%S %Z')
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao sincronizar SLA database: {str(e)}")
+        return json_response({
+            'success': False,
+            'error': 'Erro interno no servidor',
+            'message': str(e)
+        }, status_code=500)
+
 @painel_bp.route('/api/debug/sla-violations', methods=['GET'])
 @login_required
 @setor_required('TI')
