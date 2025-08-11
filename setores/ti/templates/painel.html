@@ -1757,8 +1757,11 @@
                   <button class="btn btn-outline-secondary me-2" id="btnCarregarSLA">
                     <i class="fas fa-sync"></i> Recarregar
                   </button>
-                  <button class="btn btn-outline-info" id="btnTestarIntegracao" onclick="testarIntegracaoSLA()">
+                  <button class="btn btn-outline-info me-2" id="btnTestarIntegracao" onclick="testarIntegracaoSLA()">
                     <i class="fas fa-flask"></i> Testar Integração
+                  </button>
+                  <button class="btn btn-outline-warning" onclick="debugChamados()">
+                    <i class="fas fa-bug"></i> Debug Chamados
                   </button>
                 </div>
               </div>
@@ -2550,7 +2553,7 @@
         function activateSection(targetId) {
             console.log('🎯 Ativando seção:', targetId);
 
-            // Esconder todas as seções
+            // Esconder todas as seç��es
             allSections.forEach(section => {
                 section.classList.remove('active');
                 section.style.display = 'none';
