@@ -3419,11 +3419,15 @@ def limpar_historico_violacoes_sla():
         )
 
         # Recalcular SLA para todos os chamados afetados
-        for chamado in chamados_sem_data[:chamados_corrigidos]:
-            try:
-                verificar_sla_chamado(chamado)
-            except Exception as e:
-                logger.warning(f"Erro ao recalcular SLA do chamado {chamado.codigo}: {e}")
+        try:
+            from .sla_utils import verificar_sla_chamado
+            for chamado in chamados_sem_data[:chamados_corrigidos]:
+                try:
+                    verificar_sla_chamado(chamado)
+                except Exception as e:
+                    logger.warning(f"Erro ao recalcular SLA do chamado {chamado.codigo}: {e}")
+        except ImportError:
+            logger.warning("Módulo sla_utils não encontrado, pulando recálculo de SLA")
 
         return json_response({
             'success': True,
