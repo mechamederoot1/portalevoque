@@ -2,7 +2,7 @@
 
 let graficoSemanalInstance;
 let graficoStatusInstance;
-let slaConfiguracoes = {}; // Armazenar configurações SLA
+let slaConfiguracoes = {}; // Armazenar configura��ões SLA
 
 // Função para formatar tempo de forma legível
 function formatarTempo(horas) {
@@ -836,15 +836,25 @@ function limparHistoricoViolacao() {
             'Content-Type': 'application/json'
         }
     })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    .then(response => response.json().then(data => ({
+        status: response.status,
+        ok: response.ok,
+        data: data
+    })))
+    .then(({status, ok, data}) => {
+        if (!ok || !data.success) {
+            throw new Error(data.message || data.error || `HTTP ${status}: Erro no servidor`);
         }
-        return response.json();
-    })
-    .then(data => {
-        mostrarToast('Histórico de violações limpo com sucesso!', 'success');
-        carregarChamadosDetalhadosPaginados(); // Recarregar dados
+
+        mostrarToast(`Histórico limpo! ${data.chamados_corrigidos} chamados corrigidos.`, 'success');
+
+        // Recarregar dados SLA
+        if (window.slaMetricas) {
+            window.slaMetricas.carregarDashboardCompleto();
+        }
+
+        // Recarregar chamados detalhados
+        carregarChamadosDetalhadosPaginados();
     })
     .catch(error => {
         console.error('Erro ao limpar histórico:', error);
