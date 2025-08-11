@@ -835,7 +835,7 @@ class SessaoAtiva(db.Model):
     ultima_atividade = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
     ativo = db.Column(db.Boolean, default=True)
 
-    # Informações de localização
+    # Informações de localiza��ão
     pais = db.Column(db.String(100), nullable=True)
     cidade = db.Column(db.String(100), nullable=True)
     navegador = db.Column(db.String(100), nullable=True)
@@ -1136,6 +1136,71 @@ def init_app(app):
                 )
                 db.session.add(config)
         
+        # Inicializar feriados brasileiros padrão para o ano atual
+        try:
+            from datetime import date
+            ano_atual = date.today().year
+
+            feriados_brasileiros = [
+                {'nome': 'Confraternização Universal', 'data': f'{ano_atual}-01-01', 'recorrente': True},
+                {'nome': 'Tiradentes', 'data': f'{ano_atual}-04-21', 'recorrente': True},
+                {'nome': 'Dia do Trabalhador', 'data': f'{ano_atual}-05-01', 'recorrente': True},
+                {'nome': 'Independência do Brasil', 'data': f'{ano_atual}-09-07', 'recorrente': True},
+                {'nome': 'Nossa Senhora Aparecida', 'data': f'{ano_atual}-10-12', 'recorrente': True},
+                {'nome': 'Finados', 'data': f'{ano_atual}-11-02', 'recorrente': True},
+                {'nome': 'Proclamação da República', 'data': f'{ano_atual}-11-15', 'recorrente': True},
+                {'nome': 'Natal', 'data': f'{ano_atual}-12-25', 'recorrente': True},
+            ]
+
+            for feriado_data in feriados_brasileiros:
+                if not Feriado.query.filter_by(
+                    nome=feriado_data['nome'],
+                    data=datetime.strptime(feriado_data['data'], '%Y-%m-%d').date()
+                ).first():
+                    feriado = Feriado(
+                        nome=feriado_data['nome'],
+                        data=datetime.strptime(feriado_data['data'], '%Y-%m-%d').date(),
+                        tipo='nacional',
+                        recorrente=feriado_data['recorrente'],
+                        ativo=True
+                    )
+                    db.session.add(feriado)
+
+            print(f"✅ Feriados brasileiros inicializados para {ano_atual}")
+
+        except Exception as e:
+            print(f"⚠️ Erro ao inicializar feriados: {str(e)}")
+
+        # Inicializar configurações detalhadas de SLA
+        try:
+            configuracoes_sla_detalhadas = [
+                {'prioridade': 'Crítica', 'tempo_primeira_resposta': 1.0, 'tempo_resolucao': 2.0, 'percentual_risco': 90.0},
+                {'prioridade': 'Urgente', 'tempo_primeira_resposta': 1.0, 'tempo_resolucao': 2.0, 'percentual_risco': 90.0},
+                {'prioridade': 'Alta', 'tempo_primeira_resposta': 2.0, 'tempo_resolucao': 8.0, 'percentual_risco': 80.0},
+                {'prioridade': 'Normal', 'tempo_primeira_resposta': 4.0, 'tempo_resolucao': 24.0, 'percentual_risco': 75.0},
+                {'prioridade': 'Baixa', 'tempo_primeira_resposta': 8.0, 'tempo_resolucao': 72.0, 'percentual_risco': 70.0},
+            ]
+
+            for config_data in configuracoes_sla_detalhadas:
+                if not ConfiguracaoSLA.query.filter_by(prioridade=config_data['prioridade']).first():
+                    config_sla = ConfiguracaoSLA(
+                        prioridade=config_data['prioridade'],
+                        tempo_primeira_resposta=config_data['tempo_primeira_resposta'],
+                        tempo_resolucao=config_data['tempo_resolucao'],
+                        considera_horario_comercial=True,
+                        considera_feriados=True,
+                        escalar_automaticamente=True,
+                        notificar_em_risco=True,
+                        percentual_risco=config_data['percentual_risco'],
+                        ativo=True
+                    )
+                    db.session.add(config_sla)
+
+            print("✅ Configurações detalhadas de SLA inicializadas")
+
+        except Exception as e:
+            print(f"⚠️ Erro ao inicializar configurações SLA: {str(e)}")
+
         # Inicializar configurações avançadas padrão
         configuracoes_avancadas_padrao = {
             'sistema.manutencao_modo': {
