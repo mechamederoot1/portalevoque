@@ -621,7 +621,7 @@ def salvar_configuracoes_api():
 @login_required
 @setor_required('Administrador')
 def salvar_configuracoes_notificacoes():
-    """Endpoint específico para salvar configurações de notificações"""
+    """Endpoint específico para salvar configura��ões de notificações"""
     try:
         if not request.is_json:
             return error_response('Content-Type deve ser application/json', 400)
@@ -959,7 +959,7 @@ Data de Abertura: {chamado.get_data_abertura_brazil().strftime('%d/%m/%Y %H:%M:%
 def atribuir_chamado_para_mim(chamado_id):
     """Atribui um chamado ao agente logado"""
     try:
-        logger.info(f"Tentativa de atribuição do chamado {chamado_id} pelo usuário {current_user.id}")
+        logger.info(f"Tentativa de atribui��ão do chamado {chamado_id} pelo usuário {current_user.id}")
 
         # Processar dados JSON se fornecidos
         data = {}
@@ -1208,7 +1208,7 @@ def transferir_chamado_agente(chamado_id):
         # Verificar se o agente atual tem permissão
         agente_atual = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente_atual:
-            return error_response('Usuário n��o é um agente de suporte', 403)
+            return error_response('Usuário não é um agente de suporte', 403)
 
         # Verificar se agente de destino existe
         agente_destino = AgenteSuporte.query.get(agente_destino_id)
@@ -3436,15 +3436,60 @@ def limpar_historico_violacoes_sla():
 def debug_sla_violations_api():
     """Debug de violações de SLA persistentes"""
     try:
-        from .debug_sla_violations import debug_sla_violations
-        violations = debug_sla_violations()
+        from datetime import datetime, timedelta
+        from .sla_utils import verificar_sla_chamado
+
+        # Buscar chamados concluídos que ainda aparecem como violados
+        chamados_concluidos = Chamado.query.filter(
+            Chamado.status.in_(['Concluido', 'Cancelado'])
+        ).limit(20).all()
+
+        violations_found = []
+
+        for chamado in chamados_concluidos:
+            try:
+                # Verificar se tem data de conclusão
+                if not chamado.data_conclusao and chamado.status in ['Concluido', 'Cancelado']:
+                    violations_found.append({
+                        'codigo': chamado.codigo,
+                        'problema': 'Chamado concluído sem data de conclusão',
+                        'status': chamado.status,
+                        'data_abertura': chamado.data_abertura.strftime('%d/%m/%Y %H:%M') if chamado.data_abertura else None,
+                        'data_conclusao': None
+                    })
+                    continue
+
+                # Verificar SLA atual
+                sla_info = verificar_sla_chamado(chamado)
+
+                if sla_info.get('status') == 'Violado' and chamado.status in ['Concluido', 'Cancelado']:
+                    violations_found.append({
+                        'codigo': chamado.codigo,
+                        'problema': 'Violação em chamado concluído',
+                        'status': chamado.status,
+                        'prioridade': chamado.prioridade,
+                        'data_abertura': chamado.data_abertura.strftime('%d/%m/%Y %H:%M') if chamado.data_abertura else None,
+                        'data_conclusao': chamado.data_conclusao.strftime('%d/%m/%Y %H:%M') if chamado.data_conclusao else None,
+                        'sla_status': sla_info.get('status'),
+                        'tempo_decorrido': sla_info.get('tempo_decorrido_formatado'),
+                        'sla_limite': sla_info.get('sla_limite_formatado')
+                    })
+
+            except Exception as e:
+                violations_found.append({
+                    'codigo': chamado.codigo,
+                    'problema': f'Erro de cálculo: {str(e)}',
+                    'status': chamado.status,
+                    'error': str(e)
+                })
 
         return json_response({
             'success': True,
-            'violations': violations,
-            'total_violations': len(violations),
+            'violations': violations_found,
+            'total_violations': len(violations_found),
             'timestamp': get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')
         })
+
     except Exception as e:
         logger.error(f"Erro no debug de violações SLA: {str(e)}")
         return json_response({
