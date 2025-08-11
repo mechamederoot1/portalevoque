@@ -2553,7 +2553,7 @@
         function activateSection(targetId) {
             console.log('🎯 Ativando seção:', targetId);
 
-            // Esconder todas as seç��es
+            // Esconder todas as seções
             allSections.forEach(section => {
                 section.classList.remove('active');
                 section.style.display = 'none';
@@ -2754,7 +2754,7 @@
         }
     }
 
-    // Função para salvar configurações de notificações
+    // Funç��o para salvar configurações de notificações
     async function salvarConfiguracaoNotificacoes() {
         try {
             const novasConfiguracoes = {
@@ -3620,6 +3620,72 @@ async function salvarConfiguracoesSLACorretas() {
             window.advancedNotificationSystem.showError(
                 'Erro',
                 'Erro ao salvar configurações SLA: ' + error.message
+            );
+        }
+    }
+}
+
+// Função de debug para chamados
+async function debugChamados() {
+    console.log('=== DEBUG CHAMADOS ===');
+
+    try {
+        // Testar endpoint de debug
+        console.log('Testando /ti/painel/debug/verificar-dados...');
+        const debugResponse = await fetch('/ti/painel/debug/verificar-dados', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (debugResponse.ok) {
+            const debugData = await debugResponse.json();
+            console.log('✅ Dados do banco:', debugData);
+
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showInfo(
+                    'Debug Chamados',
+                    `Encontrados: ${debugData.total_chamados} chamados, ${debugData.total_usuarios} usuários, ${debugData.total_unidades} unidades`
+                );
+            }
+        } else {
+            console.error('❌ Erro no debug:', debugResponse.status);
+        }
+
+        // Testar endpoint de estatísticas
+        console.log('Testando /ti/painel/api/chamados/estatisticas...');
+        const statsResponse = await fetch('/ti/painel/api/chamados/estatisticas', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (statsResponse.ok) {
+            const statsData = await statsResponse.json();
+            console.log('✅ Estatísticas:', statsData);
+        } else {
+            console.error('❌ Erro nas estatísticas:', statsResponse.status);
+        }
+
+        // Testar endpoint de chamados
+        console.log('Testando /ti/painel/api/chamados...');
+        const chamadosResponse = await fetch('/ti/painel/api/chamados', {
+            credentials: 'same-origin',
+            headers: { 'Accept': 'application/json' }
+        });
+
+        if (chamadosResponse.ok) {
+            const chamadosData = await chamadosResponse.json();
+            console.log('✅ Chamados:', chamadosData.length, 'encontrados');
+            console.log('Primeiros 2 chamados:', chamadosData.slice(0, 2));
+        } else {
+            console.error('❌ Erro nos chamados:', chamadosResponse.status);
+        }
+
+    } catch (error) {
+        console.error('�� Erro geral no debug:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError(
+                'Erro Debug',
+                'Erro durante debug dos chamados: ' + error.message
             );
         }
     }
