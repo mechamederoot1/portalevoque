@@ -256,10 +256,53 @@ async function safeFetchFixed(url, options = {}) {
     }
 }
 
+// Test function for limpar-historico endpoint
+async function testLimparHistorico() {
+    console.log('🧪 Testando endpoint limpar-historico...');
+
+    try {
+        const response = await fetch('/ti/painel/api/sla/limpar-historico', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+
+        console.log('Response status:', response.status);
+        console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+        const contentType = response.headers.get('content-type');
+
+        if (contentType && contentType.includes('application/json')) {
+            const data = await response.json();
+            console.log('✅ Resposta JSON:', data);
+
+            if (data.success) {
+                console.log(`🎉 Sucesso! ${data.chamados_corrigidos} chamados corrigidos`);
+                return { success: true, data };
+            } else {
+                console.error('❌ Erro na operação:', data.error || data.message);
+                return { success: false, error: data.error || data.message };
+            }
+        } else {
+            const text = await response.text();
+            console.error('❌ Resposta não é JSON:', text.substring(0, 500));
+            return { success: false, error: 'Resposta não é JSON válido' };
+        }
+
+    } catch (error) {
+        console.error('❌ Erro na requisição:', error);
+        return { success: false, error: error.message };
+    }
+}
+
 // Override global functions
 window.createChartSafely = createChartSafely;
 window.criarGraficoSemanal = criarGraficoSemanal;
 window.criarGraficoDistribuicaoStatus = criarGraficoDistribuicaoStatus;
 window.safeFetch = safeFetchFixed;
+window.testLimparHistorico = testLimparHistorico;
 
 console.log('SLA Fixes loaded - Chart.js error handling improved');
+console.log('Use testLimparHistorico() to test the limpar-historico endpoint');
