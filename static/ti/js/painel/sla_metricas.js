@@ -257,17 +257,18 @@ class SLAMetricas {
         }
     }
 
-    atualizarGraficos(estatisticas) {
-        if (!estatisticas) return;
+    atualizarGraficos(dadosGrafico) {
+        if (!dadosGrafico) return;
 
         // Atualizar gráfico de status
-        this.atualizarGraficoStatus(estatisticas.status);
-        
-        // Atualizar gráfico de prioridade
-        this.atualizarGraficoPrioridade(estatisticas.prioridade);
-        
-        // Atualizar gráfico semanal (dados simulados por enquanto)
-        this.atualizarGraficoSemanal();
+        if (dadosGrafico.distribuicao_status) {
+            this.atualizarGraficoStatus(dadosGrafico.distribuicao_status);
+        }
+
+        // Atualizar gráfico semanal
+        if (dadosGrafico.grafico_semanal) {
+            this.atualizarGraficoSemanal(dadosGrafico.grafico_semanal);
+        }
     }
 
     atualizarGraficoStatus(statusData) {
