@@ -17,6 +17,15 @@ import pytz
 import traceback
 from database import LogAcesso, LogAcao, SessaoAtiva, registrar_log_acao
 
+# Importar utilitários SLA
+from setores.ti.sla_utils import (
+    calcular_sla_chamado_correto,
+    carregar_configuracoes_sla,
+    salvar_configuracoes_sla,
+    carregar_configuracoes_horario_comercial,
+    obter_metricas_sla_consolidadas
+)
+
 painel_bp = Blueprint('painel', __name__, template_folder='templates')
 
 # Configurar logging
