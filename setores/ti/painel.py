@@ -3287,7 +3287,7 @@ def obter_chamados_detalhados_sla():
                 'horas_decorridas': sla_info['horas_decorridas'],
                 'sla_limite': sla_info['sla_limite'],
                 'sla_status': sla_info['sla_status'],
-                'prioridade': sla_info['prioridade'],
+                'prioridade': sla_info.get('prioridade', chamado.prioridade),
                 'tempo_primeira_resposta': sla_info['tempo_primeira_resposta'],
                 'tempo_resolucao': sla_info['tempo_resolucao'],
                 'violacao_primeira_resposta': sla_info['violacao_primeira_resposta'],
