@@ -16,6 +16,22 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/painel.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/enviar_ticket.css') }}">
+  <style>
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
+      }
+      50% {
+        transform: scale(1.05);
+        box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
+      }
+      100% {
+        transform: scale(1);
+        box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
+      }
+    }
+  </style>
 </head>
 <body data-theme="dark">
 
@@ -929,7 +945,7 @@
         </div>
       </div>
 
-      <!-- Tabela de Ações -->
+      <!-- Tabela de A��ões -->
       <div class="card">
         <div class="card-header">
           <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Histórico de Ações</h5>
@@ -1005,7 +1021,7 @@
         </div>
       </div>
 
-      <!-- Gráficos de Análise -->
+      <!-- Gr��ficos de Análise -->
       <div class="row mb-4">
         <div class="col-lg-6">
           <div class="card">
@@ -3349,7 +3365,7 @@ async function salvarConfiguracoesChamados() {
         
         return data;
     } catch (error) {
-        console.error('Erro ao salvar configurações:', error);
+        console.error('Erro ao salvar configura��ões:', error);
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError(
                 'Erro',
