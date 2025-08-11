@@ -346,7 +346,12 @@ class SLAMetricas {
 
         // Destruir gráfico existente se houver
         if (window.chartDistribuicaoPrioridade) {
-            window.chartDistribuicaoPrioridade.destroy();
+            try {
+                window.chartDistribuicaoPrioridade.destroy();
+                window.chartDistribuicaoPrioridade = null;
+            } catch (e) {
+                console.warn('Erro ao destruir gráfico de prioridade:', e);
+            }
         }
 
         window.chartDistribuicaoPrioridade = new Chart(ctx, {
@@ -416,7 +421,12 @@ class SLAMetricas {
 
         // Destruir gráfico existente se houver
         if (window.chartSemanal) {
-            window.chartSemanal.destroy();
+            try {
+                window.chartSemanal.destroy();
+                window.chartSemanal = null;
+            } catch (e) {
+                console.warn('Erro ao destruir gráfico semanal:', e);
+            }
         }
 
         window.chartSemanal = new Chart(ctx, {
