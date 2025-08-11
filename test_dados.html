@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Dados - Evoque Fitness</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .resultado { margin: 10px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .sucesso { background-color: #d4edda; border-color: #c3e6cb; color: #155724; }
+        .erro { background-color: #f8d7da; border-color: #f5c6cb; color: #721c24; }
+        .info { background-color: #d1ecf1; border-color: #bee5eb; color: #0c5460; }
+        button { margin: 5px; padding: 10px 15px; font-size: 14px; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .loading { color: #6c757d; font-style: italic; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste de Dados - Sistema Evoque Fitness</h1>
+    
+    <p><strong>Status:</strong> Para testar, você deve estar logado como administrador.</p>
+    
+    <div>
+        <button onclick="verificarDados()">🔍 Verificar Dados do Banco</button>
+        <button onclick="testarEstatisticas()">📊 Testar Estatísticas</button>
+        <button onclick="testarChamados()">📝 Testar Lista de Chamados</button>
+        <button onclick="limparResultados()">🗑️ Limpar</button>
+    </div>
+    
+    <div id="resultados"></div>
+    
+    <script>
+        function adicionarResultado(titulo, conteudo, tipo = 'info') {
+            const resultados = document.getElementById('resultados');
+            const div = document.createElement('div');
+            div.className = `resultado ${tipo}`;
+            div.innerHTML = `
+                <h3>${titulo}</h3>
+                <div>${conteudo}</div>
+            `;
+            resultados.appendChild(div);
+            div.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function mostrarLoading(titulo) {
+            adicionarResultado(titulo, '<span class="loading">⏳ Carregando...</span>', 'info');
+        }
+
+        async function verificarDados() {
+            mostrarLoading('🔍 Verificando Dados do Banco');
+            
+            try {
+                const response = await fetch('/ti/painel/debug/verificar-dados', {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const conteudo = `
+                        <p><strong>✅ Conexão:</strong> ${data.conexao_banco}</p>
+                        <p><strong>📝 Total de Chamados:</strong> ${data.total_chamados}</p>
+                        <p><strong>👥 Total de Usuários:</strong> ${data.total_usuarios}</p>
+                        <p><strong>🏢 Total de Unidades:</strong> ${data.total_unidades}</p>
+                        <p><strong>🕐 Timestamp:</strong> ${data.timestamp}</p>
+                        
+                        ${data.amostra_chamados.length > 0 ? `
+                            <p><strong>📋 Amostra de Chamados:</strong></p>
+                            <pre>${JSON.stringify(data.amostra_chamados, null, 2)}</pre>
+                        ` : '<p><strong>⚠️ Nenhum chamado encontrado na amostra</strong></p>'}
+                    `;
+                    adicionarResultado('✅ Dados do Banco Verificados', conteudo, 'sucesso');
+                } else {
+                    const error = await response.text();
+                    adicionarResultado('❌ Erro na Verificação', `Status: ${response.status}<br><pre>${error}</pre>`, 'erro');
+                }
+            } catch (error) {
+                adicionarResultado('❌ Erro de Rede', error.message, 'erro');
+            }
+        }
+
+        async function testarEstatisticas() {
+            mostrarLoading('📊 Testando API de Estatísticas');
+            
+            try {
+                const response = await fetch('/ti/painel/api/chamados/estatisticas', {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const conteudo = `
+                        <p><strong>📊 Estatísticas por Status:</strong></p>
+                        <ul>
+                            <li><strong>Abertos:</strong> ${data.Aberto || 0}</li>
+                            <li><strong>Aguardando:</strong> ${data.Aguardando || 0}</li>
+                            <li><strong>Concluídos:</strong> ${data.Concluido || 0}</li>
+                            <li><strong>Cancelados:</strong> ${data.Cancelado || 0}</li>
+                            <li><strong>Total:</strong> ${data.total || 0}</li>
+                        </ul>
+                        <p><strong>📋 Dados Brutos:</strong></p>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                    adicionarResultado('✅ Estatísticas Carregadas', conteudo, 'sucesso');
+                } else {
+                    const error = await response.text();
+                    adicionarResultado('❌ Erro nas Estatísticas', `Status: ${response.status}<br><pre>${error}</pre>`, 'erro');
+                }
+            } catch (error) {
+                adicionarResultado('❌ Erro de Rede', error.message, 'erro');
+            }
+        }
+
+        async function testarChamados() {
+            mostrarLoading('📝 Testando API de Chamados');
+            
+            try {
+                const response = await fetch('/ti/painel/api/chamados', {
+                    credentials: 'same-origin',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const conteudo = `
+                        <p><strong>📝 Total de Chamados Retornados:</strong> ${data.length || 0}</p>
+                        ${data.length > 0 ? `
+                            <p><strong>📋 Primeiros 3 Chamados:</strong></p>
+                            <pre>${JSON.stringify(data.slice(0, 3), null, 2)}</pre>
+                        ` : '<p><strong>⚠️ Nenhum chamado retornado pela API</strong></p>'}
+                    `;
+                    adicionarResultado('✅ Lista de Chamados', conteudo, 'sucesso');
+                } else {
+                    const error = await response.text();
+                    adicionarResultado('❌ Erro na Lista de Chamados', `Status: ${response.status}<br><pre>${error}</pre>`, 'erro');
+                }
+            } catch (error) {
+                adicionarResultado('❌ Erro de Rede', error.message, 'erro');
+            }
+        }
+
+        function limparResultados() {
+            document.getElementById('resultados').innerHTML = '';
+        }
+
+        // Auto-executar verificação inicial
+        window.addEventListener('load', () => {
+            setTimeout(verificarDados, 1000);
+        });
+    </script>
+</body>
+</html>
