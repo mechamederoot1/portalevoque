@@ -684,7 +684,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Gerenciar Permissões</h2>
         <div class="input-group" style="max-width: 300px;">
-          <input type="text" class="form-control" id="filtroPermissoes" placeholder="Buscar usu��rio...">
+          <input type="text" class="form-control" id="filtroPermissoes" placeholder="Buscar usuário...">
           <button class="btn btn-outline-secondary" id="btnFiltrarPermissoes">
             <i class="fas fa-search"></i>
           </button>
@@ -2547,7 +2547,7 @@
         function activateSection(targetId) {
             console.log('🎯 Ativando seção:', targetId);
 
-            // Esconder todas as seç��es
+            // Esconder todas as seções
             allSections.forEach(section => {
                 section.classList.remove('active');
                 section.style.display = 'none';
@@ -3417,7 +3417,12 @@ async function carregarConfiguracoes() {
 // Funções para gerenciar configurações SLA corretas
 async function carregarConfiguracoesSLACorretas() {
     try {
-        const response = await fetch('/ti/painel/api/sla/configuracoes');
+        const response = await fetch('/ti/painel/api/sla/configuracoes', {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         if (!response.ok) {
             throw new Error('Erro ao carregar configurações SLA');
         }
@@ -3559,8 +3564,10 @@ async function salvarConfiguracoesSLACorretas() {
 
         const response = await fetch('/ti/painel/api/sla/configuracoes', {
             method: 'POST',
+            credentials: 'same-origin',
             headers: {
                 'Content-Type': 'application/json',
+                'Accept': 'application/json'
             },
             body: JSON.stringify(configuracoes)
         });
