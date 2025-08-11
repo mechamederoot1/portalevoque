@@ -3455,6 +3455,66 @@ def limpar_historico_violacoes_sla():
             'message': str(e)
         }, status_code=500)
 
+@painel_bp.route('/api/sla/debug-violacoes', methods=['GET'])
+@login_required
+@setor_required('TI')
+def debug_violacoes_sla():
+    """Debug detalhado de violações SLA"""
+    try:
+        config_sla = carregar_configuracoes_sla()
+        config_horario = carregar_configuracoes_horario_comercial()
+
+        # Buscar chamados finalizados
+        chamados_finalizados = Chamado.query.filter(
+            Chamado.status.in_(['Concluido', 'Cancelado'])
+        ).order_by(Chamado.data_abertura.desc()).limit(50).all()
+
+        violacoes = []
+        cumprimentos = 0
+        sem_data_conclusao = 0
+
+        for chamado in chamados_finalizados:
+            if not chamado.data_conclusao:
+                sem_data_conclusao += 1
+                continue
+
+            sla_info = calcular_sla_chamado_correto(chamado, config_sla, config_horario)
+
+            if sla_info['sla_status'] == 'Violado':
+                violacoes.append({
+                    'codigo': chamado.codigo,
+                    'status': chamado.status,
+                    'prioridade': chamado.prioridade,
+                    'data_abertura': chamado.data_abertura.strftime('%d/%m/%Y %H:%M:%S') if chamado.data_abertura else None,
+                    'data_conclusao': chamado.data_conclusao.strftime('%d/%m/%Y %H:%M:%S') if chamado.data_conclusao else None,
+                    'tempo_resolucao_uteis': sla_info['horas_uteis_decorridas'],
+                    'limite_sla': sla_info['sla_limite'],
+                    'sla_status': sla_info['sla_status']
+                })
+            elif sla_info['sla_status'] == 'Cumprido':
+                cumprimentos += 1
+
+        # Verificar histórico de correções
+        historicos = HistoricoSLA.query.order_by(HistoricoSLA.data_criacao.desc()).limit(10).all()
+
+        return json_response({
+            'success': True,
+            'total_analisados': len(chamados_finalizados),
+            'violacoes_encontradas': len(violacoes),
+            'cumprimentos': cumprimentos,
+            'sem_data_conclusao': sem_data_conclusao,
+            'violacoes_detalhadas': violacoes,
+            'ultimas_correcoes': len(historicos),
+            'timestamp': get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')
+        })
+
+    except Exception as e:
+        logger.error(f"Erro no debug SLA: {str(e)}")
+        return json_response({
+            'success': False,
+            'error': str(e)
+        }, status_code=500)
+
 @painel_bp.route('/api/debug/sla-violations', methods=['GET'])
 @login_required
 @setor_required('TI')
