@@ -985,7 +985,7 @@ def atribuir_chamado_para_mim(chamado_id):
                 logger.info(f"Agente criado automaticamente para usuário {current_user.id}")
             else:
                 logger.warning(f"Usuário {current_user.id} não tem permissão para ser agente")
-                return error_response('Usuário não tem permissão para ser agente', 403)
+                return error_response('Usuário não tem permiss��o para ser agente', 403)
 
         # Verificar se o agente pode receber mais chamados
         try:
@@ -1411,7 +1411,7 @@ def marcar_notificacao_lida(notificacao_id):
 # ==================== APIS DE MÉTRICAS SLA CORRETAS ====================
 
 @painel_bp.route('/api/sla/configuracoes', methods=['GET'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def obter_configuracoes_sla():
     """Retorna configurações de SLA"""
@@ -1435,7 +1435,7 @@ def obter_configuracoes_sla():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/configuracoes', methods=['POST'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def salvar_configuracoes_sla_api():
     """Salva configurações de SLA"""
