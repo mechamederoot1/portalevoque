@@ -964,6 +964,31 @@ class HistoricoAtendimento(db.Model):
     def __repr__(self):
         return f'<HistoricoAtendimento {self.id} - Chamado {self.chamado_id}>'
 
+class HistoricoSLA(db.Model):
+    """Tabela para histórico de violações e ajustes de SLA"""
+    __tablename__ = 'historico_sla'
+
+    id = db.Column(db.Integer, primary_key=True)
+    chamado_id = db.Column(db.Integer, db.ForeignKey('chamado.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    acao = db.Column(db.String(100), nullable=False)  # 'violacao', 'correcao', 'ajuste'
+    status_anterior = db.Column(db.String(50), nullable=True)
+    status_novo = db.Column(db.String(50), nullable=True)
+    data_conclusao_anterior = db.Column(db.DateTime, nullable=True)
+    data_conclusao_nova = db.Column(db.DateTime, nullable=True)
+    tempo_resolucao_horas = db.Column(db.Float, nullable=True)
+    limite_sla_horas = db.Column(db.Float, nullable=True)
+    status_sla = db.Column(db.String(50), nullable=True)  # 'Cumprido', 'Violado', 'Em Risco'
+    observacoes = db.Column(db.Text, nullable=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+
+    # Relacionamentos
+    chamado = db.relationship('Chamado', backref='historicos_sla')
+    usuario = db.relationship('User', backref='acoes_sla')
+
+    def __repr__(self):
+        return f'<HistoricoSLA {self.id} - Chamado {self.chamado_id} - {self.acao}>'
+
 def init_app(app):
     db.init_app(app)
     
