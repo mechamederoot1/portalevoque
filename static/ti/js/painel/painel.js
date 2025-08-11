@@ -376,7 +376,11 @@ const pagination = document.getElementById('pagination');
 
 // Fun��ão para carregar os chamados da API
 async function loadChamados() {
+    console.log('=== INICIANDO loadChamados ===');
+    console.log('chamadosGrid element:', document.getElementById('chamadosGrid'));
+
     try {
+        console.log('Fazendo fetch para /ti/painel/api/chamados...');
         const response = await fetch('/ti/painel/api/chamados', {
             credentials: 'same-origin',
             headers: {
@@ -3095,7 +3099,7 @@ async function criarGrupo() {
 
     if (!nome) {
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', 'Nome do grupo é obrigatório');
+            window.advancedNotificationSystem.showError('Erro', 'Nome do grupo �� obrigatório');
         }
         return;
     }
