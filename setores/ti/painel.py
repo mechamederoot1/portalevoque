@@ -581,7 +581,7 @@ def salvar_configuracoes_api():
                     if not isinstance(sla_config[campo], (int, float)) or sla_config[campo] <= 0:
                         return error_response(f'Campo SLA {campo} deve ser um número positivo', 400)
         
-        # Validar configura����ões de notificações
+        # Validar configura��ões de notificações
         if 'notificacoes' in data:
             notif_config = data['notificacoes']
             campos_bool = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
@@ -1330,7 +1330,7 @@ def notificacoes_agente():
         if not agente:
             return error_response('Usuário não é um agente de suporte', 403)
 
-        # Par��metros de filtro
+        # Parâmetros de filtro
         nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
         limite = request.args.get('limite', 50, type=int)
 
@@ -2211,12 +2211,23 @@ def listar_chamados():
 def obter_estatisticas_chamados():
     """Retorna estatísticas dos chamados por status"""
     try:
+        logger.info("Iniciando consulta de estatísticas de chamados...")
+
+        # Primeiro, verificar se existem chamados no banco
+        total_chamados = Chamado.query.count()
+        logger.info(f"Total de chamados no banco: {total_chamados}")
+
+        if total_chamados == 0:
+            logger.warning("Nenhum chamado encontrado no banco de dados")
+
         # Contar chamados por status
         estatisticas = db.session.query(
             Chamado.status,
             func.count(Chamado.id).label('quantidade')
         ).group_by(Chamado.status).all()
-        
+
+        logger.info(f"Estatísticas brutas do banco: {estatisticas}")
+
         # Converter para dicionário
         stats_dict = {}
         total = 0
@@ -2224,6 +2235,7 @@ def obter_estatisticas_chamados():
         for status, quantidade in estatisticas:
             stats_dict[status] = quantidade
             total += quantidade
+            logger.info(f"Status {status}: {quantidade} chamados")
 
         # Adicionar status que podem não ter chamados
         status_possiveis = ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']
@@ -2233,6 +2245,7 @@ def obter_estatisticas_chamados():
 
         stats_dict['total'] = total
 
+        logger.info(f"Estatísticas finais: {stats_dict}")
         return json_response(stats_dict)
 
     except Exception as e:
@@ -3143,7 +3156,7 @@ Equipe de Suporte TI - Evoque Fitness
             db.session.add(historico)
             db.session.commit()
             
-            # Emitir evento Socket.IO apenas se a conexão estiver dispon��vel
+            # Emitir evento Socket.IO apenas se a conexão estiver disponível
             try:
                 if hasattr(current_app, 'socketio'):
                     current_app.socketio.emit('ticket_enviado', {
