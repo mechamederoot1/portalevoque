@@ -290,8 +290,8 @@ class SLAMetricas {
             }]
         };
 
-        // Destruir gráfico existente se houver
-        if (window.chartStatus) {
+        // Destruir gráfico existente se houver - melhorado
+        if (window.chartStatus && typeof window.chartStatus.destroy === 'function') {
             try {
                 window.chartStatus.destroy();
                 window.chartStatus = null;
@@ -300,10 +300,13 @@ class SLAMetricas {
             }
         }
 
-        // Garantir que o canvas está limpo
-        const canvas = ctx.getContext('2d');
-        canvas.clearRect(0, 0, ctx.width, ctx.height);
+        // Verificar se existe instância ativa do Chart.js para este canvas
+        const chartInstance = Chart.getChart(ctx);
+        if (chartInstance) {
+            chartInstance.destroy();
+        }
 
+        // Criar novo gráfico
         window.chartStatus = new Chart(ctx, {
             type: 'doughnut',
             data: data,

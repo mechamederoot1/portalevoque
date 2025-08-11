@@ -5145,6 +5145,32 @@ function debugSistemaPainel() {
 // Disponibilizar globalmente
 window.debugSistemaPainel = debugSistemaPainel;
 
+// Função showSection (estava faltando)
+function showSection(sectionId) {
+    try {
+        console.log('Mostrando seção:', sectionId);
+
+        // Esconder todas as seções
+        const sections = document.querySelectorAll('.content-section');
+        sections.forEach(section => {
+            section.style.display = 'none';
+        });
+
+        // Mostrar seção selecionada
+        const targetSection = document.getElementById(sectionId);
+        if (targetSection) {
+            targetSection.style.display = 'block';
+
+            // Carregar conteúdo específico da seção se necessário
+            loadSectionContent(sectionId);
+        } else {
+            console.error('Seção não encontrada:', sectionId);
+        }
+    } catch (error) {
+        console.error('Erro ao mostrar seção:', error);
+    }
+}
+
 // Tornar funções críticas disponíveis globalmente
 window.loadChamados = loadChamados;
 window.activateSection = activateSection;

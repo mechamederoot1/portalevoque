@@ -319,7 +319,7 @@ def setup_database_endpoint():
             ('Usuário criado', 'usuarios', 'Novo usuário cadastrado'),
             ('Configuração alterada', 'sistema', 'Configuração do sistema modificada'),
             ('Backup realizado', 'sistema', 'Backup automático executado'),
-            ('Relat��rio gerado', 'relatorios', 'Relatório de atividades criado'),
+            ('Relat����rio gerado', 'relatorios', 'Relatório de atividades criado'),
             ('Logout realizado', 'autenticacao', 'Usuário fez logout')
         ]
 
@@ -1334,7 +1334,7 @@ def notificacoes_agente():
         nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
         limite = request.args.get('limite', 50, type=int)
 
-        # Simular algumas notificações para demonstração
+        # Simular algumas notificações para demonstraç��o
         agora = get_brazil_time()
         notificacoes = [
             {
@@ -3366,6 +3366,7 @@ def limpar_historico_violacoes_sla():
     """Limpa histórico de violações de SLA corrigindo datas de conclusão faltantes"""
     try:
         from datetime import datetime, timedelta
+        from ..sla_utils import verificar_sla_chamado
 
         # Definir data de conclusão para chamados concluídos sem data_conclusao
         chamados_sem_data = Chamado.query.filter(
@@ -3378,13 +3379,13 @@ def limpar_historico_violacoes_sla():
             if chamado.data_abertura:
                 # Definir tempo de resolução baseado na prioridade para que fique dentro do SLA
                 if chamado.prioridade == 'Crítica':
-                    horas_adicionar = 1 + (hash(chamado.codigo) % 2)  # 1-2 horas (SLA: 2h)
+                    horas_adicionar = 1 + (abs(hash(chamado.codigo)) % 2)  # 1-2 horas (SLA: 2h)
                 elif chamado.prioridade == 'Alta':
-                    horas_adicionar = 2 + (hash(chamado.codigo) % 4)  # 2-5 horas (SLA: 8h)
+                    horas_adicionar = 2 + (abs(hash(chamado.codigo)) % 4)  # 2-5 horas (SLA: 8h)
                 elif chamado.prioridade == 'Normal':
-                    horas_adicionar = 4 + (hash(chamado.codigo) % 16)  # 4-19 horas (SLA: 24h)
+                    horas_adicionar = 4 + (abs(hash(chamado.codigo)) % 16)  # 4-19 horas (SLA: 24h)
                 else:  # Baixa
-                    horas_adicionar = 8 + (hash(chamado.codigo) % 40)  # 8-47 horas (SLA: 72h)
+                    horas_adicionar = 8 + (abs(hash(chamado.codigo)) % 40)  # 8-47 horas (SLA: 72h)
 
                 chamado.data_conclusao = chamado.data_abertura + timedelta(hours=horas_adicionar)
                 chamados_corrigidos += 1
@@ -3405,7 +3406,15 @@ def limpar_historico_violacoes_sla():
             tipo_recurso='sla'
         )
 
+        # Recalcular SLA para todos os chamados afetados
+        for chamado in chamados_sem_data[:chamados_corrigidos]:
+            try:
+                verificar_sla_chamado(chamado)
+            except Exception as e:
+                logger.warning(f"Erro ao recalcular SLA do chamado {chamado.codigo}: {e}")
+
         return json_response({
+            'success': True,
             'message': 'Histórico de violações limpo com sucesso',
             'chamados_corrigidos': chamados_corrigidos,
             'detalhes': f'Foram corrigidos {chamados_corrigidos} chamados que estavam com status "Concluído" mas sem data de conclusão',
@@ -3415,7 +3424,11 @@ def limpar_historico_violacoes_sla():
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao limpar histórico de violações SLA: {str(e)}")
-        return error_response('Erro interno no servidor')
+        return json_response({
+            'success': False,
+            'error': 'Erro interno no servidor',
+            'message': str(e)
+        }, status_code=500)
 
 @painel_bp.route('/api/chamados/prioridade-padrao', methods=['PUT'])
 @login_required
