@@ -684,7 +684,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Gerenciar Permissões</h2>
         <div class="input-group" style="max-width: 300px;">
-          <input type="text" class="form-control" id="filtroPermissoes" placeholder="Buscar usuário...">
+          <input type="text" class="form-control" id="filtroPermissoes" placeholder="Buscar usu��rio...">
           <button class="btn btn-outline-secondary" id="btnFiltrarPermissoes">
             <i class="fas fa-search"></i>
           </button>
@@ -2547,7 +2547,7 @@
         function activateSection(targetId) {
             console.log('🎯 Ativando seção:', targetId);
 
-            // Esconder todas as seções
+            // Esconder todas as seç��es
             allSections.forEach(section => {
                 section.classList.remove('active');
                 section.style.display = 'none';
@@ -3593,6 +3593,11 @@ async function salvarConfiguracoesSLACorretas() {
         } else if (typeof carregarSLA === 'function') {
             carregarSLA();
         }
+
+        // Disparar evento customizado para outras partes do sistema
+        document.dispatchEvent(new CustomEvent('configuracoesSLASalvas', {
+            detail: configuracoes
+        }));
 
         console.log('Configurações SLA salvas:', data);
 
