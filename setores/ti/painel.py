@@ -1523,8 +1523,8 @@ def salvar_configuracoes_sla_api():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/metricas', methods=['GET'])
-@api_login_required
-@setor_required('Administrador')
+@login_required
+@setor_required('TI')
 def obter_metricas_sla():
     """Retorna métricas consolidadas de SLA"""
     try:
