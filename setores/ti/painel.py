@@ -593,7 +593,7 @@ def salvar_configuracoes_api():
         sucesso = salvar_configuracoes_db(data)
         
         if not sucesso:
-            return error_response('Erro ao salvar configurações no banco de dados')
+            return error_response('Erro ao salvar configura��ões no banco de dados')
         
         # Emitir evento Socket.IO para notificar outros usuários sobre mudança de configurações
         try:
@@ -1411,8 +1411,8 @@ def marcar_notificacao_lida(notificacao_id):
 # ==================== APIS DE MÉTRICAS SLA CORRETAS ====================
 
 @painel_bp.route('/api/sla/configuracoes', methods=['GET'])
-@api_login_required
-@setor_required('Administrador')
+@login_required
+@setor_required('TI')
 def obter_configuracoes_sla():
     """Retorna configurações de SLA"""
     try:
@@ -1435,8 +1435,8 @@ def obter_configuracoes_sla():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/configuracoes', methods=['POST'])
-@api_login_required
-@setor_required('Administrador')
+@login_required
+@setor_required('TI')
 def salvar_configuracoes_sla_api():
     """Salva configurações de SLA"""
     try:
@@ -3257,8 +3257,8 @@ def notificacoes_recentes():
 
 
 @painel_bp.route('/api/sla/grafico-semanal', methods=['GET'])
-@api_login_required
-@setor_required('Administrador')
+@login_required
+@setor_required('TI')
 def obter_grafico_semanal():
     """Retorna dados para gráfico semanal de chamados"""
     try:
@@ -3313,8 +3313,8 @@ def obter_grafico_semanal():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/chamados-detalhados', methods=['GET'])
-@api_login_required
-@setor_required('Administrador')
+@login_required
+@setor_required('TI')
 def obter_chamados_detalhados_sla():
     """Retorna lista detalhada de chamados com informações de SLA"""
     try:
