@@ -2,7 +2,7 @@
 
 let graficoSemanalInstance;
 let graficoStatusInstance;
-let slaConfiguracoes = {}; // Armazenar configura��ões SLA
+let slaConfiguracoes = {}; // Armazenar configurações SLA
 
 // Função para formatar tempo de forma legível
 function formatarTempo(horas) {
@@ -824,7 +824,7 @@ function alterarTamanhoPaginaSLA(novoTamanho) {
 
 // Função para limpar histórico de violações
 function limparHistoricoViolacao() {
-    if (!confirm('Tem certeza que deseja limpar o histórico de violações? Esta ação não pode ser desfeita.')) {
+    if (!confirm('Tem certeza que deseja limpar o histórico de violações? Esta ação n��o pode ser desfeita.')) {
         return;
     }
 
@@ -860,6 +860,43 @@ function limparHistoricoViolacao() {
         console.error('Erro ao limpar histórico:', error);
         mostrarToast('Erro ao limpar histórico: ' + error.message, 'error');
     });
+}
+
+// Função para debug de violações SLA
+async function debugSLAViolations() {
+    mostrarToast('Executando debug de violações SLA...', 'info');
+
+    try {
+        const response = await fetch('/ti/painel/api/debug/sla-violations');
+        const data = await response.json();
+
+        if (!data.success) {
+            throw new Error(data.error || 'Erro no debug');
+        }
+
+        if (data.violations && data.violations.length > 0) {
+            console.group('🔍 DEBUG SLA VIOLATIONS');
+            console.log(`Total de violações encontradas: ${data.total_violations}`);
+
+            data.violations.forEach((violation, index) => {
+                console.log(`${index + 1}. Chamado ${violation.codigo}:`);
+                console.log(`   - Problema: ${violation.problema}`);
+                console.log(`   - Status: ${violation.status}`);
+                if (violation.sla_info) {
+                    console.log(`   - SLA Info:`, violation.sla_info);
+                }
+            });
+            console.groupEnd();
+
+            mostrarToast(`Debug concluído: ${data.total_violations} violações encontradas. Verifique o console.`, 'warning');
+        } else {
+            mostrarToast('Debug concluído: Nenhuma violação encontrada!', 'success');
+        }
+
+    } catch (error) {
+        console.error('Erro no debug SLA:', error);
+        mostrarToast('Erro no debug: ' + error.message, 'error');
+    }
 }
 
 // ==================== FIM FUNÇÕES DE PAGINAÇÃO SLA ====================
