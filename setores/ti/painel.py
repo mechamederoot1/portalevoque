@@ -1500,7 +1500,7 @@ def salvar_configuracoes_sla_api():
                 db.session.commit()
 
             except ValueError:
-                return error_response('Formato de horário inválido (use HH:MM)', 400)
+                return error_response('Formato de hor��rio inválido (use HH:MM)', 400)
 
         # Registrar log da ação
         registrar_log_acao(
@@ -3365,18 +3365,8 @@ def obter_chamados_detalhados_sla():
 def limpar_historico_violacoes_sla():
     """Limpa histórico de violações de SLA corrigindo datas de conclusão faltantes"""
     try:
-        # Verificar se o usuário tem permissão
-        if not current_user.is_authenticated:
-            return json_response({
-                'success': False,
-                'error': 'Usuário não autenticado'
-            }, status_code=401)
+        logger.info(f"Iniciando limpeza de histórico SLA - usuário: {current_user.login}")
 
-        if current_user.setor != 'TI' and current_user.nivel_acesso != 'Administrador':
-            return json_response({
-                'success': False,
-                'error': 'Acesso negado'
-            }, status_code=403)
         from datetime import datetime, timedelta
         from ..sla_utils import verificar_sla_chamado
 
