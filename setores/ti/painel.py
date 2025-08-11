@@ -319,7 +319,7 @@ def setup_database_endpoint():
             ('Usuário criado', 'usuarios', 'Novo usuário cadastrado'),
             ('Configuração alterada', 'sistema', 'Configuração do sistema modificada'),
             ('Backup realizado', 'sistema', 'Backup automático executado'),
-            ('Relat����rio gerado', 'relatorios', 'Relatório de atividades criado'),
+            ('Relat��rio gerado', 'relatorios', 'Relatório de atividades criado'),
             ('Logout realizado', 'autenticacao', 'Usuário fez logout')
         ]
 
@@ -1208,7 +1208,7 @@ def transferir_chamado_agente(chamado_id):
         # Verificar se o agente atual tem permissão
         agente_atual = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente_atual:
-            return error_response('Usuário não é um agente de suporte', 403)
+            return error_response('Usuário n��o é um agente de suporte', 403)
 
         # Verificar se agente de destino existe
         agente_destino = AgenteSuporte.query.get(agente_destino_id)
@@ -1334,7 +1334,7 @@ def notificacoes_agente():
         nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
         limite = request.args.get('limite', 50, type=int)
 
-        # Simular algumas notificações para demonstraç��o
+        # Simular algumas notificações para demonstração
         agora = get_brazil_time()
         notificacoes = [
             {
@@ -3428,6 +3428,28 @@ def limpar_historico_violacoes_sla():
             'success': False,
             'error': 'Erro interno no servidor',
             'message': str(e)
+        }, status_code=500)
+
+@painel_bp.route('/api/debug/sla-violations', methods=['GET'])
+@login_required
+@setor_required('TI')
+def debug_sla_violations_api():
+    """Debug de violações de SLA persistentes"""
+    try:
+        from .debug_sla_violations import debug_sla_violations
+        violations = debug_sla_violations()
+
+        return json_response({
+            'success': True,
+            'violations': violations,
+            'total_violations': len(violations),
+            'timestamp': get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')
+        })
+    except Exception as e:
+        logger.error(f"Erro no debug de violações SLA: {str(e)}")
+        return json_response({
+            'success': False,
+            'error': str(e)
         }, status_code=500)
 
 @painel_bp.route('/api/chamados/prioridade-padrao', methods=['PUT'])
