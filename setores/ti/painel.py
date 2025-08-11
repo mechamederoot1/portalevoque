@@ -2130,6 +2130,8 @@ def remover_unidade(id):
 # ==================== CHAMADOS ====================
 
 @painel_bp.route('/api/chamados', methods=['GET'])
+@api_login_required
+@setor_required('Administrador')
 def listar_chamados():
     try:
         logger.debug("Iniciando consulta de chamados...")
@@ -3360,7 +3362,7 @@ def listar_setores():
 @login_required
 @setor_required('Administrador')
 def listar_niveis_acesso():
-    """Lista todos os n��veis de acesso disponíveis"""
+    """Lista todos os n��veis de acesso dispon��veis"""
     try:
         niveis = [
             {'id': 'Administrador', 'nome': 'Administrador'},
