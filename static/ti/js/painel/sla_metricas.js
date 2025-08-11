@@ -84,8 +84,8 @@ class SLAMetricas {
             if (graficoData) {
                 this.atualizarGraficos(graficoData);
             }
-            
-            console.log('Dashboard SLA carregado com sucesso:', data);
+
+            console.log('Dashboard SLA carregado com sucesso:', response);
             
         } catch (error) {
             console.error('Erro ao carregar dashboard SLA:', error);
@@ -290,21 +290,8 @@ class SLAMetricas {
             }]
         };
 
-        // Destruir gráfico existente se houver
-        if (window.chartStatus) {
-            try {
-                window.chartStatus.destroy();
-                window.chartStatus = null;
-            } catch (e) {
-                console.warn('Erro ao destruir gráfico de status:', e);
-            }
-        }
-
-        // Garantir que o canvas está limpo
-        const canvas = ctx.getContext('2d');
-        canvas.clearRect(0, 0, ctx.width, ctx.height);
-
-        window.chartStatus = new Chart(ctx, {
+        // Usar utilitário seguro para Chart.js
+        window.chartStatus = createChartSafely('chartStatus', {
             type: 'doughnut',
             data: data,
             options: {
@@ -344,17 +331,8 @@ class SLAMetricas {
             }]
         };
 
-        // Destruir gráfico existente se houver
-        if (window.chartDistribuicaoPrioridade) {
-            try {
-                window.chartDistribuicaoPrioridade.destroy();
-                window.chartDistribuicaoPrioridade = null;
-            } catch (e) {
-                console.warn('Erro ao destruir gráfico de prioridade:', e);
-            }
-        }
-
-        window.chartDistribuicaoPrioridade = new Chart(ctx, {
+        // Usar utilitário seguro para Chart.js
+        window.chartDistribuicaoPrioridade = createChartSafely('chartDistribuicaoPrioridade', {
             type: 'bar',
             data: data,
             options: {
@@ -419,17 +397,8 @@ class SLAMetricas {
             ]
         };
 
-        // Destruir gráfico existente se houver
-        if (window.chartSemanal) {
-            try {
-                window.chartSemanal.destroy();
-                window.chartSemanal = null;
-            } catch (e) {
-                console.warn('Erro ao destruir gráfico semanal:', e);
-            }
-        }
-
-        window.chartSemanal = new Chart(ctx, {
+        // Usar utilitário seguro para Chart.js
+        window.chartSemanal = createChartSafely('chartSemanal', {
             type: 'line',
             data: data,
             options: {
