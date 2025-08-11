@@ -680,7 +680,7 @@
     </section>
 
     <!-- Permissões -->
-    <section id="permissoes" class="content-section" tabindex="0" aria-label="Gerenciar Permissões">
+    <section id="permissoes" class="content-section" tabindex="0" aria-label="Gerenciar Permiss��es">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Gerenciar Permissões</h2>
         <div class="input-group" style="max-width: 300px;">
@@ -3619,6 +3619,38 @@ async function salvarConfiguracoesSLACorretas() {
                 'Erro ao salvar configurações SLA: ' + error.message
             );
         }
+    }
+}
+
+// Função de teste para verificar integração SLA
+function testarIntegracaoSLA() {
+    console.log('=== TESTE DE INTEGRAÇÃO SLA ===');
+
+    // Testar se as configurações atuais estão corretas
+    const configAtual = {
+        primeira_resposta: document.getElementById('slaFirstResponse').value,
+        resolucao_critica: document.getElementById('slaCritica').value,
+        resolucao_alta: document.getElementById('slaAlta').value,
+        resolucao_normal: document.getElementById('slaNormal').value,
+        resolucao_baixa: document.getElementById('slaBaixa').value
+    };
+
+    console.log('Configurações atuais nos inputs:', configAtual);
+
+    // Testar atualização dos badges
+    atualizarBadgesConfiguracaoSLA(configAtual);
+
+    // Verificar se as funções SLA existem
+    console.log('Funções disponíveis:');
+    console.log('- carregarSLA:', typeof carregarSLA);
+    console.log('- forcarRecarregamentoSLA:', typeof forcarRecarregamentoSLA);
+    console.log('- window.slaMetricas:', typeof window.slaMetricas);
+
+    if (window.advancedNotificationSystem) {
+        window.advancedNotificationSystem.showInfo(
+            'Teste de Integração',
+            'Verificação da integração SLA executada. Verifique o console para detalhes.'
+        );
     }
 }
   </script>
