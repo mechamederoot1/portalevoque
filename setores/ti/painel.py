@@ -2486,7 +2486,7 @@ def deletar_chamado(id):
 
         codigo_chamado = chamado.codigo
 
-        # Remover atribuiç��es de agentes antes de deletar o chamado
+        # Remover atribuições de agentes antes de deletar o chamado
         from database import ChamadoAgente
         atribuicoes = ChamadoAgente.query.filter_by(chamado_id=id).all()
         for atribuicao in atribuicoes:
@@ -3361,17 +3361,17 @@ def obter_grafico_semanal():
 def obter_chamados_detalhados_sla():
     """Retorna lista detalhada de chamados com informações de SLA"""
     try:
-        config = carregar_configuracoes()
-        sla_config = config['sla']
-        
+        sla_config = carregar_configuracoes_sla()
+        horario_config = carregar_configuracoes_horario_comercial()
+
         chamados = Chamado.query.order_by(Chamado.data_abertura.desc()).all()
-        
+
         chamados_detalhados = []
         for chamado in chamados:
             if not chamado.data_abertura:
                 continue
-            
-            sla_info = calcular_sla_chamado(chamado, sla_config)
+
+            sla_info = calcular_sla_chamado_correto(chamado, sla_config, horario_config)
             
             # Converter data de abertura para timezone do Brasil
             data_abertura_brazil = chamado.get_data_abertura_brazil()
