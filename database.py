@@ -1040,9 +1040,14 @@ def init_app(app):
             'sla': {
                 'primeira_resposta': 4,
                 'resolucao_critico': 2,
+                'resolucao_urgente': 2,  # Urgente usa mesmo SLA que Crítico
                 'resolucao_alto': 8,
                 'resolucao_normal': 24,
-                'resolucao_baixo': 72
+                'resolucao_baixo': 72,
+                'ativo': True,
+                'considerar_horario_comercial': True,
+                'incluir_fins_semana': False,
+                'feriados_nacionais': True
             },
             'notificacoes': {
                 'email_novo_chamado': True,
@@ -1065,7 +1070,23 @@ def init_app(app):
             'horario_comercial': {
                 'inicio': '08:00',
                 'fim': '18:00',
-                'dias_semana': [0, 1, 2, 3, 4]  # Segunda a sexta (0=segunda)
+                'dias_semana': [0, 1, 2, 3, 4],  # Segunda a sexta (0=segunda)
+                'intervalo_almoco_inicio': '12:00',
+                'intervalo_almoco_fim': '13:00',
+                'considerar_intervalo_almoco': False,
+                'timezone': 'America/Sao_Paulo',
+                'horario_emergencia': {
+                    'ativo': False,
+                    'inicio': '18:00',
+                    'fim': '22:00',
+                    'dias_semana': [0, 1, 2, 3, 4]
+                },
+                'plantao_final_semana': {
+                    'ativo': False,
+                    'inicio': '08:00',
+                    'fim': '17:00',
+                    'dias': [5, 6]  # Sábado e domingo
+                }
             }
         }
 
