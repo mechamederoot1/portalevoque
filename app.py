@@ -265,6 +265,141 @@ def handle_test_notification():
 def handle_ping():
     emit('pong', {'timestamp': datetime.now().isoformat()})
 
+# Endpoint para verificar estrutura do banco (apenas em desenvolvimento)
+@app.route('/verificar-banco')
+@login_required
+def verificar_banco():
+    """Endpoint para verificar e corrigir estrutura do banco"""
+    if not current_user.nivel_acesso == 'Administrador':
+        return "Acesso negado", 403
+
+    try:
+        from sqlalchemy import inspect
+        inspector = inspect(db.engine)
+        tabelas = inspector.get_table_names()
+
+        resultado = {
+            'total_tabelas': len(tabelas),
+            'tabelas': []
+        }
+
+        for tabela in sorted(tabelas):
+            colunas = inspector.get_columns(tabela)
+            resultado['tabelas'].append({
+                'nome': tabela,
+                'total_colunas': len(colunas),
+                'colunas': [col['name'] for col in colunas]
+            })
+
+        # Verificar dados essenciais
+        from database import User, Unidade, ProblemaReportado, ItemInternet, Configuracao
+
+        resultado['dados'] = {
+            'usuarios': User.query.count(),
+            'admin_existe': User.query.filter_by(usuario='admin').first() is not None,
+            'unidades': Unidade.query.count(),
+            'problemas': ProblemaReportado.query.count(),
+            'itens_internet': ItemInternet.query.count(),
+            'configuracoes': Configuracao.query.count()
+        }
+
+        return f"""
+        <h1>🔧 Estrutura do Banco de Dados</h1>
+        <h2>📊 Tabelas ({resultado['total_tabelas']})</h2>
+        <ul>
+        {"".join([f"<li><strong>{t['nome']}</strong> - {t['total_colunas']} colunas</li>" for t in resultado['tabelas']])}
+        </ul>
+
+        <h2>🌱 Dados Essenciais</h2>
+        <ul>
+        <li>👥 Usuários: {resultado['dados']['usuarios']} (Admin: {'✅' if resultado['dados']['admin_existe'] else '❌'})</li>
+        <li>🏢 Unidades: {resultado['dados']['unidades']}</li>
+        <li>🔧 Problemas: {resultado['dados']['problemas']}</li>
+        <li>🌐 Itens Internet: {resultado['dados']['itens_internet']}</li>
+        <li>⚙️ Configurações: {resultado['dados']['configuracoes']}</li>
+        </ul>
+
+        <p><a href="/criar-estrutura">🔧 Corrigir/Criar Estrutura Faltante</a></p>
+        <p><a href="/">← Voltar ao Sistema</a></p>
+        """
+
+    except Exception as e:
+        return f"❌ Erro: {str(e)}"
+
+@app.route('/criar-estrutura')
+@login_required
+def criar_estrutura():
+    """Endpoint para criar estrutura faltante do banco"""
+    if not current_user.nivel_acesso == 'Administrador':
+        return "Acesso negado", 403
+
+    try:
+        resultado = []
+        resultado.append("🔧 Executando verificação e criação da estrutura...")
+
+        # Criar todas as tabelas
+        db.create_all()
+        resultado.append("✅ db.create_all() executado")
+
+        # Verificar se há dados iniciais
+        from database import seed_unidades, Unidade, ProblemaReportado, ItemInternet
+
+        if Unidade.query.count() == 0:
+            seed_unidades()
+            resultado.append(f"✅ {Unidade.query.count()} unidades criadas")
+
+        if ProblemaReportado.query.count() == 0:
+            problemas = ["Sistema EVO", "Catraca", "Internet", "Som", "TVs", "Notebook/Desktop"]
+            for problema in problemas:
+                p = ProblemaReportado(nome=problema, prioridade_padrao='Normal', ativo=True)
+                db.session.add(p)
+            db.session.commit()
+            resultado.append(f"✅ {len(problemas)} problemas criados")
+
+        if ItemInternet.query.count() == 0:
+            itens = ["Roteador Wi-Fi", "Switch", "Cabo de rede", "Repetidor Wi-Fi"]
+            for item in itens:
+                i = ItemInternet(nome=item, ativo=True)
+                db.session.add(i)
+            db.session.commit()
+            resultado.append(f"✅ {len(itens)} itens de internet criados")
+
+        # Verificar usuário admin
+        admin_user = User.query.filter_by(usuario='admin').first()
+        if not admin_user:
+            admin_user = User(
+                nome='Administrador',
+                sobrenome='Sistema',
+                usuario='admin',
+                email='admin@evoquefitness.com',
+                nivel_acesso='Administrador',
+                setor='TI',
+                bloqueado=False
+            )
+            admin_user.set_password('admin123')
+            admin_user.setores = ['TI']
+            db.session.add(admin_user)
+            db.session.commit()
+            resultado.append("✅ Usuário admin criado (admin/admin123)")
+
+        resultado.append("🎉 Processo concluído com sucesso!")
+
+        return f"""
+        <h1>🔧 Criação da Estrutura do Banco</h1>
+        <ul>
+        {"".join([f"<li>{r}</li>" for r in resultado])}
+        </ul>
+        <p><a href="/verificar-banco">🔍 Verificar Estrutura Novamente</a></p>
+        <p><a href="/">← Voltar ao Sistema</a></p>
+        """
+
+    except Exception as e:
+        return f"""
+        <h1>❌ Erro na Criação da Estrutura</h1>
+        <p>Erro: {str(e)}</p>
+        <p><a href="/verificar-banco">← Voltar</a></p>
+        """
+
 if __name__ == '__main__':
     print("🚀 Iniciando aplicação com proteções de segurança ativas...")
     print("🔌 Socket.IO configurado e ativo")
