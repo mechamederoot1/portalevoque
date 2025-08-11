@@ -33,7 +33,7 @@
       <ul>
         <li><a href="#visao-geral" class="active" tabindex="0" aria-current="page"><i class="fas fa-tachometer-alt"></i><span>Visão geral</span></a></li>
         
-        <!-- Nova seção SLA -->
+        <!-- Nova seç��o SLA -->
         <li><a href="#sla-dashboard" tabindex="0"><i class="fas fa-chart-line"></i><span>SLA & Métricas</span></a></li>
         
         <li class="has-submenu" tabindex="0" aria-haspopup="true" aria-expanded="false">
@@ -3497,6 +3497,16 @@ async function salvarConfiguracoesSLACorretas() {
         // Atualizar dashboard SLA se estiver ativo
         if (window.slaMetricas) {
             window.slaMetricas.carregarDashboardCompleto();
+        }
+
+        // Atualizar os badges de configuração no dashboard SLA imediatamente
+        atualizarBadgesConfiguracaoSLA(configuracoes.sla);
+
+        // Forçar recarregamento completo do SLA se a função existir
+        if (typeof forcarRecarregamentoSLA === 'function') {
+            forcarRecarregamentoSLA();
+        } else if (typeof carregarSLA === 'function') {
+            carregarSLA();
         }
 
         console.log('Configurações SLA salvas:', data);
