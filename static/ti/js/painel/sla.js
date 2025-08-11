@@ -826,19 +826,8 @@ function limparHistoricoViolacao() {
 
     mostrarToast('Limpando histórico de violações...', 'info');
 
-    fetch('/ti/painel/api/sla/limpar-historico', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        }
-    })
-    .then(async response => {
-        const data = await safeJsonParse(response);
-        return {
-            status: response.status,
-            ok: response.ok,
-            data: data
-        };
+    safeFetch('/ti/painel/api/sla/limpar-historico', {
+        method: 'POST'
     })
     .then(({status, ok, data}) => {
         if (!ok || !data.success) {
@@ -866,8 +855,7 @@ async function debugSLAViolations() {
     mostrarToast('Executando debug de violações SLA...', 'info');
 
     try {
-        const response = await fetch('/ti/painel/api/debug/sla-violations');
-        const data = await safeJsonParse(response);
+        const {ok, data} = await safeFetch('/ti/painel/api/debug/sla-violations');
 
         if (!data.success) {
             throw new Error(data.error || 'Erro no debug');
