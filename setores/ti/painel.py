@@ -1200,7 +1200,7 @@ def transferir_chamado_agente(chamado_id):
 
         agente_destino_id = data.get('agente_destino_id')
         if not agente_destino_id:
-            return error_response('Agente de destino é obrigatório', 400)
+            return error_response('Agente de destino �� obrigatório', 400)
 
         chamado = Chamado.query.get(chamado_id)
         if not chamado:
@@ -1329,7 +1329,7 @@ def notificacoes_agente():
         # Verificar se o usuário é um agente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente:
-            return error_response('Usuário não é um agente de suporte', 403)
+            return error_response('Usuário não �� um agente de suporte', 403)
 
         # Parâmetros de filtro
         nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
@@ -3366,7 +3366,7 @@ def obter_chamados_detalhados_sla():
 def limpar_historico_violacoes_sla():
     """Limpa histórico de violações de SLA corrigindo datas de conclusão faltantes"""
     try:
-        logger.info(f"Iniciando limpeza de histórico SLA - usuário: {current_user.login}")
+        logger.info(f"Iniciando limpeza de histórico SLA - usuário: {current_user.usuario}")
 
         from datetime import datetime, timedelta
 
