@@ -989,6 +989,44 @@ class HistoricoSLA(db.Model):
     def __repr__(self):
         return f'<HistoricoSLA {self.id} - Chamado {self.chamado_id} - {self.acao}>'
 
+class Feriado(db.Model):
+    """Tabela para feriados nacionais e locais"""
+    __tablename__ = 'feriados'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(255), nullable=False)
+    data = db.Column(db.Date, nullable=False)
+    tipo = db.Column(db.String(50), default='nacional')  # nacional, estadual, municipal
+    recorrente = db.Column(db.Boolean, default=False)  # Se é anual (ex: Natal)
+    ativo = db.Column(db.Boolean, default=True)
+    descricao = db.Column(db.Text, nullable=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    usuario_criacao = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    def __repr__(self):
+        return f'<Feriado {self.nome} - {self.data}>'
+
+class ConfiguracaoSLA(db.Model):
+    """Tabela específica para configurações detalhadas de SLA"""
+    __tablename__ = 'configuracoes_sla'
+
+    id = db.Column(db.Integer, primary_key=True)
+    prioridade = db.Column(db.String(50), nullable=False)  # Crítica, Alta, Normal, Baixa
+    tempo_primeira_resposta = db.Column(db.Float, default=4.0)  # em horas
+    tempo_resolucao = db.Column(db.Float, nullable=False)  # em horas
+    considera_horario_comercial = db.Column(db.Boolean, default=True)
+    considera_feriados = db.Column(db.Boolean, default=True)
+    escalar_automaticamente = db.Column(db.Boolean, default=True)
+    notificar_em_risco = db.Column(db.Boolean, default=True)
+    percentual_risco = db.Column(db.Float, default=80.0)  # % do tempo para considerar "em risco"
+    ativo = db.Column(db.Boolean, default=True)
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_atualizacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    usuario_atualizacao = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    def __repr__(self):
+        return f'<ConfiguracaoSLA {self.prioridade} - {self.tempo_resolucao}h>'
+
 def init_app(app):
     db.init_app(app)
     
