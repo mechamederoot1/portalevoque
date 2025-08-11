@@ -1070,3 +1070,53 @@ window.atualizarSLA = atualizarSLA;
 window.exportarRelatorioSLA = exportarRelatorioSLA;
 window.formatarTempo = formatarTempo;
 window.formatarPercentual = formatarPercentual;
+
+// ==================== EVENT LISTENERS PARA PAGINAÇÃO SLA ====================
+
+// Event listeners quando o DOM carregar
+document.addEventListener('DOMContentLoaded', function() {
+
+    // Event listener para mudança no tamanho da página
+    const tamanhoPaginaSLA = document.getElementById('tamanhoPaginaSLA');
+    if (tamanhoPaginaSLA) {
+        tamanhoPaginaSLA.addEventListener('change', function() {
+            alterarTamanhoPaginaSLA(this.value);
+        });
+    }
+
+    // Event listener para botão de atualizar SLA
+    const btnAtualizarSLA = document.getElementById('btnAtualizarSLA');
+    if (btnAtualizarSLA) {
+        btnAtualizarSLA.addEventListener('click', function() {
+            carregarChamadosDetalhadosPaginados();
+            mostrarToast('Dados SLA atualizados!', 'success');
+        });
+    }
+
+    // Event listener para botão de limpar histórico
+    const btnLimparHistorico = document.getElementById('btnLimparHistoricoViolacao');
+    if (btnLimparHistorico) {
+        btnLimparHistorico.addEventListener('click', limparHistoricoViolacao);
+    }
+});
+
+// Modificar a função carregarSLA original para usar a paginação
+const carregarSLAOriginal = carregarSLA;
+carregarSLA = function() {
+    carregarConfiguracoesSLA();
+    carregarMetricasSLA();
+    carregarGraficoSemanal();
+    carregarChamadosDetalhadosPaginados(); // Usar versão paginada
+
+    // Atualizar a cada 2 minutos
+    setInterval(() => {
+        carregarMetricasSLA();
+        carregarChamadosDetalhadosPaginados(); // Usar versão paginada
+    }, 120000);
+};
+
+// Exportar funções para uso global
+window.carregarChamadosDetalhadosPaginados = carregarChamadosDetalhadosPaginados;
+window.irParaPaginaSLA = irParaPaginaSLA;
+window.alterarTamanhoPaginaSLA = alterarTamanhoPaginaSLA;
+window.limparHistoricoViolacao = limparHistoricoViolacao;
