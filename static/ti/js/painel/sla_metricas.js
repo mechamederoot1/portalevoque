@@ -33,25 +33,57 @@ class SLAMetricas {
         this.mostrarLoading(true);
 
         try {
-            // Carregar dashboard completo com métricas
-            const response = await fetch('/ti/painel/api/sla/dashboard?period_days=30');
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            // Carregar métricas SLA
+            const metricasResponse = await fetch('/ti/painel/api/sla/metricas?period_days=30', {
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (!metricasResponse.ok) {
+                if (metricasResponse.status === 401 || metricasResponse.status === 302) {
+                    throw new Error('Não autenticado. Faça login para acessar as métricas SLA.');
+                }
+                throw new Error(`HTTP error! status: ${metricasResponse.status}`);
             }
-            
-            const data = await response.json();
-            
-            this.configuracoes = data.configuracoes;
-            this.metricas = data.metricas;
-            this.chamados = data.chamados_risco || [];
-            
+
+            const metricasData = await metricasResponse.json();
+            this.metricas = metricasData.metricas_gerais;
+
+            // Carregar chamados detalhados
+            const chamadosResponse = await fetch('/ti/painel/api/sla/chamados-detalhados', {
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (chamadosResponse.ok) {
+                this.chamados = await chamadosResponse.json();
+            }
+
+            // Carregar gráfico semanal
+            const graficoResponse = await fetch('/ti/painel/api/sla/grafico-semanal', {
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            let graficoData = null;
+            if (graficoResponse.ok) {
+                graficoData = await graficoResponse.json();
+            }
+
             // Atualizar interface
             this.atualizarMetricasPrincipais();
             this.atualizarCardsMetricas();
             this.atualizarConfiguracoesSLA();
             this.atualizarTabelaChamadosSLA();
-            this.atualizarGraficos(data.estatisticas);
+            if (graficoData) {
+                this.atualizarGraficos(graficoData);
+            }
             
             console.log('Dashboard SLA carregado com sucesso:', data);
             
