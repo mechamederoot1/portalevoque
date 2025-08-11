@@ -3368,7 +3368,6 @@ def limpar_historico_violacoes_sla():
         logger.info(f"Iniciando limpeza de histórico SLA - usuário: {current_user.login}")
 
         from datetime import datetime, timedelta
-        from ..sla_utils import verificar_sla_chamado
 
         # Definir data de conclusão para chamados concluídos sem data_conclusao
         chamados_sem_data = Chamado.query.filter(
