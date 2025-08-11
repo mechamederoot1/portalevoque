@@ -291,13 +291,18 @@ class SLAMetricas {
         };
 
         // Destruir gráfico existente se houver
-        if (window.chartStatus && typeof window.chartStatus.destroy === 'function') {
+        if (window.chartStatus) {
             try {
                 window.chartStatus.destroy();
+                window.chartStatus = null;
             } catch (e) {
                 console.warn('Erro ao destruir gráfico de status:', e);
             }
         }
+
+        // Garantir que o canvas está limpo
+        const canvas = ctx.getContext('2d');
+        canvas.clearRect(0, 0, ctx.width, ctx.height);
 
         window.chartStatus = new Chart(ctx, {
             type: 'doughnut',
