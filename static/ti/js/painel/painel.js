@@ -888,7 +888,7 @@ function attachCardEventListeners() {
                 if (window.advancedNotificationSystem) {
                     window.advancedNotificationSystem.showSuccess('Status Atualizado', mensagem);
                 }
-                renderChamadosPage(currentPage); // Atualiza a visualização
+                renderChamadosPage(currentPage); // Atualiza a visualizaç��o
             } catch (error) {
                 if (window.advancedNotificationSystem) {
                     window.advancedNotificationSystem.showError('Erro', error.message);
@@ -2021,7 +2021,7 @@ function renderUsuariosBloqueadosPage(page) {
     attachBloqueadosEventListeners();
 }
 
-// Função para renderizar a paginação dos bloqueados
+// Fun��ão para renderizar a paginação dos bloqueados
 function renderBloqueadosPagination(totalItems) {
     const bloqueadosPagination = document.getElementById('usuariosBloqueadosPagination');
     bloqueadosPagination.innerHTML = '';
@@ -5146,12 +5146,7 @@ window.showSection = showSection;
 window.loadSectionContent = loadSectionContent;
 window.atualizarContadoresVisaoGeral = atualizarContadoresVisaoGeral;
 
-console.log('Funções globais registradas:', {
-    loadChamados: typeof window.loadChamados,
-    activateSection: typeof window.activateSection,
-    showSection: typeof window.showSection,
-    loadSectionContent: typeof window.loadSectionContent
-});
+console.log('Funções globais do painel registradas');
 
 // Executar debug automaticamente em desenvolvimento
 setTimeout(() => {
