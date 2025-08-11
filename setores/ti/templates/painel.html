@@ -33,7 +33,7 @@
       <ul>
         <li><a href="#visao-geral" class="active" tabindex="0" aria-current="page"><i class="fas fa-tachometer-alt"></i><span>Visão geral</span></a></li>
         
-        <!-- Nova seç��o SLA -->
+        <!-- Nova seção SLA -->
         <li><a href="#sla-dashboard" tabindex="0"><i class="fas fa-chart-line"></i><span>SLA & Métricas</span></a></li>
         
         <li class="has-submenu" tabindex="0" aria-haspopup="true" aria-expanded="false">
@@ -612,7 +612,7 @@
                   <select class="form-control form-select-custom" id="setorUsuario" multiple="multiple" size="6">
                     <option value="TI">Setor de TI</option>
                     <option value="Compras">Setor de compras</option>
-                    <option value="Manutencao">Setor de manutenção</option>
+                    <option value="Manutencao">Setor de manuten��ão</option>
                     <option value="Financeiro">Setor financeiro</option>
                     <option value="Marketing">Setor de marketing</option>
                     <option value="Produtos">Setor de produtos</option>
@@ -2690,7 +2690,7 @@
 
 
 
-    // Configurações de notificações - Sistema implementado
+    // Configurações de notifica��ões - Sistema implementado
     let configuracaoNotificacoes = {
         email_novo_chamado: true,
         email_status_mudou: true,
@@ -3446,6 +3446,68 @@ async function carregarConfiguracoesSLACorretas() {
                 'Erro ao carregar configurações SLA: ' + error.message
             );
         }
+    }
+}
+
+// Função para atualizar os badges de configuração SLA na seção de dashboard
+function atualizarBadgesConfiguracaoSLA(slaConfig) {
+    try {
+        // Função auxiliar para formatar tempo
+        function formatarTempo(horas) {
+            if (horas === null || horas === undefined || isNaN(horas)) {
+                return 'N/A';
+            }
+
+            if (horas < 1) {
+                const minutos = Math.round(horas * 60);
+                return minutos <= 0 ? '< 1 min' : `${minutos} min`;
+            }
+
+            if (horas < 24) {
+                return horas % 1 === 0 ? `${Math.round(horas)}h` : `${horas.toFixed(1)}h`;
+            }
+
+            const dias = Math.floor(horas / 24);
+            const horasRestantes = horas % 24;
+
+            if (horasRestantes < 1) {
+                return dias === 1 ? '1 dia' : `${dias} dias`;
+            } else {
+                const horasArredondadas = Math.round(horasRestantes);
+                if (dias === 1) {
+                    return horasArredondadas === 1 ? '1 dia 1h' : `1 dia ${horasArredondadas}h`;
+                } else {
+                    return horasArredondadas === 1 ? `${dias} dias 1h` : `${dias} dias ${horasArredondadas}h`;
+                }
+            }
+        }
+
+        // Atualizar badges no dashboard SLA
+        const badges = {
+            'configPrimeiraResposta': slaConfig.primeira_resposta || 4,
+            'configResolucao': slaConfig.resolucao_normal || 24,
+            'configCritico': slaConfig.resolucao_critica || 2,
+            'configAlto': slaConfig.resolucao_alta || 8,
+            'configNormal': slaConfig.resolucao_normal || 24,
+            'configBaixo': slaConfig.resolucao_baixa || 72
+        };
+
+        Object.entries(badges).forEach(([elementId, valor]) => {
+            const elemento = document.getElementById(elementId);
+            if (elemento) {
+                elemento.textContent = formatarTempo(valor);
+                // Adicionar animação para destacar a mudança
+                elemento.style.animation = 'pulse 0.5s ease-in-out';
+                setTimeout(() => {
+                    elemento.style.animation = '';
+                }, 500);
+            }
+        });
+
+        console.log('Badges de configuração SLA atualizados:', badges);
+
+    } catch (error) {
+        console.error('Erro ao atualizar badges de configuração SLA:', error);
     }
 }
 
