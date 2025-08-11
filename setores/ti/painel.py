@@ -1050,7 +1050,7 @@ Equipe de Suporte TI - Evoque Fitness
 """
             enviar_email(assunto, corpo, [chamado.email])
         except Exception as email_error:
-            logger.warning(f"Erro ao enviar e-mail de atribuição: {str(email_error)}")
+            logger.warning(f"Erro ao enviar e-mail de atribuiç��o: {str(email_error)}")
 
         # Emitir evento Socket.IO para notificação em tempo real
         try:
@@ -1729,7 +1729,7 @@ def auto_atribuir_chamado(chamado_id):
             return error_response('Chamado não encontrado', 404)
 
         if chamado.status not in ['Aberto']:
-            return error_response('Chamado não está disponível para atribuição')
+            return error_response('Chamado não está dispon��vel para atribuição')
 
         # Verificar se já tem agente atribuído
         atribuicao_existente = ChamadoAgente.query.filter_by(
@@ -3407,16 +3407,8 @@ def limpar_historico_violacoes_sla():
             tipo_recurso='sla'
         )
 
-        # Recalcular SLA para todos os chamados afetados
-        try:
-            from .sla_utils import verificar_sla_chamado
-            for chamado in chamados_sem_data[:chamados_corrigidos]:
-                try:
-                    verificar_sla_chamado(chamado)
-                except Exception as e:
-                    logger.warning(f"Erro ao recalcular SLA do chamado {chamado.codigo}: {e}")
-        except ImportError:
-            logger.warning("Módulo sla_utils não encontrado, pulando recálculo de SLA")
+        # Recalcular SLA para todos os chamados afetados (opcional)
+        logger.info(f"Processamento concluído: {chamados_corrigidos} chamados corrigidos")
 
         return json_response({
             'success': True,
