@@ -2252,6 +2252,47 @@ def obter_estatisticas_chamados():
         logger.error(f"Erro ao obter estatísticas dos chamados: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/debug/verificar-dados', methods=['GET'])
+@api_login_required
+def debug_verificar_dados():
+    """Endpoint de debug para verificar dados no banco"""
+    try:
+        # Verificar conexão com banco
+        db.session.execute("SELECT 1")
+
+        # Contar registros nas principais tabelas
+        total_chamados = Chamado.query.count()
+        total_usuarios = User.query.count()
+        total_unidades = Unidade.query.count()
+
+        # Pegar amostra de chamados
+        amostra_chamados = []
+        if total_chamados > 0:
+            chamados = Chamado.query.limit(3).all()
+            for c in chamados:
+                amostra_chamados.append({
+                    'id': c.id,
+                    'codigo': getattr(c, 'codigo', 'N/A'),
+                    'status': getattr(c, 'status', 'N/A'),
+                    'solicitante': getattr(c, 'solicitante', 'N/A'),
+                    'data_abertura': c.data_abertura.strftime('%d/%m/%Y %H:%M') if c.data_abertura else 'N/A'
+                })
+
+        debug_info = {
+            'conexao_banco': 'OK',
+            'total_chamados': total_chamados,
+            'total_usuarios': total_usuarios,
+            'total_unidades': total_unidades,
+            'amostra_chamados': amostra_chamados,
+            'timestamp': get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')
+        }
+
+        return json_response(debug_info)
+
+    except Exception as e:
+        logger.error(f"Erro no debug: {str(e)}")
+        return error_response(f'Erro no debug: {str(e)}')
+
 @painel_bp.route('/debug/test-usuarios')
 @login_required
 def debug_test_usuarios():
