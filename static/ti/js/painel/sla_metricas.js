@@ -258,7 +258,7 @@ class SLAMetricas {
         };
 
         // Destruir gráfico existente se houver
-        if (window.chartStatus) {
+        if (window.chartStatus && typeof window.chartStatus.destroy === 'function') {
             window.chartStatus.destroy();
         }
 

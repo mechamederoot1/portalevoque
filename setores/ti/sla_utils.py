@@ -495,7 +495,8 @@ def obter_metricas_sla_consolidadas(period_days: int = 30) -> Dict:
     chamados_cumpridos = 0
     chamados_violados = 0
     chamados_em_risco = 0
-    
+    chamados_abertos = 0
+
     tempo_total_resolucao = 0
     tempo_total_primeira_resposta = 0
     count_resolvidos = 0
@@ -518,6 +519,10 @@ def obter_metricas_sla_consolidadas(period_days: int = 30) -> Dict:
         if sla_info['tempo_primeira_resposta_uteis']:
             tempo_total_primeira_resposta += sla_info['tempo_primeira_resposta_uteis']
             count_primeira_resposta += 1
+
+        # Contar chamados abertos
+        if chamado.status in ['Aberto', 'Aguardando']:
+            chamados_abertos += 1
     
     # Calcular médias
     tempo_medio_resolucao = (tempo_total_resolucao / count_resolvidos) if count_resolvidos > 0 else 0
@@ -534,6 +539,7 @@ def obter_metricas_sla_consolidadas(period_days: int = 30) -> Dict:
         'chamados_cumpridos': chamados_cumpridos,
         'chamados_violados': chamados_violados,
         'chamados_em_risco': chamados_em_risco,
+        'chamados_abertos': chamados_abertos,
         'percentual_cumprimento': round(percentual_cumprimento, 1),
         'tempo_medio_resolucao': round(tempo_medio_resolucao, 2),
         'tempo_medio_primeira_resposta': round(tempo_medio_primeira_resposta, 2),

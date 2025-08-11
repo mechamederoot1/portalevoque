@@ -1623,7 +1623,7 @@ def salvar_configuracoes_sla_api():
         return error_response('Erro interno no servidor')
 
 @painel_bp.route('/api/sla/metricas', methods=['GET'])
-@login_required
+@api_login_required
 @setor_required('Administrador')
 def obter_metricas_sla():
     """Retorna métricas consolidadas de SLA"""
@@ -1634,7 +1634,20 @@ def obter_metricas_sla():
 
         metricas = obter_metricas_sla_consolidadas(period_days)
 
-        return json_response(metricas)
+        # Converter dados para formato esperado pelo frontend
+        response_data = {
+            'metricas_gerais': {
+                'total_chamados': metricas['total_chamados'],
+                'chamados_abertos': metricas.get('chamados_abertos', 0),
+                'tempo_medio_resposta': metricas['tempo_medio_primeira_resposta'],
+                'tempo_medio_resolucao': metricas['tempo_medio_resolucao'],
+                'sla_cumprimento': metricas['percentual_cumprimento'],
+                'sla_violacoes': metricas['chamados_violados'],
+                'chamados_risco': metricas['chamados_em_risco']
+            }
+        }
+
+        return json_response(response_data)
 
     except Exception as e:
         logger.error(f"Erro ao obter métricas SLA: {str(e)}")
@@ -2473,7 +2486,7 @@ def deletar_chamado(id):
 
         codigo_chamado = chamado.codigo
 
-        # Remover atribuições de agentes antes de deletar o chamado
+        # Remover atribuiç��es de agentes antes de deletar o chamado
         from database import ChamadoAgente
         atribuicoes = ChamadoAgente.query.filter_by(chamado_id=id).all()
         for atribuicao in atribuicoes:
