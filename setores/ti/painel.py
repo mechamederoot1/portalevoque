@@ -581,7 +581,7 @@ def salvar_configuracoes_api():
                     if not isinstance(sla_config[campo], (int, float)) or sla_config[campo] <= 0:
                         return error_response(f'Campo SLA {campo} deve ser um número positivo', 400)
         
-        # Validar configura��ões de notificações
+        # Validar configura����ões de notificações
         if 'notificacoes' in data:
             notif_config = data['notificacoes']
             campos_bool = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
@@ -1330,7 +1330,7 @@ def notificacoes_agente():
         if not agente:
             return error_response('Usuário não é um agente de suporte', 403)
 
-        # Parâmetros de filtro
+        # Par��metros de filtro
         nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
         limite = request.args.get('limite', 50, type=int)
 
@@ -2207,6 +2207,7 @@ def listar_chamados():
         return error_response('Erro interno ao listar chamados', details=str(e))
 
 @painel_bp.route('/api/chamados/estatisticas', methods=['GET'])
+@api_login_required
 def obter_estatisticas_chamados():
     """Retorna estatísticas dos chamados por status"""
     try:
@@ -3142,7 +3143,7 @@ Equipe de Suporte TI - Evoque Fitness
             db.session.add(historico)
             db.session.commit()
             
-            # Emitir evento Socket.IO apenas se a conexão estiver disponível
+            # Emitir evento Socket.IO apenas se a conexão estiver dispon��vel
             try:
                 if hasattr(current_app, 'socketio'):
                     current_app.socketio.emit('ticket_enviado', {

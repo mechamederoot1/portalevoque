@@ -219,7 +219,7 @@ function activateSection(id) {
         return;
     }
 
-    console.log(`Encontradas ${allSections.length} seções. Procurando seção: ${id}`);
+    console.log(`Encontradas ${allSections.length} seções. Procurando se��ão: ${id}`);
     console.log('Seções disponíveis:', Array.from(allSections).map(s => `${s.id} (classes: ${s.className})`));
 
     let sectionFound = false;
@@ -457,9 +457,15 @@ function popularFiltrosDinamicos() {
 async function atualizarContadoresVisaoGeral() {
     try {
         console.log('Atualizando contadores da visão geral...');
-        const response = await fetch('/ti/painel/api/chamados/estatisticas');
+        const response = await fetch('/ti/painel/api/chamados/estatisticas', {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
         if (!response.ok) {
-            throw new Error('Erro ao carregar estatísticas');
+            console.error('Erro na resposta:', response.status, response.statusText);
+            throw new Error(`Erro ao carregar estatísticas: ${response.status}`);
         }
         const stats = await response.json();
 
