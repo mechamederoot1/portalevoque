@@ -376,28 +376,18 @@ const pagination = document.getElementById('pagination');
 
 // Fun��ão para carregar os chamados da API
 async function loadChamados() {
-    console.log('=== INICIANDO loadChamados ===');
-    console.log('chamadosGrid element:', document.getElementById('chamadosGrid'));
-
     try {
-        console.log('Fazendo fetch para /ti/painel/api/chamados...');
         const response = await fetch('/ti/painel/api/chamados', {
             credentials: 'same-origin',
             headers: {
                 'Accept': 'application/json'
             }
         });
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
-
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error('Response error text:', errorText);
             throw new Error(`Erro ao carregar chamados: ${response.status} ${response.statusText}`);
         }
 
         chamadosData = await response.json();
-        console.log('Chamados data received:', chamadosData.length, 'chamados');
         renderChamadosPage(currentPage);
 
         // Atualizar contadores da visão geral
@@ -1765,7 +1755,7 @@ function abrirModalEditarUsuario(usuarioId) {
         return;
     }
 
-    console.log('Abrindo modal para editar usu��rio:', usuario);
+    console.log('Abrindo modal para editar usuário:', usuario);
 
     // Preencher formulário
     document.getElementById('editUsuarioId').value = usuario.id;
