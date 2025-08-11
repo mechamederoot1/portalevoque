@@ -3433,11 +3433,16 @@ def limpar_historico_violacoes_sla():
         # Recalcular SLA para todos os chamados afetados (opcional)
         logger.info(f"Processamento concluído: {chamados_corrigidos} chamados corrigidos")
 
+        # Forçar recálculo das métricas SLA após correção
+        logger.info("Recalculando métricas SLA após correção...")
+        metricas_atualizadas = obter_metricas_sla_consolidadas(30)
+
         return json_response({
             'success': True,
             'message': 'Histórico de violações limpo com sucesso',
             'chamados_corrigidos': chamados_corrigidos,
             'detalhes': f'Foram corrigidos {chamados_corrigidos} chamados que estavam com status "Concluído" mas sem data de conclusão',
+            'metricas_atualizadas': metricas_atualizadas,
             'timestamp': get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')
         })
 
