@@ -832,11 +832,14 @@ function limparHistoricoViolacao() {
             'Content-Type': 'application/json'
         }
     })
-    .then(response => response.json().then(data => ({
-        status: response.status,
-        ok: response.ok,
-        data: data
-    })))
+    .then(async response => {
+        const data = await safeJsonParse(response);
+        return {
+            status: response.status,
+            ok: response.ok,
+            data: data
+        };
+    })
     .then(({status, ok, data}) => {
         if (!ok || !data.success) {
             throw new Error(data.message || data.error || `HTTP ${status}: Erro no servidor`);
@@ -864,7 +867,7 @@ async function debugSLAViolations() {
 
     try {
         const response = await fetch('/ti/painel/api/debug/sla-violations');
-        const data = await response.json();
+        const data = await safeJsonParse(response);
 
         if (!data.success) {
             throw new Error(data.error || 'Erro no debug');
