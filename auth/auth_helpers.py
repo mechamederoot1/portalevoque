@@ -21,8 +21,9 @@ def setor_required(*setores_necessarios):
                 flash('Faça login para acessar esta página.', 'warning')
                 return redirect(url_for('auth.login', next=request.url))
             
-            # Verificar inatividade (15 minutos)
-            if current_user.ultimo_acesso is None or (datetime.utcnow() - current_user.ultimo_acesso) > timedelta(minutes=15):
+            # Verificar inatividade (30 minutos para API, 15 para web)
+            timeout_minutes = 30 if is_api_request() else 15
+            if current_user.ultimo_acesso is None or (datetime.utcnow() - current_user.ultimo_acesso) > timedelta(minutes=timeout_minutes):
                 logout_user()
                 if is_api_request():
                     return jsonify({
@@ -41,10 +42,14 @@ def setor_required(*setores_necessarios):
                 db.session.rollback()
             
             # Verifica se o usuário tem acesso a algum dos setores necessários
-            tem_acesso = any(
-                current_user.tem_acesso_setor(setor)
-                for setor in setores_necessarios
-            )
+            # Administradores têm acesso a tudo
+            if current_user.nivel_acesso == 'Administrador':
+                tem_acesso = True
+            else:
+                tem_acesso = any(
+                    current_user.tem_acesso_setor(setor)
+                    for setor in setores_necessarios
+                )
             
             if not tem_acesso:
                 current_app.logger.warning(
@@ -88,7 +93,7 @@ def nivel_acesso_requerido(nivel_minimo):
                         'message': 'Nível de acesso insuficiente',
                         'required_level': nivel_minimo
                     }), 403
-                flash('Você não tem permissão para acessar esta página.', 'danger')
+                flash('Você não tem permiss��o para acessar esta página.', 'danger')
                 return redirect(url_for('main.acesso_negado'))
             
             return f(*args, **kwargs)
