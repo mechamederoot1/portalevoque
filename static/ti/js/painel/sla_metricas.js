@@ -43,7 +43,7 @@ class SLAMetricas {
 
             if (!metricasResponse.ok) {
                 if (metricasResponse.status === 401 || metricasResponse.status === 302) {
-                    throw new Error('Não autenticado. Faça login para acessar as métricas SLA.');
+                    throw new Error('N��o autenticado. Faça login para acessar as métricas SLA.');
                 }
                 throw new Error(`HTTP error! status: ${metricasResponse.status}`);
             }
@@ -85,11 +85,11 @@ class SLAMetricas {
                 this.atualizarGraficos(graficoData);
             }
 
-            console.log('Dashboard SLA carregado com sucesso:', response);
+            console.log('Dashboard SLA carregado com sucesso');
             
         } catch (error) {
             console.error('Erro ao carregar dashboard SLA:', error);
-            this.mostrarErro('Erro ao carregar métricas de SLA');
+            this.mostrarErro('Erro ao carregar métricas de SLA: ' + error.message);
         } finally {
             this.loading = false;
             this.mostrarLoading(false);
