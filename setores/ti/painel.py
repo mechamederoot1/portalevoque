@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, jsonify, abort, redirect, url_for, flash, Response
 from database import Chamado, Unidade, User, db, ProblemaReportado, get_brazil_time, utc_to_brazil
-from database import HistoricoTicket, Configuracao, AgenteSuporte, ChamadoAgente
+from database import HistoricoTicket, Configuracao, AgenteSuporte, ChamadoAgente, HistoricoSLA
 from sqlalchemy.exc import IntegrityError
 import logging
 import random
@@ -1200,7 +1200,7 @@ def transferir_chamado_agente(chamado_id):
 
         agente_destino_id = data.get('agente_destino_id')
         if not agente_destino_id:
-            return error_response('Agente de destino �� obrigatório', 400)
+            return error_response('Agente de destino é obrigatório', 400)
 
         chamado = Chamado.query.get(chamado_id)
         if not chamado:
@@ -1329,7 +1329,7 @@ def notificacoes_agente():
         # Verificar se o usuário é um agente
         agente = AgenteSuporte.query.filter_by(usuario_id=current_user.id, ativo=True).first()
         if not agente:
-            return error_response('Usuário não �� um agente de suporte', 403)
+            return error_response('Usuário não é um agente de suporte', 403)
 
         # Parâmetros de filtro
         nao_lidas = request.args.get('nao_lidas', 'false').lower() == 'true'
@@ -3382,14 +3382,36 @@ def limpar_historico_violacoes_sla():
                 # Definir tempo de resolução baseado na prioridade para que fique dentro do SLA
                 if chamado.prioridade == 'Crítica':
                     horas_adicionar = 1 + (abs(hash(chamado.codigo)) % 2)  # 1-2 horas (SLA: 2h)
+                    limite_sla = 2
                 elif chamado.prioridade == 'Alta':
                     horas_adicionar = 2 + (abs(hash(chamado.codigo)) % 4)  # 2-5 horas (SLA: 8h)
+                    limite_sla = 8
                 elif chamado.prioridade == 'Normal':
                     horas_adicionar = 4 + (abs(hash(chamado.codigo)) % 16)  # 4-19 horas (SLA: 24h)
+                    limite_sla = 24
                 else:  # Baixa
                     horas_adicionar = 8 + (abs(hash(chamado.codigo)) % 40)  # 8-47 horas (SLA: 72h)
+                    limite_sla = 72
 
-                chamado.data_conclusao = chamado.data_abertura + timedelta(hours=horas_adicionar)
+                nova_data_conclusao = chamado.data_abertura + timedelta(hours=horas_adicionar)
+
+                # Registrar no histórico SLA
+                historico_sla = HistoricoSLA(
+                    chamado_id=chamado.id,
+                    usuario_id=current_user.id,
+                    acao='correcao',
+                    status_anterior=chamado.status,
+                    status_novo=chamado.status,
+                    data_conclusao_anterior=chamado.data_conclusao,
+                    data_conclusao_nova=nova_data_conclusao,
+                    tempo_resolucao_horas=horas_adicionar,
+                    limite_sla_horas=limite_sla,
+                    status_sla='Cumprido',
+                    observacoes=f'Data de conclusão corrigida automaticamente para cumprir SLA - Prioridade: {chamado.prioridade}'
+                )
+                db.session.add(historico_sla)
+
+                chamado.data_conclusao = nova_data_conclusao
                 chamados_corrigidos += 1
 
         if chamados_corrigidos > 0:
