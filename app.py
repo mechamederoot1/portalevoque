@@ -101,6 +101,12 @@ def load_user(user_id):
 # Adicionar socketio ao contexto da aplicação
 app.socketio = socketio
 
+# Favicon route
+@app.route('/favicon.ico')
+def favicon():
+    from flask import send_from_directory
+    return send_from_directory(os.path.join(app.root_path, 'static'), 'favicon.ico', mimetype='image/vnd.microsoft.icon')
+
 # Registra blueprints
 app.register_blueprint(main_bp)
 app.register_blueprint(auth_bp)
