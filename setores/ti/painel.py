@@ -593,7 +593,7 @@ def salvar_configuracoes_api():
         sucesso = salvar_configuracoes_db(data)
         
         if not sucesso:
-            return error_response('Erro ao salvar configura��ões no banco de dados')
+            return error_response('Erro ao salvar configurações no banco de dados')
         
         # Emitir evento Socket.IO para notificar outros usuários sobre mudança de configurações
         try:
@@ -2130,8 +2130,8 @@ def remover_unidade(id):
 # ==================== CHAMADOS ====================
 
 @painel_bp.route('/api/chamados', methods=['GET'])
-@api_login_required
-@setor_required('Administrador')
+@login_required
+@setor_required('TI')
 def listar_chamados():
     try:
         logger.debug("Iniciando consulta de chamados...")
