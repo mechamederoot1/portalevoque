@@ -452,6 +452,79 @@ async function testarDadosSLABackend() {
     }
 }
 
+// Function to synchronize SLA database with São Paulo timezone
+async function sincronizarSLADatabase() {
+    console.log('🇧🇷 Sincronizando SLA com horário de São Paulo...');
+
+    if (!confirm('🔄 SINCRONIZAÇÃO SLA\n\nEsta ação irá:\n• Sincronizar todos os horários com São Paulo/Brasil\n• Verificar configurações de SLA\n• Atualizar feriados brasileiros\n• Corrigir timezone de chamados\n\nDeseja continuar?')) {
+        console.log('❌ Sincronização cancelada pelo usuário');
+        return;
+    }
+
+    try {
+        const response = await fetch('/ti/painel/api/sla/sincronizar-database', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                timezone: 'America/Sao_Paulo',
+                incluir_feriados: true,
+                corrigir_chamados: true
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            console.log('✅ SINCRONIZAÇÃO SLA CONCLUÍDA!');
+            console.log(`   Configurações: ${data.configuracoes_corrigidas || 0} corrigidas`);
+            console.log(`   Chamados: ${data.chamados_corrigidos || 0} corrigidos`);
+            console.log(`   Feriados: ${data.feriados_adicionados || 0} adicionados`);
+            console.log(`   Timezone: ${data.timezone || 'America/Sao_Paulo'}`);
+
+            // Show success message
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showSuccess(
+                    'SLA Sincronizado',
+                    'Sistema SLA sincronizado com horário de São Paulo!'
+                );
+            }
+
+            // Force reload of SLA data after synchronization
+            setTimeout(() => {
+                forcarAtualizacaoSLA();
+            }, 1000);
+
+            return data;
+        } else {
+            console.error('❌ Erro na sincronização:', data.error || data.message);
+
+            if (window.advancedNotificationSystem) {
+                window.advancedNotificationSystem.showError(
+                    'Erro na Sincronização',
+                    data.error || 'Erro desconhecido na sincronização SLA'
+                );
+            }
+
+            return data;
+        }
+
+    } catch (error) {
+        console.error('❌ Erro na requisição de sincronização:', error);
+
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError(
+                'Erro de Conexão',
+                'Erro ao conectar com o servidor para sincronização'
+            );
+        }
+
+        return { success: false, error: error.message };
+    }
+}
+
 // Function to force SLA compliance by adjusting completion dates
 async function forcarCumprimentoSLA() {
     console.log('⚡ Forçando cumprimento de SLA...');
@@ -557,9 +630,11 @@ window.debugSLAViolations = debugSLAViolations;
 window.forcarAtualizacaoSLA = forcarAtualizacaoSLA;
 window.forcarCumprimentoSLA = forcarCumprimentoSLA;
 window.testarDadosSLABackend = testarDadosSLABackend;
+window.sincronizarSLADatabase = sincronizarSLADatabase;
 
 console.log('SLA Fixes loaded - Chart.js error handling improved');
 console.log('Available functions:');
+console.log('  - sincronizarSLADatabase() - 🇧🇷 Sync SLA with São Paulo timezone');
 console.log('  - testarDadosSLABackend() - Test backend SLA data consistency');
 console.log('  - testLimparHistorico() - Test the limpar-historico endpoint');
 console.log('  - debugSLAViolations() - Debug SLA violations in detail');
