@@ -559,6 +559,301 @@ function carregarChamadosDetalhados() {
         });
 }
 
+// ==================== FUNÇÕES DE PAGINAÇÃO SLA ====================
+
+// Variáveis globais para paginação SLA
+let dadosChamadosSLA = [];
+let paginaAtualSLA = 1;
+let registrosPorPaginaSLA = 5;
+
+// Função para mostrar/esconder loading
+function mostrarLoadingSLA(mostrar) {
+    const loading = document.getElementById('loadingSLA');
+    const tabela = document.querySelector('#tabelaChamadosSLA').closest('.table-responsive');
+
+    if (loading && tabela) {
+        if (mostrar) {
+            loading.style.display = 'block';
+            tabela.style.display = 'none';
+        } else {
+            loading.style.display = 'none';
+            tabela.style.display = 'block';
+        }
+    }
+}
+
+// Função para mostrar erro
+function mostrarErroSLA(mensagem) {
+    const tbody = document.getElementById('tabelaChamadosSLA');
+    if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="9" class="text-center text-danger py-4">
+            <i class="fas fa-exclamation-triangle me-2"></i>${mensagem}
+        </td></tr>`;
+    }
+}
+
+// Nova função para carregar chamados com paginação
+function carregarChamadosDetalhadosPaginados() {
+    mostrarLoadingSLA(true);
+
+    fetch('/ti/painel/api/sla/chamados-detalhados')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            dadosChamadosSLA = data;
+            renderizarTabelaSLAPaginada();
+            atualizarPaginacaoSLA();
+            atualizarInfoRegistrosSLA();
+            mostrarLoadingSLA(false);
+        })
+        .catch(error => {
+            console.error('Erro ao carregar chamados detalhados:', error);
+            mostrarErroSLA('Erro ao carregar chamados SLA: ' + error.message);
+            mostrarLoadingSLA(false);
+        });
+}
+
+// Renderizar tabela com paginação
+function renderizarTabelaSLAPaginada() {
+    const tbody = document.getElementById('tabelaChamadosSLA');
+    if (!tbody) return;
+
+    tbody.innerHTML = '';
+
+    // Calcular índices para paginação
+    const inicio = (paginaAtualSLA - 1) * registrosPorPaginaSLA;
+    const fim = inicio + registrosPorPaginaSLA;
+    const dadosPagina = dadosChamadosSLA.slice(inicio, fim);
+
+    if (dadosPagina.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Nenhum chamado encontrado</td></tr>';
+        return;
+    }
+
+    dadosPagina.forEach(chamado => {
+        const row = document.createElement('tr');
+
+        // Calcular limite SLA baseado na prioridade usando as configurações carregadas
+        const limiteSLA = obterLimiteSLAPorPrioridade(chamado.prioridade);
+
+        // Recalcular status SLA baseado no limite correto
+        let slaStatus = 'Dentro do Prazo';
+        let slaClass = 'badge bg-success';
+        let slaIcon = 'fas fa-clock';
+
+        if (chamado.status === 'Concluido' || chamado.status === 'Cancelado') {
+            if (chamado.horas_decorridas <= limiteSLA) {
+                slaStatus = 'Cumprido';
+                slaClass = 'badge bg-success';
+                slaIcon = 'fas fa-check-circle';
+            } else {
+                slaStatus = 'Violado';
+                slaClass = 'badge bg-danger';
+                slaIcon = 'fas fa-times-circle';
+            }
+        } else {
+            // Chamado ainda aberto
+            const percentualSLA = (chamado.horas_decorridas / limiteSLA) * 100;
+
+            if (percentualSLA >= 100) {
+                slaStatus = 'Violado';
+                slaClass = 'badge bg-danger';
+                slaIcon = 'fas fa-times-circle';
+            } else if (percentualSLA >= 80) {
+                slaStatus = 'Em Risco';
+                slaClass = 'badge bg-warning';
+                slaIcon = 'fas fa-exclamation-triangle';
+            } else {
+                slaStatus = 'Dentro do Prazo';
+                slaClass = 'badge bg-success';
+                slaIcon = 'fas fa-clock';
+            }
+        }
+
+        // Classe para status do chamado
+        const statusClass = getStatusBadgeClass(chamado.status);
+
+        // Classe para prioridade
+        const prioridadeClass = getPrioridadeBadgeClass(chamado.prioridade);
+
+        // Calcular progresso do SLA usando o limite correto
+        const progressoSLA = Math.min((chamado.horas_decorridas / limiteSLA) * 100, 100);
+        let progressoColor = 'bg-success';
+        if (progressoSLA > 80) progressoColor = 'bg-danger';
+        else if (progressoSLA > 60) progressoColor = 'bg-warning';
+
+        row.innerHTML = `
+            <td><span class="badge badge-outline">${chamado.codigo}</span></td>
+            <td>${chamado.solicitante}</td>
+            <td class="text-truncate" style="max-width: 200px;" title="${chamado.problema}">${chamado.problema}</td>
+            <td><span class="badge ${statusClass}">${chamado.status}</span></td>
+            <td>${chamado.data_abertura}</td>
+            <td>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="font-monospace">${formatarTempo(chamado.horas_decorridas)}</span>
+                    <div class="progress" style="width: 60px; height: 8px;">
+                        <div class="progress-bar ${progressoColor}"
+                             style="width: ${progressoSLA}%"
+                             title="${progressoSLA.toFixed(1)}% do SLA"></div>
+                    </div>
+                </div>
+            </td>
+            <td><span class="badge badge-outline">${formatarTempo(limiteSLA)}</span></td>
+            <td>
+                <span class="${slaClass}">
+                    <i class="${slaIcon}"></i>
+                    ${slaStatus}
+                </span>
+            </td>
+            <td><span class="badge ${prioridadeClass}">${chamado.prioridade}</span></td>
+        `;
+
+        tbody.appendChild(row);
+    });
+
+    // Adicionar estatísticas rápidas
+    atualizarEstatisticasRapidas(dadosChamadosSLA);
+}
+
+// Atualizar informações de registros
+function atualizarInfoRegistrosSLA() {
+    const total = dadosChamadosSLA.length;
+    const inicio = (paginaAtualSLA - 1) * registrosPorPaginaSLA + 1;
+    const fim = Math.min(paginaAtualSLA * registrosPorPaginaSLA, total);
+
+    const infoSuperior = document.getElementById('infoRegistrosSLA');
+    const infoInferior = document.getElementById('infoRegistrosSLAInferior');
+
+    if (infoSuperior) {
+        infoSuperior.textContent = `${total} registros`;
+    }
+
+    if (infoInferior) {
+        if (total > 0) {
+            infoInferior.textContent = `Mostrando ${inicio} a ${fim} de ${total} registros`;
+        } else {
+            infoInferior.textContent = 'Nenhum registro encontrado';
+        }
+    }
+}
+
+// Atualizar paginação
+function atualizarPaginacaoSLA() {
+    const totalPaginas = Math.ceil(dadosChamadosSLA.length / registrosPorPaginaSLA);
+    const paginacao = document.getElementById('paginacaoSLA');
+
+    if (!paginacao) return;
+
+    paginacao.innerHTML = '';
+
+    if (totalPaginas <= 1) return;
+
+    // Botão anterior
+    const btnAnterior = document.createElement('li');
+    btnAnterior.className = `page-item ${paginaAtualSLA === 1 ? 'disabled' : ''}`;
+    btnAnterior.innerHTML = `<a class="page-link" href="#" aria-label="Anterior">
+        <span aria-hidden="true">&laquo;</span>
+    </a>`;
+    if (paginaAtualSLA > 1) {
+        btnAnterior.addEventListener('click', (e) => {
+            e.preventDefault();
+            irParaPaginaSLA(paginaAtualSLA - 1);
+        });
+    }
+    paginacao.appendChild(btnAnterior);
+
+    // Páginas numeradas
+    const maxPaginas = 5;
+    let inicioRange = Math.max(1, paginaAtualSLA - Math.floor(maxPaginas / 2));
+    let fimRange = Math.min(totalPaginas, inicioRange + maxPaginas - 1);
+
+    if (fimRange - inicioRange + 1 < maxPaginas) {
+        inicioRange = Math.max(1, fimRange - maxPaginas + 1);
+    }
+
+    for (let i = inicioRange; i <= fimRange; i++) {
+        const btnPagina = document.createElement('li');
+        btnPagina.className = `page-item ${i === paginaAtualSLA ? 'active' : ''}`;
+        btnPagina.innerHTML = `<a class="page-link" href="#">${i}</a>`;
+        btnPagina.addEventListener('click', (e) => {
+            e.preventDefault();
+            irParaPaginaSLA(i);
+        });
+        paginacao.appendChild(btnPagina);
+    }
+
+    // Botão próximo
+    const btnProximo = document.createElement('li');
+    btnProximo.className = `page-item ${paginaAtualSLA === totalPaginas ? 'disabled' : ''}`;
+    btnProximo.innerHTML = `<a class="page-link" href="#" aria-label="Próximo">
+        <span aria-hidden="true">&raquo;</span>
+    </a>`;
+    if (paginaAtualSLA < totalPaginas) {
+        btnProximo.addEventListener('click', (e) => {
+            e.preventDefault();
+            irParaPaginaSLA(paginaAtualSLA + 1);
+        });
+    }
+    paginacao.appendChild(btnProximo);
+}
+
+// Ir para página específica
+function irParaPaginaSLA(pagina) {
+    const totalPaginas = Math.ceil(dadosChamadosSLA.length / registrosPorPaginaSLA);
+
+    if (pagina < 1 || pagina > totalPaginas) return;
+
+    paginaAtualSLA = pagina;
+    renderizarTabelaSLAPaginada();
+    atualizarPaginacaoSLA();
+    atualizarInfoRegistrosSLA();
+}
+
+// Alterar tamanho da página
+function alterarTamanhoPaginaSLA(novoTamanho) {
+    registrosPorPaginaSLA = parseInt(novoTamanho);
+    paginaAtualSLA = 1; // Reset para primeira página
+    renderizarTabelaSLAPaginada();
+    atualizarPaginacaoSLA();
+    atualizarInfoRegistrosSLA();
+}
+
+// Função para limpar histórico de violações
+function limparHistoricoViolacao() {
+    if (!confirm('Tem certeza que deseja limpar o histórico de violações? Esta ação não pode ser desfeita.')) {
+        return;
+    }
+
+    mostrarToast('Limpando histórico de violações...', 'info');
+
+    fetch('/ti/painel/api/sla/limpar-historico', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        mostrarToast('Histórico de violações limpo com sucesso!', 'success');
+        carregarChamadosDetalhadosPaginados(); // Recarregar dados
+    })
+    .catch(error => {
+        console.error('Erro ao limpar histórico:', error);
+        mostrarToast('Erro ao limpar histórico: ' + error.message, 'error');
+    });
+}
+
+// ==================== FIM FUNÇÕES DE PAGINAÇÃO SLA ====================
+
 // Função auxiliar para obter classe do badge de status
 function getStatusBadgeClass(status) {
     const classes = {
