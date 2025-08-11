@@ -229,7 +229,7 @@
         </button>
       </div>
 
-      <!-- Cards de M��tricas Principais -->
+      <!-- Cards de Métricas Principais -->
       <div class="row mb-4">
         <div class="col-lg-3 col-md-6 mb-3">
           <div class="card bg-info text-white">
@@ -3228,6 +3228,8 @@
       document.getElementById('btnSalvarChamados')?.addEventListener('click', salvarConfiguracoesSLA);
       document.getElementById('btnSalvarEmail')?.addEventListener('click', salvarConfiguracoesSLA);
       document.getElementById('btnSalvarIntegracoes')?.addEventListener('click', salvarConfiguracoesSLA);
+      document.getElementById('btnSalvarSLA')?.addEventListener('click', salvarConfiguracoesSLACorretas);
+      document.getElementById('btnCarregarSLA')?.addEventListener('click', carregarConfiguracoesSLACorretas);
       
       // Event listeners para ações do sistema
       document.getElementById('btnBackupBanco')?.addEventListener('click', executarBackup);
