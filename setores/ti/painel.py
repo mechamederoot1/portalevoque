@@ -9,6 +9,7 @@ from flask_login import LoginManager, login_required, current_user, logout_user
 from auth.auth_helpers import setor_required
 import os
 from setores.ti.routes import enviar_email
+from setores.ti.rotas import get_client_info
 from datetime import datetime, timedelta
 from flask import current_app
 from sqlalchemy import func, case, extract
@@ -43,10 +44,10 @@ def api_login_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-def json_response(data, status=200):
+def json_response(data, status_code=200):
     """Retorna resposta JSON padronizada"""
     response = jsonify(data)
-    response.status_code = status
+    response.status_code = status_code
     response.headers['Content-Type'] = 'application/json'
     return response
 
