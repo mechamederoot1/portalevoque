@@ -111,9 +111,33 @@ window.createChartSafely = createChartSafely;
 window.destroyAllCharts = destroyAllCharts;
 window.listActiveCharts = listActiveCharts;
 
+/**
+ * Parse JSON de forma segura, lidando com respostas HTML de erro
+ * @param {Response} response - Response object do fetch
+ * @returns {Promise} Promise que resolve com os dados JSON ou rejeita com erro apropriado
+ */
+async function safeJsonParse(response) {
+    const contentType = response.headers.get('content-type');
+
+    if (!contentType || !contentType.includes('application/json')) {
+        // Se não é JSON, provavelmente é uma página de erro HTML
+        const text = await response.text();
+        throw new Error(`Servidor retornou HTML em vez de JSON. Status: ${response.status}`);
+    }
+
+    try {
+        return await response.json();
+    } catch (error) {
+        throw new Error(`Erro ao fazer parse do JSON: ${error.message}`);
+    }
+}
+
 // Auto-cleanup ao sair da página
 window.addEventListener('beforeunload', function() {
     destroyAllCharts();
 });
 
-console.log('Chart Utils carregado - funções disponíveis: destroyChartSafely, createChartSafely, destroyAllCharts, listActiveCharts');
+// Disponibilizar utilitário JSON também
+window.safeJsonParse = safeJsonParse;
+
+console.log('Chart Utils carregado - funções disponíveis: destroyChartSafely, createChartSafely, destroyAllCharts, listActiveCharts, safeJsonParse');
