@@ -84,8 +84,8 @@ class SLAMetricas {
             if (graficoData) {
                 this.atualizarGraficos(graficoData);
             }
-            
-            console.log('Dashboard SLA carregado com sucesso:', data);
+
+            console.log('Dashboard SLA carregado com sucesso:', response);
             
         } catch (error) {
             console.error('Erro ao carregar dashboard SLA:', error);
