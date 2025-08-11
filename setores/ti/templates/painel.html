@@ -2636,7 +2636,7 @@
   <script src="/static/ti/js/painel/painel.js"></script>
   <script src="/static/ti/js/painel/enviar_ticket.js"></script>
 
-  <!-- Script de debug e força inicialização -->
+  <!-- Script de debug e for��a inicialização -->
   <script>
     console.log('=== SCRIPT INLINE: FORÇANDO INICIALIZAÇÃO ===');
 
@@ -3119,6 +3119,8 @@
           renderListarUnidades();
           break;
         case 'gerenciar-chamados':
+          console.log('Loading gerenciar-chamados section');
+          console.log('loadChamados function available:', typeof loadChamados);
           loadChamados();
           break;
         case 'permissoes':
