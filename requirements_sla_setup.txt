@@ -1,0 +1,3 @@
+# Requisitos mínimos para o script de setup SLA Azure
+PyMySQL==1.1.1
+cryptography==43.0.3
