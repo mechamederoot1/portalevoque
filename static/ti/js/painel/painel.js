@@ -985,47 +985,56 @@ function attachCardEventListeners() {
 
 // Event listener para os links do submenu de gerenciar chamados
 function initializeSubmenuFilters() {
-    const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a');
-    console.log('Inicializando filtros do submenu, links encontrados:', submenuLinks.length);
+    // Aguardar um pouco para garantir que o DOM está pronto
+    setTimeout(() => {
+        const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a');
+        console.log('Inicializando filtros do submenu, links encontrados:', submenuLinks.length);
 
-    submenuLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
-            const status = this.getAttribute('data-status');
-            console.log('Filtro selecionado:', status);
+        if (submenuLinks.length === 0) {
+            console.warn('Nenhum link do submenu encontrado, tentando novamente em 500ms...');
+            setTimeout(initializeSubmenuFilters, 500);
+            return;
+        }
 
-            // Atualizar filtro atual
-            currentFilter = status;
-            currentPage = 1;
+        submenuLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const status = this.getAttribute('data-status');
+                console.log('Filtro selecionado:', status);
 
-            // Ativar seção primeiro
-            activateSection('gerenciar-chamados');
+                // Atualizar filtro atual
+                currentFilter = status;
+                currentPage = 1;
 
-            // Verificar se os dados dos chamados estão carregados
-            if (!chamadosData || chamadosData.length === 0) {
-                console.log('Dados dos chamados não carregados, carregando...');
-                loadChamados().then(() => {
-                    console.log('Dados carregados, aplicando filtro...');
+                // Ativar seção primeiro
+                activateSection('gerenciar-chamados');
+
+                // Verificar se os dados dos chamados estão carregados
+                if (!chamadosData || chamadosData.length === 0) {
+                    console.log('Dados dos chamados não carregados, carregando...');
+                    loadChamados().then(() => {
+                        console.log('Dados carregados, aplicando filtro...');
+                        renderChamadosPage(currentPage);
+                    });
+                } else {
+                    console.log('Dados já disponíveis, aplicando filtro...');
                     renderChamadosPage(currentPage);
+                }
+
+                // Atualizar o item ativo no menu
+                document.querySelectorAll('.sidebar a.active').forEach(item => {
+                    item.classList.remove('active');
                 });
-            } else {
-                console.log('Dados já disponíveis, aplicando filtro...');
-                renderChamadosPage(currentPage);
-            }
+                this.classList.add('active');
+                const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
+                if (parentSubmenuToggle) {
+                    parentSubmenuToggle.classList.add('active');
+                }
 
-            // Atualizar o item ativo no menu
-            document.querySelectorAll('.sidebar a.active').forEach(item => {
-                item.classList.remove('active');
+                console.log('Filtro aplicado com sucesso');
             });
-            this.classList.add('active');
-            const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
-            if (parentSubmenuToggle) {
-                parentSubmenuToggle.classList.add('active');
-            }
-
-            console.log('Filtro aplicado com sucesso');
         });
-    });
+    }, 100);
 }
 
 // Modal Chamado - Elementos
@@ -3699,7 +3708,7 @@ function renderizarUsuarios(usuarios) {
         return;
     }
 
-    // Renderizar cards dos usuários com verificações de segurança
+    // Renderizar cards dos usu��rios com verificações de segurança
     usuariosGrid.innerHTML = usuarios.map(usuario => {
         // Verificações de propriedades essenciais
         if (!usuario || typeof usuario !== 'object') {
