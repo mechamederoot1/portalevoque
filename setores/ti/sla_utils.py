@@ -33,40 +33,61 @@ SLA_PADRAO = {
 def carregar_configuracoes_sla():
     """Carrega configurações de SLA do banco ou retorna padrões"""
     try:
-        config_sla = Configuracao.query.filter_by(chave='sla').first()
-        if config_sla:
-            return json.loads(config_sla.valor)
+        from database import obter_configuracoes_sla_dict
+        config = obter_configuracoes_sla_dict()
+        if config:
+            logger.info("Configurações SLA carregadas do banco de dados")
+            return config
         else:
-            # Criar configuração padrão se não existir
-            nova_config = Configuracao(
-                chave='sla',
-                valor=json.dumps(SLA_PADRAO)
-            )
-            db.session.add(nova_config)
-            db.session.commit()
-            logger.info("Configurações SLA padrão criadas no banco de dados")
+            logger.warning("Nenhuma configuração SLA encontrada, usando padrões")
             return SLA_PADRAO
     except Exception as e:
         logger.error(f"Erro ao carregar configurações SLA: {str(e)}")
         return SLA_PADRAO
 
-def salvar_configuracoes_sla(config_sla: Dict):
-    """Salva configurações de SLA no banco"""
+def salvar_configuracoes_sla(config_sla: Dict, usuario_id=None):
+    """Salva configurações de SLA no banco usando tabelas específicas"""
     try:
-        config_obj = Configuracao.query.filter_by(chave='sla').first()
-        if config_obj:
-            config_obj.valor = json.dumps(config_sla)
-            config_obj.data_atualizacao = get_brazil_time().replace(tzinfo=None)
-        else:
-            config_obj = Configuracao(
-                chave='sla',
-                valor=json.dumps(config_sla)
+        from database import atualizar_sla_prioridade, registrar_log_acao
+
+        # Mapear chaves para prioridades
+        mapeamento = {
+            'resolucao_critica': 'Crítica',
+            'resolucao_urgente': 'Urgente',
+            'resolucao_alta': 'Alta',
+            'resolucao_normal': 'Normal',
+            'resolucao_baixa': 'Baixa'
+        }
+
+        alteracoes = []
+
+        # Atualizar cada prioridade
+        for chave, prioridade in mapeamento.items():
+            if chave in config_sla:
+                tempo_resolucao = config_sla[chave]
+                tempo_primeira_resposta = config_sla.get('primeira_resposta', 4.0)
+
+                sla = atualizar_sla_prioridade(
+                    prioridade=prioridade,
+                    tempo_resolucao=tempo_resolucao,
+                    tempo_primeira_resposta=tempo_primeira_resposta,
+                    usuario_id=usuario_id
+                )
+                alteracoes.append(f"{prioridade}: {tempo_resolucao}h")
+
+        # Registrar log da alteração
+        if usuario_id and alteracoes:
+            registrar_log_acao(
+                usuario_id=usuario_id,
+                acao='Configurações SLA atualizadas',
+                categoria='sla',
+                detalhes=f'Alterações: {", ".join(alteracoes)}',
+                tipo_recurso='configuracao_sla'
             )
-            db.session.add(config_obj)
-        
-        db.session.commit()
-        logger.info("Configurações SLA salvas com sucesso")
+
+        logger.info(f"Configurações SLA salvas: {alteracoes}")
         return True
+
     except Exception as e:
         logger.error(f"Erro ao salvar configurações SLA: {str(e)}")
         db.session.rollback()
@@ -75,30 +96,13 @@ def salvar_configuracoes_sla(config_sla: Dict):
 def carregar_configuracoes_horario_comercial():
     """Carrega configurações de horário comercial do banco ou retorna padrões"""
     try:
-        config_horario = Configuracao.query.filter_by(chave='horario_comercial').first()
-        if config_horario:
-            dados = json.loads(config_horario.valor)
-            # Converter strings de time de volta para objetos time
-            if 'inicio' in dados:
-                hora, minuto = map(int, dados['inicio'].split(':'))
-                dados['inicio'] = time(hora, minuto)
-            if 'fim' in dados:
-                hora, minuto = map(int, dados['fim'].split(':'))
-                dados['fim'] = time(hora, minuto)
-            return dados
+        from database import obter_horario_comercial_dict
+        config = obter_horario_comercial_dict()
+        if config:
+            logger.info("Configurações de horário comercial carregadas do banco de dados")
+            return config
         else:
-            # Criar configuração padrão se não existir
-            config_para_salvar = HORARIO_COMERCIAL.copy()
-            config_para_salvar['inicio'] = '08:00'
-            config_para_salvar['fim'] = '18:00'
-            
-            nova_config = Configuracao(
-                chave='horario_comercial',
-                valor=json.dumps(config_para_salvar)
-            )
-            db.session.add(nova_config)
-            db.session.commit()
-            logger.info("Configurações de horário comercial padrão criadas no banco de dados")
+            logger.warning("Nenhuma configuração de horário comercial encontrada, usando padrões")
             return HORARIO_COMERCIAL
     except Exception as e:
         logger.error(f"Erro ao carregar configurações de horário comercial: {str(e)}")
@@ -108,14 +112,14 @@ def eh_horario_comercial(dt: datetime, config_horario: Dict = None) -> bool:
     """Verifica se um datetime está dentro do horário comercial"""
     if config_horario is None:
         config_horario = carregar_configuracoes_horario_comercial()
-    
+
     # Verificar dia da semana (0=segunda, 6=domingo)
     if dt.weekday() not in config_horario['dias_semana']:
         return False
-    
-    # Verificar horário
+
+    # Verificar horário - usar < em vez de <= para o fim (18:00 não é mais horário comercial)
     hora_atual = dt.time()
-    return config_horario['inicio'] <= hora_atual <= config_horario['fim']
+    return config_horario['inicio'] <= hora_atual < config_horario['fim']
 
 def calcular_horas_uteis(inicio: datetime, fim: datetime, config_horario: Dict = None) -> float:
     """
@@ -316,7 +320,7 @@ def calcular_sla_chamado_correto(chamado, config_sla: Dict = None, config_horari
         config_horario: Configurações de horário comercial
     
     Returns:
-        Dicionário com informações detalhadas de SLA
+        Dicion��rio com informações detalhadas de SLA
     """
     if config_sla is None:
         config_sla = carregar_configuracoes_sla()
@@ -482,76 +486,88 @@ def calcular_sla_chamado_correto(chamado, config_sla: Dict = None, config_horari
 def obter_metricas_sla_consolidadas(period_days: int = 30) -> Dict:
     """
     Obtém métricas consolidadas de SLA para o período especificado
-    
+    Violações só são contadas para chamados abertos (não concluídos/cancelados)
+
     Args:
         period_days: Número de dias para análise
-    
+
     Returns:
         Dicionário com métricas consolidadas
     """
     from database import Chamado
     from sqlalchemy import func, and_
-    
+
     config_sla = carregar_configuracoes_sla()
     config_horario = carregar_configuracoes_horario_comercial()
-    
+
     # Data de corte
     data_corte = get_brazil_time() - timedelta(days=period_days)
-    
+
     # Buscar chamados do período
     chamados = Chamado.query.filter(
         Chamado.data_abertura >= data_corte.replace(tzinfo=None)
     ).all()
-    
+
     total_chamados = len(chamados)
     chamados_cumpridos = 0
-    chamados_violados = 0
-    chamados_em_risco = 0
+    chamados_violados = 0  # Só chamados ABERTOS com violação
+    chamados_em_risco = 0  # Só chamados ABERTOS em risco
     chamados_abertos = 0
+    chamados_concluidos_no_prazo = 0
+    chamados_concluidos_com_violacao = 0
 
     tempo_total_resolucao = 0
     tempo_total_primeira_resposta = 0
     count_resolvidos = 0
     count_primeira_resposta = 0
-    
+
     for chamado in chamados:
         sla_info = calcular_sla_chamado_correto(chamado, config_sla, config_horario)
-        
-        if sla_info['sla_status'] == 'Cumprido':
-            chamados_cumpridos += 1
-        elif sla_info['sla_status'] == 'Violado':
-            chamados_violados += 1
-        elif sla_info['sla_status'] == 'Em Risco':
-            chamados_em_risco += 1
-        
+
+        # Separar lógica entre chamados abertos e fechados
+        if chamado.status in ['Aberto', 'Aguardando']:
+            chamados_abertos += 1
+            # Para chamados abertos, contar violações e riscos
+            if sla_info['sla_status'] == 'Violado':
+                chamados_violados += 1
+            elif sla_info['sla_status'] == 'Em Risco':
+                chamados_em_risco += 1
+        else:
+            # Para chamados fechados, só contar para estatísticas gerais
+            if sla_info['sla_status'] == 'Cumprido':
+                chamados_concluidos_no_prazo += 1
+            elif sla_info['sla_status'] == 'Violado':
+                chamados_concluidos_com_violacao += 1
+
+        # Métricas de tempo (todos os chamados)
         if sla_info['tempo_resolucao_uteis']:
             tempo_total_resolucao += sla_info['tempo_resolucao_uteis']
             count_resolvidos += 1
-        
+
         if sla_info['tempo_primeira_resposta_uteis']:
             tempo_total_primeira_resposta += sla_info['tempo_primeira_resposta_uteis']
             count_primeira_resposta += 1
-
-        # Contar chamados abertos
-        if chamado.status in ['Aberto', 'Aguardando']:
-            chamados_abertos += 1
     
     # Calcular médias
     tempo_medio_resolucao = (tempo_total_resolucao / count_resolvidos) if count_resolvidos > 0 else 0
     tempo_medio_primeira_resposta = (tempo_total_primeira_resposta / count_primeira_resposta) if count_primeira_resposta > 0 else 0
-    
-    # Calcular percentual de cumprimento
-    if total_chamados > 0:
-        percentual_cumprimento = (chamados_cumpridos / total_chamados) * 100
+
+    # Calcular percentual de cumprimento baseado em chamados concluídos
+    total_concluidos = chamados_concluidos_no_prazo + chamados_concluidos_com_violacao
+    if total_concluidos > 0:
+        percentual_cumprimento = (chamados_concluidos_no_prazo / total_concluidos) * 100
     else:
-        percentual_cumprimento = 100
-    
+        percentual_cumprimento = 100  # Se não há chamados concluídos, assumir 100%
+
     return {
         'total_chamados': total_chamados,
-        'chamados_cumpridos': chamados_cumpridos,
-        'chamados_violados': chamados_violados,
-        'chamados_em_risco': chamados_em_risco,
+        'chamados_cumpridos': chamados_concluidos_no_prazo,
+        'chamados_violados': chamados_violados,  # Só chamados ABERTOS violados
+        'chamados_em_risco': chamados_em_risco,  # Só chamados ABERTOS em risco
         'chamados_abertos': chamados_abertos,
+        'chamados_concluidos_no_prazo': chamados_concluidos_no_prazo,
+        'chamados_concluidos_com_violacao': chamados_concluidos_com_violacao,
+        'total_concluidos': total_concluidos,
         'percentual_cumprimento': round(percentual_cumprimento, 1),
         'tempo_medio_resolucao': round(tempo_medio_resolucao, 2),
         'tempo_medio_primeira_resposta': round(tempo_medio_primeira_resposta, 2),

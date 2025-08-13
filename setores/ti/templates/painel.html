@@ -451,6 +451,12 @@
                 <i class="fas fa-list me-2"></i>Chamados Detalhados com SLA
               </h5>
               <div class="d-flex gap-2">
+                <button class="btn btn-success btn-sm" id="btnCorrigirDadosTeste" title="Corrigir dados de teste para demonstrar SLA correto">
+                  <i class="fas fa-tools me-1"></i>Corrigir Dados
+                </button>
+                <button class="btn btn-info btn-sm" id="btnMigrarSLA" title="Migrar configurações SLA para banco de dados">
+                  <i class="fas fa-database me-1"></i>Migrar SLA
+                </button>
                 <button class="btn btn-warning btn-sm" id="btnLimparHistoricoViolacao" title="Limpar histórico de violações">
                   <i class="fas fa-broom me-1"></i>Limpar Histórico
                 </button>
@@ -1712,7 +1718,7 @@
         <div class="col-12 mb-4">
           <div class="collapsible-section">
             <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#slaConfigCollapse" aria-expanded="true">
-              <h5><i class="fas fa-clock me-2"></i>Configurações de SLA</h5>
+              <h5><i class="fas fa-clock me-2"></i>Configuraç��es de SLA</h5>
               <i class="fas fa-chevron-down collapsible-toggle"></i>
             </div>
             <div class="collapse show" id="slaConfigCollapse">
@@ -2750,7 +2756,6 @@
   <script src="/static/ti/js/painel/notificacoes.js"></script>
   <script src="/static/ti/js/painel/sla.js"></script>
   <script src="/static/ti/js/painel/sla_metricas.js"></script>
-  <script src="/static/ti/js/painel/sla_fixes.js"></script>
   <script src="/static/ti/js/painel/prioridades.js"></script>
   <script src="/static/ti/js/painel/admin.js"></script>
   <script src="/static/ti/js/painel/auditoria.js"></script>

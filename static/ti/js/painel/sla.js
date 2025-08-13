@@ -2,7 +2,7 @@
 
 let graficoSemanalInstance;
 let graficoStatusInstance;
-let slaConfiguracoes = {}; // Armazenar configurações SLA
+let slaConfiguracoes = {}; // Armazenar configuraç��es SLA
 
 // Função para formatar tempo de forma legível
 function formatarTempo(horas) {
@@ -300,11 +300,9 @@ function carregarGraficoSemanal() {
 function criarGraficoSemanal(dados) {
     const ctx = document.getElementById('chartSemanal');
     if (!ctx) return;
-    
-    // Destruir gráfico existente
-    if (graficoSemanalInstance) {
-        graficoSemanalInstance.destroy();
-    }
+
+    // Destruir gráfico existente usando utilitário seguro
+    destroyChartSafely('chartSemanal');
     
     // Preparar dados dos últimos 28 dias
     const labels = dados.map(item => {
@@ -317,7 +315,7 @@ function criarGraficoSemanal(dados) {
     
     const valores = dados.map(item => item.quantidade);
     
-    graficoSemanalInstance = new Chart(ctx, {
+    graficoSemanalInstance = createChartSafely('chartSemanal', {
         type: 'line',
         data: {
             labels: labels,
@@ -388,6 +386,9 @@ function criarGraficoSemanal(dados) {
 function criarGraficoDistribuicaoStatus(dados) {
     const ctx = document.getElementById('chartStatus');
     if (!ctx) return;
+
+    // Destruir gráfico existente usando utilitário seguro
+    destroyChartSafely('chartStatus');
     
     const cores = {
         'Aberto': '#f59e0b',

@@ -254,7 +254,7 @@ function activateSection(id) {
                 mainContent.scrollTop = 0;
                 console.log('Scroll resetado para o topo');
             } else {
-                console.warn('mainContent não encontrado');
+                console.warn('mainContent n��o encontrado');
             }
 
             // Load section-specific content with delay
@@ -376,6 +376,7 @@ const pagination = document.getElementById('pagination');
 
 // Fun��ão para carregar os chamados da API
 async function loadChamados() {
+    console.log('=== CARREGANDO CHAMADOS ===');
     try {
         const response = await fetch('/ti/painel/api/chamados', {
             credentials: 'same-origin',
@@ -388,6 +389,14 @@ async function loadChamados() {
         }
 
         chamadosData = await response.json();
+        console.log('Chamados carregados com sucesso:', chamadosData.length);
+
+        // Verificar estrutura dos dados
+        if (chamadosData.length > 0) {
+            console.log('Exemplo de chamado:', chamadosData[0]);
+            console.log('Status disponíveis:', [...new Set(chamadosData.map(c => c.status))]);
+        }
+
         renderChamadosPage(currentPage);
 
         // Atualizar contadores da visão geral
@@ -395,13 +404,18 @@ async function loadChamados() {
 
         // Popular filtros dinâmicos
         popularFiltrosDinamicos();
+
+        return chamadosData; // Retornar dados para permitir chaining
     } catch (error) {
         console.error('Erro ao carregar chamados:', error);
-        chamadosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar chamados. Tente novamente mais tarde.</p>';
+        if (chamadosGrid) {
+            chamadosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar chamados. Tente novamente mais tarde.</p>';
+        }
         // Usar sistema de notificações avançado
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar chamados');
         }
+        throw error; // Re-throw para permitir tratamento pelo caller
     }
 }
 
@@ -510,16 +524,37 @@ async function atualizarContadoresVisaoGeral() {
 
 // Função para filtrar chamados
 function filterChamados(status) {
+    console.log('=== FILTRANDO CHAMADOS ===');
+    console.log('Status para filtrar:', status);
+    console.log('Dados originais:', chamadosData ? chamadosData.length : 0);
+
+    if (!chamadosData || !Array.isArray(chamadosData)) {
+        console.warn('chamadosData não é um array válido:', chamadosData);
+        return [];
+    }
+
     let filtrados = [...chamadosData];
+    console.log('Cópia inicial:', filtrados.length);
 
     // Filtrar por status
     if (status !== 'all') {
-        filtrados = filtrados.filter(chamado => chamado.status === status);
+        const antesDoFiltro = filtrados.length;
+        filtrados = filtrados.filter(chamado => {
+            if (!chamado || !chamado.status) {
+                console.warn('Chamado inválido encontrado:', chamado);
+                return false;
+            }
+            return chamado.status === status;
+        });
+        console.log(`Filtro por status "${status}": ${antesDoFiltro} -> ${filtrados.length}`);
     }
 
     // Aplicar filtros avançados se estiverem ativos
+    const antesFiltrosAvancados = filtrados.length;
     filtrados = aplicarFiltrosAvancados(filtrados);
+    console.log(`Filtros avançados: ${antesFiltrosAvancados} -> ${filtrados.length}`);
 
+    console.log('Total filtrado final:', filtrados.length);
     return filtrados;
 }
 
@@ -658,7 +693,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
             });
 
             if (!notificacaoResponse.ok) {
-                console.error('Erro ao enviar notifica��ão:', await notificacaoResponse.text());
+                console.error('Erro ao enviar notifica���ão:', await notificacaoResponse.text());
                 throw new Error('Erro ao enviar notificação por e-mail');
             }
         }
@@ -678,11 +713,24 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
 
 // Função para renderizar a p��gina de chamados
 function renderChamadosPage(page) {
+    console.log('=== RENDERIZANDO PÁGINA DE CHAMADOS ===');
+    console.log('Página:', page);
+    console.log('Filtro atual:', currentFilter);
+    console.log('Total de chamados:', chamadosData ? chamadosData.length : 0);
+
+    if (!chamadosGrid) {
+        console.error('chamadosGrid não encontrado!');
+        return;
+    }
+
     chamadosGrid.innerHTML = '';
     const start = (page - 1) * chamadosPerPage;
     const end = start + chamadosPerPage;
     const filteredChamados = filterChamados(currentFilter);
     const pageChamados = filteredChamados.slice(start, end);
+
+    console.log('Chamados filtrados:', filteredChamados.length);
+    console.log('Chamados na página:', pageChamados.length);
 
     if (pageChamados.length === 0) {
         chamadosGrid.innerHTML = `
@@ -936,24 +984,61 @@ function attachCardEventListeners() {
 }
 
 // Event listener para os links do submenu de gerenciar chamados
-document.querySelectorAll('#submenu-gerenciar-chamados a').forEach(link => {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const status = this.getAttribute('data-status');
-        currentFilter = status;
-        currentPage = 1;
-        renderChamadosPage(currentPage);
-        activateSection('gerenciar-chamados');
-        
-        // Atualizar o item ativo no menu
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
+function initializeSubmenuFilters() {
+    // Aguardar um pouco para garantir que o DOM está pronto
+    setTimeout(() => {
+        const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a');
+        console.log('Inicializando filtros do submenu, links encontrados:', submenuLinks.length);
+
+        if (submenuLinks.length === 0) {
+            console.warn('Nenhum link do submenu encontrado, tentando novamente em 500ms...');
+            setTimeout(initializeSubmenuFilters, 500);
+            return;
+        }
+
+        submenuLinks.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                const status = this.getAttribute('data-status');
+                console.log('Filtro selecionado:', status);
+
+                // Atualizar filtro atual
+                currentFilter = status;
+                currentPage = 1;
+
+                // Ativar seção primeiro
+                activateSection('gerenciar-chamados');
+
+                // Verificar se os dados dos chamados estão carregados
+                if (!chamadosData || chamadosData.length === 0) {
+                    console.log('Dados dos chamados não carregados, carregando...');
+                    loadChamados().then(() => {
+                        console.log('Dados carregados, aplicando filtro...');
+                        renderChamadosPage(currentPage);
+                    });
+                } else {
+                    console.log('Dados já disponíveis, aplicando filtro...');
+                    renderChamadosPage(currentPage);
+                }
+
+                // Atualizar o item ativo no menu
+                document.querySelectorAll('.sidebar a.active').forEach(item => {
+                    item.classList.remove('active');
+                });
+                this.classList.add('active');
+                const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
+                if (parentSubmenuToggle) {
+                    parentSubmenuToggle.classList.add('active');
+                }
+
+                console.log('Filtro aplicado com sucesso');
+            });
         });
-        this.classList.add('active');
-        const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
-        parentSubmenuToggle.classList.add('active');
-    });
-});
+    }, 100);
+}
+
+// Tornar função global para facilitar debug
+window.initializeSubmenuFilters = initializeSubmenuFilters;
 
 // Modal Chamado - Elementos
 const modal = document.getElementById('modalChamado');
@@ -1288,7 +1373,7 @@ document.getElementById('emailUsuario')?.addEventListener('input', function() {
     }
 });
 
-// Validaç��o em tempo real para campos obrigatórios
+// Validaç���o em tempo real para campos obrigatórios
 ['nomeUsuario', 'sobrenomeUsuario', 'nivelAcesso', 'setorUsuario'].forEach(id => {
     const elemento = document.getElementById(id);
     if (elemento) {
@@ -2075,6 +2160,8 @@ function loadSectionContent(sectionId) {
                 if (typeof adicionarFiltroAgente === 'function') {
                     adicionarFiltroAgente();
                 }
+                // Reinicializar filtros do submenu
+                initializeSubmenuFilters();
             }, 500);
             break;
         case 'permissoes':
@@ -2423,8 +2510,55 @@ window.addEventListener('load', function() {
     }
 });
 
+// Função para limpar todos os filtros
+function limparTodosFiltros() {
+    console.log('Limpando todos os filtros...');
+
+    // Limpar campos de filtro
+    const filtroSolicitante = document.getElementById('filtroSolicitante');
+    const filtroProblema = document.getElementById('filtroProblema');
+    const filtroPrioridade = document.getElementById('filtroPrioridade');
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    const filtroUnidade = document.getElementById('filtroUnidade');
+    const filtroDataInicio = document.getElementById('filtroDataInicio');
+    const filtroDataFim = document.getElementById('filtroDataFim');
+
+    if (filtroSolicitante) filtroSolicitante.value = '';
+    if (filtroProblema) filtroProblema.value = '';
+    if (filtroPrioridade) filtroPrioridade.value = '';
+    if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
+    if (filtroUnidade) filtroUnidade.value = '';
+    if (filtroDataInicio) filtroDataInicio.value = '';
+    if (filtroDataFim) filtroDataFim.value = '';
+
+    // Resetar filtro de status
+    currentFilter = 'all';
+
+    // Remover classe active de todos os links do submenu
+    const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a');
+    submenuLinks.forEach(link => link.classList.remove('active'));
+
+    // Ativar o link "Todos os chamados"
+    const linkTodos = document.querySelector('#submenu-gerenciar-chamados a[data-status="all"]');
+    if (linkTodos) linkTodos.classList.add('active');
+
+    // Renderizar novamente
+    currentPage = 1;
+    renderChamadosPage(currentPage);
+
+    console.log('Filtros limpos com sucesso');
+}
+
+// Tornar função global para uso em HTML
+window.limparTodosFiltros = limparTodosFiltros;
+
 // Função para inicializar listeners de filtros
 function initializeFilterListeners() {
+    console.log('Inicializando listeners de filtros...');
+
+    // Inicializar filtros do submenu
+    initializeSubmenuFilters();
+
     // Botão filtrar chamados
     const btnFiltrarChamados = document.getElementById('btnFiltrarChamados');
     if (btnFiltrarChamados) {
@@ -2437,28 +2571,7 @@ function initializeFilterListeners() {
     // Botão limpar filtros
     const btnLimparFiltros = document.getElementById('btnLimparFiltros');
     if (btnLimparFiltros) {
-        btnLimparFiltros.addEventListener('click', function() {
-            // Limpar todos os campos de filtro
-            const filtroSolicitante = document.getElementById('filtroSolicitante');
-            const filtroProblema = document.getElementById('filtroProblema');
-            const filtroPrioridade = document.getElementById('filtroPrioridade');
-            const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
-            const filtroUnidade = document.getElementById('filtroUnidade');
-            const filtroDataInicio = document.getElementById('filtroDataInicio');
-            const filtroDataFim = document.getElementById('filtroDataFim');
-
-            if (filtroSolicitante) filtroSolicitante.value = '';
-            if (filtroProblema) filtroProblema.value = '';
-            if (filtroPrioridade) filtroPrioridade.value = '';
-            if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
-            if (filtroUnidade) filtroUnidade.value = '';
-            if (filtroDataInicio) filtroDataInicio.value = '';
-            if (filtroDataFim) filtroDataFim.value = '';
-
-            // Renderizar novamente
-            currentPage = 1;
-            renderChamadosPage(currentPage);
-        });
+        btnLimparFiltros.addEventListener('click', limparTodosFiltros);
     }
 
     // Botão para reconectar Socket.IO
@@ -2478,6 +2591,8 @@ function initializeFilterListeners() {
             }
         });
     }
+
+    console.log('Listeners de filtros inicializados');
 }
 
 // Navigation event listeners are now handled in initializeNavigation() function
@@ -2520,7 +2635,7 @@ window.debugPainel = {
             activateSection(sectionId);
             console.log('Navegação executada com sucesso');
         } else {
-            console.error('Seção não encontrada:', sectionId);
+            console.error('Seç��o não encontrada:', sectionId);
         }
     }
 };
@@ -3596,7 +3711,7 @@ function renderizarUsuarios(usuarios) {
         return;
     }
 
-    // Renderizar cards dos usuários com verificações de segurança
+    // Renderizar cards dos usu��rios com verificações de segurança
     usuariosGrid.innerHTML = usuarios.map(usuario => {
         // Verificações de propriedades essenciais
         if (!usuario || typeof usuario !== 'object') {
@@ -4183,7 +4298,7 @@ function atualizarEstatisticasAgentesLocal(agentes) {
     if (agentesDisponiveis) agentesDisponiveis.textContent = agentes.filter(a => a.pode_receber_chamado).length;
 }
 
-// ==================== CONFIGURAÇÕES AVANÇADAS ====================
+// ==================== CONFIGURAÇÕES AVAN��ADAS ====================
 
 async function carregarConfiguracoesAvancadas() {
     try {
@@ -4833,7 +4948,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Botão limpar filtros
+    // Bot��o limpar filtros
     const btnLimparFiltros = document.getElementById('btnLimparFiltros');
     if (btnLimparFiltros) {
         btnLimparFiltros.addEventListener('click', function() {

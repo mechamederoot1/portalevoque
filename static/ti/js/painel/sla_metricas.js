@@ -20,10 +20,123 @@ class SLAMetricas {
             btnAtualizar.addEventListener('click', () => this.carregarDashboardCompleto());
         }
 
+        // Botão de corrigir dados de teste
+        const btnCorrigirDados = document.getElementById('btnCorrigirDadosTeste');
+        if (btnCorrigirDados) {
+            btnCorrigirDados.addEventListener('click', () => this.corrigirDadosTeste());
+        }
+
+        // Botão de migrar SLA
+        const btnMigrarSLA = document.getElementById('btnMigrarSLA');
+        if (btnMigrarSLA) {
+            btnMigrarSLA.addEventListener('click', () => this.migrarTabelasSLA());
+        }
+
         // Evento para salvar configurações (será usado na seção de configurações)
         document.addEventListener('configuracoesSLASalvas', () => {
             this.carregarDashboardCompleto();
         });
+    }
+
+    async corrigirDadosTeste() {
+        if (!confirm('Deseja corrigir os dados de teste para demonstrar o funcionamento correto do SLA considerando horário comercial?')) {
+            return;
+        }
+
+        const btnCorrigir = document.getElementById('btnCorrigirDadosTeste');
+        const textoOriginal = btnCorrigir.innerHTML;
+
+        try {
+            btnCorrigir.disabled = true;
+            btnCorrigir.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Corrigindo...';
+
+            const response = await fetch('/ti/painel/api/corrigir-dados-teste', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert(`✅ Dados corrigidos com sucesso!\n\n${data.chamados_criados} chamados de teste criados.\n\nO sistema agora mostra corretamente:\n- Ronaldo: Chamado crítico com cálculo de horas úteis\n- Maria: Chamado concluído dentro do SLA\n- João: Chamado em risco`);
+
+                // Recarregar dashboard
+                this.carregarDashboardCompleto();
+            } else {
+                throw new Error(data.message || 'Erro desconhecido');
+            }
+
+        } catch (error) {
+            console.error('Erro ao corrigir dados:', error);
+            alert('❌ Erro ao corrigir dados de teste: ' + error.message);
+        } finally {
+            btnCorrigir.disabled = false;
+            btnCorrigir.innerHTML = textoOriginal;
+        }
+    }
+
+    async migrarTabelasSLA() {
+        if (!confirm('Deseja migrar as configurações de SLA para as novas tabelas do banco de dados?\n\nIsso criará as estruturas necessárias para gerenciar SLA e horário comercial diretamente no banco.')) {
+            return;
+        }
+
+        const btnMigrar = document.getElementById('btnMigrarSLA');
+        const textoOriginal = btnMigrar.innerHTML;
+
+        try {
+            btnMigrar.disabled = true;
+            btnMigrar.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Migrando...';
+
+            const response = await fetch('/ti/painel/api/sistema/migrar-sla', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                const resultados = data.resultados;
+                let mensagem = '✅ Migração executada com sucesso!\n\n';
+
+                if (resultados.ja_existiam) {
+                    mensagem += 'As configurações já existiam no banco de dados.\n';
+                } else {
+                    mensagem += `📊 Configurações SLA criadas: ${resultados.slas_criadas}\n`;
+                    mensagem += `📅 Configurações de horário criadas: ${resultados.horarios_criados}\n\n`;
+                    mensagem += 'Agora as configurações são gerenciadas diretamente no banco de dados!';
+                }
+
+                alert(mensagem);
+
+                // Recarregar dashboard para mostrar novas configurações
+                this.carregarDashboardCompleto();
+            } else {
+                throw new Error(data.message || 'Erro desconhecido');
+            }
+
+        } catch (error) {
+            console.error('Erro na migração:', error);
+            alert('❌ Erro na migração: ' + error.message);
+        } finally {
+            btnMigrar.disabled = false;
+            btnMigrar.innerHTML = textoOriginal;
+        }
     }
 
     async carregarDashboardCompleto() {

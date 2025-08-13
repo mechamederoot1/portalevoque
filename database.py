@@ -363,7 +363,7 @@ class LogAcao(db.Model):
         return f'<LogAcao {self.acao} - {self.data_acao}>'
 
 class ConfiguracaoAvancada(db.Model):
-    """Tabela para configurações avançadas do sistema"""
+    """Tabela para configuraç��es avançadas do sistema"""
     __tablename__ = 'configuracoes_avancadas'
     
     id = db.Column(db.Integer, primary_key=True)
@@ -1027,6 +1027,260 @@ class ConfiguracaoSLA(db.Model):
     def __repr__(self):
         return f'<ConfiguracaoSLA {self.prioridade} - {self.tempo_resolucao}h>'
 
+class HorarioComercial(db.Model):
+    """Tabela específica para configurações de horário comercial"""
+    __tablename__ = 'horario_comercial'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, default='Padrão')  # Nome da configuração
+    descricao = db.Column(db.String(255), nullable=True)
+
+    # Horário comercial principal
+    hora_inicio = db.Column(db.Time, nullable=False, default='08:00')  # Início do expediente
+    hora_fim = db.Column(db.Time, nullable=False, default='18:00')     # Fim do expediente
+
+    # Dias da semana (0=segunda, 6=domingo)
+    segunda = db.Column(db.Boolean, default=True)
+    terca = db.Column(db.Boolean, default=True)
+    quarta = db.Column(db.Boolean, default=True)
+    quinta = db.Column(db.Boolean, default=True)
+    sexta = db.Column(db.Boolean, default=True)
+    sabado = db.Column(db.Boolean, default=False)
+    domingo = db.Column(db.Boolean, default=False)
+
+    # Intervalo de almoço
+    considera_almoco = db.Column(db.Boolean, default=False)
+    almoco_inicio = db.Column(db.Time, nullable=True, default='12:00')
+    almoco_fim = db.Column(db.Time, nullable=True, default='13:00')
+
+    # Horário de emergência/plantão
+    emergencia_ativo = db.Column(db.Boolean, default=False)
+    emergencia_inicio = db.Column(db.Time, nullable=True, default='18:00')
+    emergencia_fim = db.Column(db.Time, nullable=True, default='22:00')
+    emergencia_dias_semana = db.Column(db.String(20), default='0,1,2,3,4')  # Segunda a sexta
+
+    # Configurações avançadas
+    timezone = db.Column(db.String(50), default='America/Sao_Paulo')
+    considera_feriados = db.Column(db.Boolean, default=True)
+    ativo = db.Column(db.Boolean, default=True)
+    padrao = db.Column(db.Boolean, default=False)  # Apenas uma configuração pode ser padrão
+
+    # Auditoria
+    data_criacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    data_atualizacao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+    usuario_criacao = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    usuario_atualizacao = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    # Relacionamentos
+    usuario_criador = db.relationship('User', foreign_keys=[usuario_criacao], backref='horarios_criados')
+    usuario_atualizador = db.relationship('User', foreign_keys=[usuario_atualizacao], backref='horarios_atualizados')
+
+    @property
+    def dias_semana_lista(self):
+        """Retorna lista de dias da semana ativos (0=segunda, 6=domingo)"""
+        dias = []
+        if self.segunda: dias.append(0)
+        if self.terca: dias.append(1)
+        if self.quarta: dias.append(2)
+        if self.quinta: dias.append(3)
+        if self.sexta: dias.append(4)
+        if self.sabado: dias.append(5)
+        if self.domingo: dias.append(6)
+        return dias
+
+    @property
+    def emergencia_dias_lista(self):
+        """Retorna lista de dias para horário de emergência"""
+        if not self.emergencia_dias_semana:
+            return []
+        try:
+            return [int(d) for d in self.emergencia_dias_semana.split(',')]
+        except:
+            return []
+
+    def esta_em_horario_comercial(self, dt):
+        """Verifica se datetime está em horário comercial"""
+        if not self.ativo:
+            return False
+
+        # Verificar dia da semana
+        if dt.weekday() not in self.dias_semana_lista:
+            return False
+
+        # Verificar horário
+        hora_atual = dt.time()
+
+        # Verificar se está no horário principal
+        if self.hora_inicio <= hora_atual < self.hora_fim:
+            # Se considera almoço, verificar se não está no intervalo
+            if self.considera_almoco and self.almoco_inicio and self.almoco_fim:
+                if self.almoco_inicio <= hora_atual < self.almoco_fim:
+                    return False
+            return True
+
+        # Verificar horário de emergência
+        if self.emergencia_ativo and dt.weekday() in self.emergencia_dias_lista:
+            if self.emergencia_inicio and self.emergencia_fim:
+                if self.emergencia_inicio <= hora_atual < self.emergencia_fim:
+                    return True
+
+        return False
+
+    def to_dict(self):
+        """Converte para dicionário para API"""
+        return {
+            'id': self.id,
+            'nome': self.nome,
+            'descricao': self.descricao,
+            'hora_inicio': self.hora_inicio.strftime('%H:%M') if self.hora_inicio else None,
+            'hora_fim': self.hora_fim.strftime('%H:%M') if self.hora_fim else None,
+            'dias_semana': self.dias_semana_lista,
+            'considera_almoco': self.considera_almoco,
+            'almoco_inicio': self.almoco_inicio.strftime('%H:%M') if self.almoco_inicio else None,
+            'almoco_fim': self.almoco_fim.strftime('%H:%M') if self.almoco_fim else None,
+            'emergencia_ativo': self.emergencia_ativo,
+            'emergencia_inicio': self.emergencia_inicio.strftime('%H:%M') if self.emergencia_inicio else None,
+            'emergencia_fim': self.emergencia_fim.strftime('%H:%M') if self.emergencia_fim else None,
+            'emergencia_dias': self.emergencia_dias_lista,
+            'timezone': self.timezone,
+            'considera_feriados': self.considera_feriados,
+            'ativo': self.ativo,
+            'padrao': self.padrao
+        }
+
+    def __repr__(self):
+        return f'<HorarioComercial {self.nome} {self.hora_inicio}-{self.hora_fim}>'
+
+def obter_horario_comercial_ativo():
+    """Retorna a configuração de horário comercial ativa (padrão)"""
+    horario = HorarioComercial.query.filter_by(ativo=True, padrao=True).first()
+    if not horario:
+        # Se não há padrão, pegar o primeiro ativo
+        horario = HorarioComercial.query.filter_by(ativo=True).first()
+    return horario
+
+def obter_sla_por_prioridade(prioridade):
+    """Retorna configuração SLA para uma prioridade específica"""
+    return ConfiguracaoSLA.query.filter_by(prioridade=prioridade, ativo=True).first()
+
+def obter_todas_configuracoes_sla():
+    """Retorna todas as configurações SLA ativas"""
+    return ConfiguracaoSLA.query.filter_by(ativo=True).all()
+
+def atualizar_horario_comercial(dados, usuario_id=None):
+    """Atualiza configuração de horário comercial"""
+    horario = obter_horario_comercial_ativo()
+    if not horario:
+        horario = HorarioComercial()
+        db.session.add(horario)
+
+    # Atualizar campos
+    if 'hora_inicio' in dados:
+        horario.hora_inicio = dados['hora_inicio']
+    if 'hora_fim' in dados:
+        horario.hora_fim = dados['hora_fim']
+    if 'dias_semana' in dados:
+        dias = dados['dias_semana']
+        horario.segunda = 0 in dias
+        horario.terca = 1 in dias
+        horario.quarta = 2 in dias
+        horario.quinta = 3 in dias
+        horario.sexta = 4 in dias
+        horario.sabado = 5 in dias
+        horario.domingo = 6 in dias
+
+    horario.data_atualizacao = get_brazil_time().replace(tzinfo=None)
+    if usuario_id:
+        horario.usuario_atualizacao = usuario_id
+
+    db.session.commit()
+    return horario
+
+def atualizar_sla_prioridade(prioridade, tempo_resolucao, tempo_primeira_resposta=None, usuario_id=None):
+    """Atualiza ou cria configuração SLA para uma prioridade"""
+    sla = obter_sla_por_prioridade(prioridade)
+    if not sla:
+        sla = ConfiguracaoSLA(prioridade=prioridade)
+        db.session.add(sla)
+
+    sla.tempo_resolucao = tempo_resolucao
+    if tempo_primeira_resposta:
+        sla.tempo_primeira_resposta = tempo_primeira_resposta
+
+    sla.data_atualizacao = get_brazil_time().replace(tzinfo=None)
+    if usuario_id:
+        sla.usuario_atualizacao = usuario_id
+
+    db.session.commit()
+    return sla
+
+def obter_configuracoes_sla_dict():
+    """Retorna configurações SLA em formato dict para compatibilidade"""
+    slas = obter_todas_configuracoes_sla()
+    horario = obter_horario_comercial_ativo()
+
+    config = {}
+
+    # Configurações SLA
+    for sla in slas:
+        key_resolucao = f'resolucao_{sla.prioridade.lower()}'
+        config[key_resolucao] = sla.tempo_resolucao
+
+    # Primeira resposta (usar da prioridade Normal como padrão)
+    sla_normal = next((s for s in slas if s.prioridade == 'Normal'), None)
+    if sla_normal:
+        config['primeira_resposta'] = sla_normal.tempo_primeira_resposta
+    else:
+        config['primeira_resposta'] = 4.0
+
+    return config
+
+def obter_horario_comercial_dict():
+    """Retorna configuração de horário comercial em formato dict para compatibilidade"""
+    horario = obter_horario_comercial_ativo()
+    if not horario:
+        return {
+            'inicio': '08:00',
+            'fim': '18:00',
+            'dias_semana': [0, 1, 2, 3, 4]
+        }
+
+    return {
+        'inicio': horario.hora_inicio,
+        'fim': horario.hora_fim,
+        'dias_semana': horario.dias_semana_lista,
+        'considera_almoco': horario.considera_almoco,
+        'almoco_inicio': horario.almoco_inicio,
+        'almoco_fim': horario.almoco_fim,
+        'timezone': horario.timezone,
+        'emergencia_ativo': horario.emergencia_ativo,
+        'emergencia_inicio': horario.emergencia_inicio,
+        'emergencia_fim': horario.emergencia_fim,
+        'emergencia_dias': horario.emergencia_dias_lista
+    }
+
+def registrar_log_acao(usuario_id, acao, categoria='sistema', detalhes='', ip_address='', user_agent='', recurso_afetado='', tipo_recurso=''):
+    """Registra uma ação do usuário no sistema"""
+    try:
+        log = LogAcao(
+            usuario_id=usuario_id,
+            acao=acao,
+            categoria=categoria,
+            detalhes=detalhes,
+            data_acao=get_brazil_time().replace(tzinfo=None),
+            ip_address=ip_address,
+            sucesso=True,
+            recurso_afetado=recurso_afetado,
+            tipo_recurso=tipo_recurso
+        )
+        db.session.add(log)
+        db.session.commit()
+        return log
+    except Exception as e:
+        print(f"Erro ao registrar log de ação: {str(e)}")
+        db.session.rollback()
+        return None
+
 def init_app(app):
     db.init_app(app)
     
@@ -1066,6 +1320,50 @@ def init_app(app):
             if not user._setores and user.setor:
                 user._setores = json.dumps([user.setor])
         
+        # Inicializar configurações de SLA específicas
+        slas_padrao = [
+            {'prioridade': 'Crítica', 'tempo_resolucao': 2.0, 'tempo_primeira_resposta': 1.0},
+            {'prioridade': 'Urgente', 'tempo_resolucao': 2.0, 'tempo_primeira_resposta': 1.0},
+            {'prioridade': 'Alta', 'tempo_resolucao': 8.0, 'tempo_primeira_resposta': 2.0},
+            {'prioridade': 'Normal', 'tempo_resolucao': 24.0, 'tempo_primeira_resposta': 4.0},
+            {'prioridade': 'Baixa', 'tempo_resolucao': 72.0, 'tempo_primeira_resposta': 8.0}
+        ]
+
+        for sla_config in slas_padrao:
+            existing_sla = ConfiguracaoSLA.query.filter_by(prioridade=sla_config['prioridade']).first()
+            if not existing_sla:
+                new_sla = ConfiguracaoSLA(
+                    prioridade=sla_config['prioridade'],
+                    tempo_resolucao=sla_config['tempo_resolucao'],
+                    tempo_primeira_resposta=sla_config['tempo_primeira_resposta'],
+                    considera_horario_comercial=True,
+                    considera_feriados=True,
+                    ativo=True
+                )
+                db.session.add(new_sla)
+
+        # Inicializar horário comercial padrão
+        horario_padrao = HorarioComercial.query.filter_by(padrao=True).first()
+        if not horario_padrao:
+            horario_padrao = HorarioComercial(
+                nome='Horário Padrão',
+                descricao='Horário comercial padrão da empresa (08:00 às 18:00, segunda a sexta)',
+                hora_inicio='08:00',
+                hora_fim='18:00',
+                segunda=True,
+                terca=True,
+                quarta=True,
+                quinta=True,
+                sexta=True,
+                sabado=False,
+                domingo=False,
+                considera_almoco=False,
+                emergencia_ativo=False,
+                ativo=True,
+                padrao=True
+            )
+            db.session.add(horario_padrao)
+
         # Inicializar configurações padrão se não existirem
         configuracoes_padrao = {
             'chamados': {

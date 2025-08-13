@@ -361,28 +361,77 @@ def setup_database_endpoint():
                 db.session.add(log_acao)
                 acoes_criadas += 1
 
-        # Criar um chamado de teste
+        # Criar chamados de teste com dados realistas considerando horário comercial
         from setores.ti.routes import gerar_codigo_chamado, gerar_protocolo
 
-        chamado_teste = Chamado.query.filter_by(solicitante='Usuário de Demonstração').first()
-        if not chamado_teste:
-            chamado_teste = Chamado(
-                codigo=gerar_codigo_chamado(),
-                protocolo=gerar_protocolo(),
-                solicitante='Usuário de Demonstração',
-                cargo='Analista',
-                email='demo@academiaevoque.com.br',
-                telefone='(11) 99999-0000',
-                unidade='Unidade Principal',
-                problema='Computador/Notebook',
-                descricao='Computador não liga após queda de energia. Já verificamos cabo de força e estabilizador.',
-                status='Em Andamento',
-                prioridade='Alta',
-                data_abertura=agora - timedelta(hours=2),
-                usuario_id=test_user.id,
-                agente_responsavel=agent_user.nome
-            )
-            db.session.add(chamado_teste)
+        # Limpar chamados de teste existentes
+        Chamado.query.filter_by(solicitante='Usuário de Demonstração').delete()
+
+        # Criar chamado aberto ontem às 16:00 (dentro do horário comercial)
+        ontem_16h = agora.replace(hour=16, minute=0, second=0, microsecond=0) - timedelta(days=1)
+
+        chamado_teste_1 = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='Ronaldo',
+            cargo='Analista',
+            email='ronaldo@academiaevoque.com.br',
+            telefone='(11) 99999-0000',
+            unidade='Unidade Principal',
+            problema='Catraca',
+            descricao='Sistema de catraca apresentando erro de comunicação desde ontem. Clientes não conseguem acessar.',
+            status='Aberto',
+            prioridade='Crítica',
+            data_abertura=ontem_16h,
+            usuario_id=test_user.id
+        )
+        db.session.add(chamado_teste_1)
+
+        # Criar chamado concluído dentro do SLA (manhã de hoje)
+        hoje_09h = agora.replace(hour=9, minute=0, second=0, microsecond=0)
+        hoje_10h30 = agora.replace(hour=10, minute=30, second=0, microsecond=0)
+
+        chamado_teste_2 = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='Maria Silva',
+            cargo='Recepcionista',
+            email='maria@academiaevoque.com.br',
+            telefone='(11) 88888-8888',
+            unidade='Unidade Principal',
+            problema='Computador/Notebook',
+            descricao='Computador não liga. Verificar cabo de força.',
+            status='Concluido',
+            prioridade='Normal',
+            data_abertura=hoje_09h,
+            data_conclusao=hoje_10h30,
+            data_primeira_resposta=hoje_09h + timedelta(minutes=15),
+            usuario_id=test_user.id,
+            agente_responsavel=agent_user.nome
+        )
+        db.session.add(chamado_teste_2)
+
+        # Criar chamado em andamento com SLA em risco
+        ontem_14h = agora.replace(hour=14, minute=0, second=0, microsecond=0) - timedelta(days=1)
+
+        chamado_teste_3 = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='João Santos',
+            cargo='Instrutor',
+            email='joao@academiaevoque.com.br',
+            telefone='(11) 77777-7777',
+            unidade='Unidade Filial',
+            problema='Internet',
+            descricao='Internet lenta na academia. Wi-Fi caindo constantemente.',
+            status='Aguardando',
+            prioridade='Alta',
+            data_abertura=ontem_14h,
+            data_primeira_resposta=ontem_14h + timedelta(hours=1),
+            usuario_id=test_user.id,
+            agente_responsavel=agent_user.nome
+        )
+        db.session.add(chamado_teste_3)
 
         db.session.commit()
 
@@ -416,7 +465,7 @@ def setup_demo_page():
     </head>
     <body>
         <div class="container mt-5">
-            <h1>Configurar Dados de Demonstração</h1>
+            <h1>Configurar Dados de Demonstraç��o</h1>
             <button class="btn btn-primary" onclick="setupDatabase()">Inserir Dados de Demo</button>
             <div id="result" class="mt-3"></div>
         </div>
@@ -1459,8 +1508,8 @@ def salvar_configuracoes_sla_api():
                 if not isinstance(sla_config[campo], (int, float)) or sla_config[campo] <= 0:
                     return error_response(f'Campo SLA {campo} deve ser um número positivo', 400)
 
-            # Salvar configurações SLA
-            if not salvar_configuracoes_sla(sla_config):
+            # Salvar configurações SLA usando tabelas específicas
+            if not salvar_configuracoes_sla(sla_config, usuario_id=current_user.id):
                 return error_response('Erro ao salvar configurações SLA')
 
         # Validar e salvar configurações de horário comercial
@@ -1486,17 +1535,19 @@ def salvar_configuracoes_sla_api():
                         if not isinstance(dia, int) or not (0 <= dia <= 6):
                             return error_response('Dias da semana inválidos (0-6)', 400)
 
-                # Salvar configurações de horário comercial
-                config_horario_obj = Configuracao.query.filter_by(chave='horario_comercial').first()
-                if config_horario_obj:
-                    config_horario_obj.valor = json.dumps(horario_config)
-                    config_horario_obj.data_atualizacao = get_brazil_time().replace(tzinfo=None)
-                else:
-                    config_horario_obj = Configuracao(
-                        chave='horario_comercial',
-                        valor=json.dumps(horario_config)
-                    )
-                    db.session.add(config_horario_obj)
+                # Salvar configurações de horário comercial usando tabela específica
+                from database import atualizar_horario_comercial, registrar_log_acao
+
+                horario_atualizado = atualizar_horario_comercial(horario_config, usuario_id=current_user.id)
+
+                # Registrar log da alteração
+                registrar_log_acao(
+                    usuario_id=current_user.id,
+                    acao='Horário comercial atualizado',
+                    categoria='sla',
+                    detalhes=f'Horário: {horario_config.get("inicio", "N/A")} às {horario_config.get("fim", "N/A")}',
+                    tipo_recurso='horario_comercial'
+                )
 
                 db.session.commit()
 
@@ -1523,6 +1574,233 @@ def salvar_configuracoes_sla_api():
         logger.error(f"Erro ao salvar configurações SLA: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/horario-comercial', methods=['GET'])
+@login_required
+@setor_required('TI')
+def obter_horario_comercial_api():
+    """Retorna configurações de horário comercial detalhadas"""
+    try:
+        from database import obter_horario_comercial_ativo
+
+        horario = obter_horario_comercial_ativo()
+        if not horario:
+            return error_response('Nenhuma configuração de horário comercial encontrada', 404)
+
+        return json_response({
+            'horario_comercial': horario.to_dict(),
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter horário comercial: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/horario-comercial', methods=['POST'])
+@login_required
+@setor_required('TI')
+def salvar_horario_comercial_api():
+    """Salva configurações de horário comercial"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        # Validar dados obrigatórios
+        campos_obrigatorios = ['hora_inicio', 'hora_fim']
+        for campo in campos_obrigatorios:
+            if campo not in data:
+                return error_response(f'Campo obrigatório ausente: {campo}', 400)
+
+        # Validar formato dos horários
+        try:
+            from datetime import time
+
+            hora_inicio_str = data['hora_inicio']
+            hora_fim_str = data['hora_fim']
+
+            # Converter para objetos time
+            hora_inicio = time.fromisoformat(hora_inicio_str)
+            hora_fim = time.fromisoformat(hora_fim_str)
+
+            if hora_inicio >= hora_fim:
+                return error_response('Horário de início deve ser menor que horário de fim', 400)
+
+        except ValueError:
+            return error_response('Formato de horário inválido. Use HH:MM', 400)
+
+        # Validar dias da semana
+        if 'dias_semana' in data:
+            dias_semana = data['dias_semana']
+            if not isinstance(dias_semana, list):
+                return error_response('Dias da semana devem ser uma lista', 400)
+            for dia in dias_semana:
+                if not isinstance(dia, int) or not (0 <= dia <= 6):
+                    return error_response('Dias da semana inválidos (0-6)', 400)
+
+        # Atualizar configuração
+        from database import atualizar_horario_comercial, registrar_log_acao
+
+        # Preparar dados para atualização
+        dados_atualizacao = {
+            'hora_inicio': hora_inicio,
+            'hora_fim': hora_fim
+        }
+
+        if 'dias_semana' in data:
+            dados_atualizacao['dias_semana'] = data['dias_semana']
+
+        horario_atualizado = atualizar_horario_comercial(dados_atualizacao, usuario_id=current_user.id)
+
+        # Registrar log da alteração
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao='Horário comercial atualizado via API',
+            categoria='sla',
+            detalhes=f'Novo horário: {hora_inicio_str} às {hora_fim_str}',
+            tipo_recurso='horario_comercial'
+        )
+
+        return json_response({
+            'message': 'Horário comercial atualizado com sucesso',
+            'horario_comercial': horario_atualizado.to_dict(),
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar horário comercial: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/sla/prioridades', methods=['GET'])
+@login_required
+@setor_required('TI')
+def obter_configuracoes_sla_detalhadas():
+    """Retorna configurações SLA detalhadas por prioridade"""
+    try:
+        from database import obter_todas_configuracoes_sla
+
+        slas = obter_todas_configuracoes_sla()
+
+        configuracoes = []
+        for sla in slas:
+            configuracoes.append({
+                'id': sla.id,
+                'prioridade': sla.prioridade,
+                'tempo_primeira_resposta': sla.tempo_primeira_resposta,
+                'tempo_resolucao': sla.tempo_resolucao,
+                'considera_horario_comercial': sla.considera_horario_comercial,
+                'considera_feriados': sla.considera_feriados,
+                'percentual_risco': sla.percentual_risco,
+                'ativo': sla.ativo,
+                'data_atualizacao': sla.data_atualizacao.isoformat() if sla.data_atualizacao else None
+            })
+
+        return json_response({
+            'configuracoes_sla': configuracoes,
+            'total': len(configuracoes),
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter configurações SLA detalhadas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/sistema/migrar-sla', methods=['POST'])
+@login_required
+@setor_required('Administrador')
+def migrar_tabelas_sla():
+    """Executa migração das tabelas SLA para o banco de dados"""
+    try:
+        from database import ConfiguracaoSLA, HorarioComercial
+        from datetime import time
+
+        # Criar todas as tabelas
+        db.create_all()
+
+        resultados = {
+            'slas_criadas': 0,
+            'horarios_criados': 0,
+            'ja_existiam': False
+        }
+
+        # Verificar se já existem configurações SLA
+        slas_existentes = ConfiguracaoSLA.query.count()
+        if slas_existentes == 0:
+            # Criar configurações SLA padrão
+            slas_padrao = [
+                {'prioridade': 'Crítica', 'tempo_resolucao': 2.0, 'tempo_primeira_resposta': 1.0},
+                {'prioridade': 'Urgente', 'tempo_resolucao': 2.0, 'tempo_primeira_resposta': 1.0},
+                {'prioridade': 'Alta', 'tempo_resolucao': 8.0, 'tempo_primeira_resposta': 2.0},
+                {'prioridade': 'Normal', 'tempo_resolucao': 24.0, 'tempo_primeira_resposta': 4.0},
+                {'prioridade': 'Baixa', 'tempo_resolucao': 72.0, 'tempo_primeira_resposta': 8.0}
+            ]
+
+            for sla_config in slas_padrao:
+                new_sla = ConfiguracaoSLA(
+                    prioridade=sla_config['prioridade'],
+                    tempo_resolucao=sla_config['tempo_resolucao'],
+                    tempo_primeira_resposta=sla_config['tempo_primeira_resposta'],
+                    considera_horario_comercial=True,
+                    considera_feriados=True,
+                    ativo=True,
+                    usuario_atualizacao=current_user.id
+                )
+                db.session.add(new_sla)
+                resultados['slas_criadas'] += 1
+        else:
+            resultados['ja_existiam'] = True
+
+        # Verificar se já existe horário comercial
+        horarios_existentes = HorarioComercial.query.count()
+        if horarios_existentes == 0:
+            # Criar horário comercial padrão
+            horario_padrao = HorarioComercial(
+                nome='Horário Padrão',
+                descricao='Horário comercial padrão da empresa (08:00 às 18:00, segunda a sexta)',
+                hora_inicio=time(8, 0),
+                hora_fim=time(18, 0),
+                segunda=True,
+                terca=True,
+                quarta=True,
+                quinta=True,
+                sexta=True,
+                sabado=False,
+                domingo=False,
+                considera_almoco=False,
+                emergencia_ativo=False,
+                ativo=True,
+                padrao=True,
+                usuario_criacao=current_user.id
+            )
+            db.session.add(horario_padrao)
+            resultados['horarios_criados'] = 1
+
+        db.session.commit()
+
+        # Registrar log da migração
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao='Migração de tabelas SLA executada',
+            categoria='sistema',
+            detalhes=f'SLAs criadas: {resultados["slas_criadas"]}, Horários criados: {resultados["horarios_criados"]}',
+            tipo_recurso='migracao_sla'
+        )
+
+        return json_response({
+            'success': True,
+            'message': 'Migração executada com sucesso',
+            'resultados': resultados,
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na migração SLA: {str(e)}")
+        return error_response(f'Erro na migração: {str(e)}')
+
 @painel_bp.route('/api/sla/metricas', methods=['GET'])
 @login_required
 @setor_required('TI')
@@ -1543,8 +1821,11 @@ def obter_metricas_sla():
                 'tempo_medio_resposta': metricas['tempo_medio_primeira_resposta'],
                 'tempo_medio_resolucao': metricas['tempo_medio_resolucao'],
                 'sla_cumprimento': metricas['percentual_cumprimento'],
-                'sla_violacoes': metricas['chamados_violados'],
-                'chamados_risco': metricas['chamados_em_risco']
+                'sla_violacoes': metricas['chamados_violados'],  # Só chamados abertos violados
+                'chamados_risco': metricas['chamados_em_risco'],  # Só chamados abertos em risco
+                'chamados_concluidos_no_prazo': metricas.get('chamados_concluidos_no_prazo', 0),
+                'chamados_concluidos_com_violacao': metricas.get('chamados_concluidos_com_violacao', 0),
+                'total_concluidos': metricas.get('total_concluidos', 0)
             }
         }
 
@@ -3762,6 +4043,119 @@ def sincronizar_sla_database():
             'error': 'Erro interno no servidor',
             'message': str(e)
         }, status_code=500)
+
+@painel_bp.route('/api/corrigir-dados-teste', methods=['POST'])
+@login_required
+@setor_required('TI')
+def corrigir_dados_teste():
+    """Corrige dados de teste para mostrar SLA funcionando corretamente"""
+    try:
+        from datetime import datetime, timedelta
+        from setores.ti.routes import gerar_codigo_chamado, gerar_protocolo
+
+        agora_brazil = get_brazil_time()
+
+        # Limpar dados de teste antigos
+        Chamado.query.filter(Chamado.solicitante.in_(['Ronaldo', 'Maria Silva', 'João Santos', 'Usuário de Demonstração'])).delete()
+
+        # 1. Chamado crítico aberto ontem às 16:00 (só deve contar 2h úteis até hoje)
+        ontem_16h = agora_brazil.replace(hour=16, minute=0, second=0, microsecond=0) - timedelta(days=1)
+
+        chamado_critico = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='Ronaldo',
+            cargo='Operador',
+            email='ronaldo@academiaevoque.com.br',
+            telefone='(11) 99999-0000',
+            unidade='Unidade Principal',
+            problema='Catraca',
+            descricao='Sistema de catraca apresentando erro crítico. Clientes não conseguem acessar a academia.',
+            status='Aberto',
+            prioridade='Crítica',
+            data_abertura=ontem_16h.replace(tzinfo=None),
+            usuario_id=None
+        )
+        db.session.add(chamado_critico)
+
+        # 2. Chamado normal concluído dentro do SLA
+        hoje_09h = agora_brazil.replace(hour=9, minute=0, second=0, microsecond=0)
+        hoje_10h30 = agora_brazil.replace(hour=10, minute=30, second=0, microsecond=0)
+
+        chamado_concluido = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='Maria Silva',
+            cargo='Recepcionista',
+            email='maria@academiaevoque.com.br',
+            telefone='(11) 88888-8888',
+            unidade='Unidade Centro',
+            problema='Computador/Notebook',
+            descricao='Computador da recepção não liga. Cabo de força verificado.',
+            status='Concluido',
+            prioridade='Normal',
+            data_abertura=hoje_09h.replace(tzinfo=None),
+            data_conclusao=hoje_10h30.replace(tzinfo=None),
+            data_primeira_resposta=(hoje_09h + timedelta(minutes=15)).replace(tzinfo=None),
+            usuario_id=None
+        )
+        db.session.add(chamado_concluido)
+
+        # 3. Chamado em risco (alta prioridade, 6h úteis de 8h)
+        anteontem_15h = agora_brazil.replace(hour=15, minute=0, second=0, microsecond=0) - timedelta(days=2)
+
+        chamado_risco = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='João Santos',
+            cargo='Instrutor',
+            email='joao@academiaevoque.com.br',
+            telefone='(11) 77777-7777',
+            unidade='Unidade Norte',
+            problema='Internet',
+            descricao='Conexão Wi-Fi instável. Clientes reclamando da lentidão.',
+            status='Aguardando',
+            prioridade='Alta',
+            data_abertura=anteontem_15h.replace(tzinfo=None),
+            data_primeira_resposta=(anteontem_15h + timedelta(hours=2)).replace(tzinfo=None),
+            usuario_id=None
+        )
+        db.session.add(chamado_risco)
+
+        db.session.commit()
+
+        # Verificar cálculos
+        from setores.ti.sla_utils import calcular_sla_chamado_correto, carregar_configuracoes_sla, carregar_configuracoes_horario_comercial
+
+        config_sla = carregar_configuracoes_sla()
+        config_horario = carregar_configuracoes_horario_comercial()
+
+        resultados = []
+        for chamado in [chamado_critico, chamado_concluido, chamado_risco]:
+            sla_info = calcular_sla_chamado_correto(chamado, config_sla, config_horario)
+            resultados.append({
+                'codigo': chamado.codigo,
+                'solicitante': chamado.solicitante,
+                'prioridade': chamado.prioridade,
+                'status': chamado.status,
+                'horas_uteis': sla_info['horas_uteis_decorridas'],
+                'sla_limite': sla_info['sla_limite'],
+                'sla_status': sla_info['sla_status'],
+                'percentual_usado': sla_info['percentual_tempo_usado']
+            })
+
+        return json_response({
+            'success': True,
+            'message': 'Dados de teste corrigidos com sucesso',
+            'chamados_criados': len(resultados),
+            'resultados': resultados,
+            'timestamp': get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao corrigir dados de teste: {str(e)}")
+        return error_response(f'Erro ao corrigir dados de teste: {str(e)}')
 
 @painel_bp.route('/api/debug/sla-violations', methods=['GET'])
 @login_required
