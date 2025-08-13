@@ -1508,8 +1508,8 @@ def salvar_configuracoes_sla_api():
                 if not isinstance(sla_config[campo], (int, float)) or sla_config[campo] <= 0:
                     return error_response(f'Campo SLA {campo} deve ser um número positivo', 400)
 
-            # Salvar configurações SLA
-            if not salvar_configuracoes_sla(sla_config):
+            # Salvar configurações SLA usando tabelas específicas
+            if not salvar_configuracoes_sla(sla_config, usuario_id=current_user.id):
                 return error_response('Erro ao salvar configurações SLA')
 
         # Validar e salvar configurações de horário comercial
@@ -1535,17 +1535,19 @@ def salvar_configuracoes_sla_api():
                         if not isinstance(dia, int) or not (0 <= dia <= 6):
                             return error_response('Dias da semana inválidos (0-6)', 400)
 
-                # Salvar configurações de horário comercial
-                config_horario_obj = Configuracao.query.filter_by(chave='horario_comercial').first()
-                if config_horario_obj:
-                    config_horario_obj.valor = json.dumps(horario_config)
-                    config_horario_obj.data_atualizacao = get_brazil_time().replace(tzinfo=None)
-                else:
-                    config_horario_obj = Configuracao(
-                        chave='horario_comercial',
-                        valor=json.dumps(horario_config)
-                    )
-                    db.session.add(config_horario_obj)
+                # Salvar configurações de horário comercial usando tabela específica
+                from database import atualizar_horario_comercial, registrar_log_acao
+
+                horario_atualizado = atualizar_horario_comercial(horario_config, usuario_id=current_user.id)
+
+                # Registrar log da alteração
+                registrar_log_acao(
+                    usuario_id=current_user.id,
+                    acao='Horário comercial atualizado',
+                    categoria='sla',
+                    detalhes=f'Horário: {horario_config.get("inicio", "N/A")} às {horario_config.get("fim", "N/A")}',
+                    tipo_recurso='horario_comercial'
+                )
 
                 db.session.commit()
 
