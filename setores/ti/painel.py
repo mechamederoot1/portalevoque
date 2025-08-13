@@ -1821,8 +1821,11 @@ def obter_metricas_sla():
                 'tempo_medio_resposta': metricas['tempo_medio_primeira_resposta'],
                 'tempo_medio_resolucao': metricas['tempo_medio_resolucao'],
                 'sla_cumprimento': metricas['percentual_cumprimento'],
-                'sla_violacoes': metricas['chamados_violados'],
-                'chamados_risco': metricas['chamados_em_risco']
+                'sla_violacoes': metricas['chamados_violados'],  # Só chamados abertos violados
+                'chamados_risco': metricas['chamados_em_risco'],  # Só chamados abertos em risco
+                'chamados_concluidos_no_prazo': metricas.get('chamados_concluidos_no_prazo', 0),
+                'chamados_concluidos_com_violacao': metricas.get('chamados_concluidos_com_violacao', 0),
+                'total_concluidos': metricas.get('total_concluidos', 0)
             }
         }
 
