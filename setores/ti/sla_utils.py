@@ -320,7 +320,7 @@ def calcular_sla_chamado_correto(chamado, config_sla: Dict = None, config_horari
         config_horario: Configurações de horário comercial
     
     Returns:
-        Dicionário com informações detalhadas de SLA
+        Dicion��rio com informações detalhadas de SLA
     """
     if config_sla is None:
         config_sla = carregar_configuracoes_sla()
@@ -486,76 +486,88 @@ def calcular_sla_chamado_correto(chamado, config_sla: Dict = None, config_horari
 def obter_metricas_sla_consolidadas(period_days: int = 30) -> Dict:
     """
     Obtém métricas consolidadas de SLA para o período especificado
-    
+    Violações só são contadas para chamados abertos (não concluídos/cancelados)
+
     Args:
         period_days: Número de dias para análise
-    
+
     Returns:
         Dicionário com métricas consolidadas
     """
     from database import Chamado
     from sqlalchemy import func, and_
-    
+
     config_sla = carregar_configuracoes_sla()
     config_horario = carregar_configuracoes_horario_comercial()
-    
+
     # Data de corte
     data_corte = get_brazil_time() - timedelta(days=period_days)
-    
+
     # Buscar chamados do período
     chamados = Chamado.query.filter(
         Chamado.data_abertura >= data_corte.replace(tzinfo=None)
     ).all()
-    
+
     total_chamados = len(chamados)
     chamados_cumpridos = 0
-    chamados_violados = 0
-    chamados_em_risco = 0
+    chamados_violados = 0  # Só chamados ABERTOS com violação
+    chamados_em_risco = 0  # Só chamados ABERTOS em risco
     chamados_abertos = 0
+    chamados_concluidos_no_prazo = 0
+    chamados_concluidos_com_violacao = 0
 
     tempo_total_resolucao = 0
     tempo_total_primeira_resposta = 0
     count_resolvidos = 0
     count_primeira_resposta = 0
-    
+
     for chamado in chamados:
         sla_info = calcular_sla_chamado_correto(chamado, config_sla, config_horario)
-        
-        if sla_info['sla_status'] == 'Cumprido':
-            chamados_cumpridos += 1
-        elif sla_info['sla_status'] == 'Violado':
-            chamados_violados += 1
-        elif sla_info['sla_status'] == 'Em Risco':
-            chamados_em_risco += 1
-        
+
+        # Separar lógica entre chamados abertos e fechados
+        if chamado.status in ['Aberto', 'Aguardando']:
+            chamados_abertos += 1
+            # Para chamados abertos, contar violações e riscos
+            if sla_info['sla_status'] == 'Violado':
+                chamados_violados += 1
+            elif sla_info['sla_status'] == 'Em Risco':
+                chamados_em_risco += 1
+        else:
+            # Para chamados fechados, só contar para estatísticas gerais
+            if sla_info['sla_status'] == 'Cumprido':
+                chamados_concluidos_no_prazo += 1
+            elif sla_info['sla_status'] == 'Violado':
+                chamados_concluidos_com_violacao += 1
+
+        # Métricas de tempo (todos os chamados)
         if sla_info['tempo_resolucao_uteis']:
             tempo_total_resolucao += sla_info['tempo_resolucao_uteis']
             count_resolvidos += 1
-        
+
         if sla_info['tempo_primeira_resposta_uteis']:
             tempo_total_primeira_resposta += sla_info['tempo_primeira_resposta_uteis']
             count_primeira_resposta += 1
-
-        # Contar chamados abertos
-        if chamado.status in ['Aberto', 'Aguardando']:
-            chamados_abertos += 1
     
     # Calcular médias
     tempo_medio_resolucao = (tempo_total_resolucao / count_resolvidos) if count_resolvidos > 0 else 0
     tempo_medio_primeira_resposta = (tempo_total_primeira_resposta / count_primeira_resposta) if count_primeira_resposta > 0 else 0
-    
-    # Calcular percentual de cumprimento
-    if total_chamados > 0:
-        percentual_cumprimento = (chamados_cumpridos / total_chamados) * 100
+
+    # Calcular percentual de cumprimento baseado em chamados concluídos
+    total_concluidos = chamados_concluidos_no_prazo + chamados_concluidos_com_violacao
+    if total_concluidos > 0:
+        percentual_cumprimento = (chamados_concluidos_no_prazo / total_concluidos) * 100
     else:
-        percentual_cumprimento = 100
-    
+        percentual_cumprimento = 100  # Se não há chamados concluídos, assumir 100%
+
     return {
         'total_chamados': total_chamados,
-        'chamados_cumpridos': chamados_cumpridos,
-        'chamados_violados': chamados_violados,
-        'chamados_em_risco': chamados_em_risco,
+        'chamados_cumpridos': chamados_concluidos_no_prazo,
+        'chamados_violados': chamados_violados,  # Só chamados ABERTOS violados
+        'chamados_em_risco': chamados_em_risco,  # Só chamados ABERTOS em risco
         'chamados_abertos': chamados_abertos,
+        'chamados_concluidos_no_prazo': chamados_concluidos_no_prazo,
+        'chamados_concluidos_com_violacao': chamados_concluidos_com_violacao,
+        'total_concluidos': total_concluidos,
         'percentual_cumprimento': round(percentual_cumprimento, 1),
         'tempo_medio_resolucao': round(tempo_medio_resolucao, 2),
         'tempo_medio_primeira_resposta': round(tempo_medio_primeira_resposta, 2),
