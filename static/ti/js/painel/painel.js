@@ -254,7 +254,7 @@ function activateSection(id) {
                 mainContent.scrollTop = 0;
                 console.log('Scroll resetado para o topo');
             } else {
-                console.warn('mainContent não encontrado');
+                console.warn('mainContent n��o encontrado');
             }
 
             // Load section-specific content with delay
@@ -950,11 +950,20 @@ function initializeSubmenuFilters() {
             currentFilter = status;
             currentPage = 1;
 
-            // Ativar seção
+            // Ativar seção primeiro
             activateSection('gerenciar-chamados');
 
-            // Renderizar chamados com filtro
-            renderChamadosPage(currentPage);
+            // Verificar se os dados dos chamados estão carregados
+            if (!chamadosData || chamadosData.length === 0) {
+                console.log('Dados dos chamados não carregados, carregando...');
+                loadChamados().then(() => {
+                    console.log('Dados carregados, aplicando filtro...');
+                    renderChamadosPage(currentPage);
+                });
+            } else {
+                console.log('Dados já disponíveis, aplicando filtro...');
+                renderChamadosPage(currentPage);
+            }
 
             // Atualizar o item ativo no menu
             document.querySelectorAll('.sidebar a.active').forEach(item => {
