@@ -33,18 +33,13 @@ SLA_PADRAO = {
 def carregar_configuracoes_sla():
     """Carrega configurações de SLA do banco ou retorna padrões"""
     try:
-        config_sla = Configuracao.query.filter_by(chave='sla').first()
-        if config_sla:
-            return json.loads(config_sla.valor)
+        from database import obter_configuracoes_sla_dict
+        config = obter_configuracoes_sla_dict()
+        if config:
+            logger.info("Configurações SLA carregadas do banco de dados")
+            return config
         else:
-            # Criar configuração padrão se não existir
-            nova_config = Configuracao(
-                chave='sla',
-                valor=json.dumps(SLA_PADRAO)
-            )
-            db.session.add(nova_config)
-            db.session.commit()
-            logger.info("Configurações SLA padrão criadas no banco de dados")
+            logger.warning("Nenhuma configuração SLA encontrada, usando padrões")
             return SLA_PADRAO
     except Exception as e:
         logger.error(f"Erro ao carregar configurações SLA: {str(e)}")
