@@ -397,6 +397,11 @@ class ImprovedNotificationSystem {
     }
 
     createSampleNotifications() {
+        // Só criar amostras se não houver notificações
+        if (this.notifications.length > 0) {
+            return;
+        }
+
         // Criar algumas notificações de exemplo
         const samples = [
             {
@@ -419,20 +424,6 @@ class ImprovedNotificationSystem {
                 message: 'Chamado #1233 está próximo do vencimento (80% do tempo)',
                 priority: 'high',
                 badge: 'Atenção'
-            },
-            {
-                type: 'usuario',
-                title: 'Novo Usuário',
-                message: 'Maria Santos foi adicionada ao sistema como Gestora',
-                priority: 'low',
-                badge: 'Novo'
-            },
-            {
-                type: 'system',
-                title: 'Backup Automático',
-                message: 'Backup do sistema realizado com sucesso às 03:00',
-                priority: 'low',
-                badge: 'Sistema'
             }
         ];
 
@@ -440,16 +431,19 @@ class ImprovedNotificationSystem {
         samples.forEach((sample, index) => {
             const timestamp = new Date();
             timestamp.setMinutes(timestamp.getMinutes() - (index * 15)); // 15 min de diferença
-            
+
             this.notifications.push({
                 id: `sample-${index}`,
                 timestamp: timestamp.toISOString(),
-                read: index > 2, // Primeiras 3 não lidas
+                read: index > 0, // Apenas primeira não lida
                 ...sample
             });
         });
 
-        this.updateNotificationCount();
+        // Atualizar contadores de forma segura
+        setTimeout(() => {
+            this.updateNotificationCount();
+        }, 100);
     }
 
     // Métodos para mostrar notificações toast (fora do modal)
