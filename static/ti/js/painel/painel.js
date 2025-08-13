@@ -1037,6 +1037,9 @@ function initializeSubmenuFilters() {
     }, 100);
 }
 
+// Tornar função global para facilitar debug
+window.initializeSubmenuFilters = initializeSubmenuFilters;
+
 // Modal Chamado - Elementos
 const modal = document.getElementById('modalChamado');
 const modalCloseBtn = document.getElementById('modalClose');
