@@ -376,6 +376,7 @@ const pagination = document.getElementById('pagination');
 
 // Fun��ão para carregar os chamados da API
 async function loadChamados() {
+    console.log('=== CARREGANDO CHAMADOS ===');
     try {
         const response = await fetch('/ti/painel/api/chamados', {
             credentials: 'same-origin',
@@ -388,6 +389,14 @@ async function loadChamados() {
         }
 
         chamadosData = await response.json();
+        console.log('Chamados carregados com sucesso:', chamadosData.length);
+
+        // Verificar estrutura dos dados
+        if (chamadosData.length > 0) {
+            console.log('Exemplo de chamado:', chamadosData[0]);
+            console.log('Status disponíveis:', [...new Set(chamadosData.map(c => c.status))]);
+        }
+
         renderChamadosPage(currentPage);
 
         // Atualizar contadores da visão geral
@@ -395,13 +404,18 @@ async function loadChamados() {
 
         // Popular filtros dinâmicos
         popularFiltrosDinamicos();
+
+        return chamadosData; // Retornar dados para permitir chaining
     } catch (error) {
         console.error('Erro ao carregar chamados:', error);
-        chamadosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar chamados. Tente novamente mais tarde.</p>';
+        if (chamadosGrid) {
+            chamadosGrid.innerHTML = '<p class="text-center py-4">Erro ao carregar chamados. Tente novamente mais tarde.</p>';
+        }
         // Usar sistema de notificações avançado
         if (window.advancedNotificationSystem) {
             window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar chamados');
         }
+        throw error; // Re-throw para permitir tratamento pelo caller
     }
 }
 
@@ -679,7 +693,7 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
             });
 
             if (!notificacaoResponse.ok) {
-                console.error('Erro ao enviar notifica��ão:', await notificacaoResponse.text());
+                console.error('Erro ao enviar notifica���ão:', await notificacaoResponse.text());
                 throw new Error('Erro ao enviar notificação por e-mail');
             }
         }
@@ -1347,7 +1361,7 @@ document.getElementById('emailUsuario')?.addEventListener('input', function() {
     }
 });
 
-// Validaç��o em tempo real para campos obrigatórios
+// Validaç���o em tempo real para campos obrigatórios
 ['nomeUsuario', 'sobrenomeUsuario', 'nivelAcesso', 'setorUsuario'].forEach(id => {
     const elemento = document.getElementById(id);
     if (elemento) {
@@ -4922,7 +4936,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Botão limpar filtros
+    // Bot��o limpar filtros
     const btnLimparFiltros = document.getElementById('btnLimparFiltros');
     if (btnLimparFiltros) {
         btnLimparFiltros.addEventListener('click', function() {
