@@ -70,30 +70,13 @@ def salvar_configuracoes_sla(config_sla: Dict):
 def carregar_configuracoes_horario_comercial():
     """Carrega configurações de horário comercial do banco ou retorna padrões"""
     try:
-        config_horario = Configuracao.query.filter_by(chave='horario_comercial').first()
-        if config_horario:
-            dados = json.loads(config_horario.valor)
-            # Converter strings de time de volta para objetos time
-            if 'inicio' in dados:
-                hora, minuto = map(int, dados['inicio'].split(':'))
-                dados['inicio'] = time(hora, minuto)
-            if 'fim' in dados:
-                hora, minuto = map(int, dados['fim'].split(':'))
-                dados['fim'] = time(hora, minuto)
-            return dados
+        from database import obter_horario_comercial_dict
+        config = obter_horario_comercial_dict()
+        if config:
+            logger.info("Configurações de horário comercial carregadas do banco de dados")
+            return config
         else:
-            # Criar configuração padrão se não existir
-            config_para_salvar = HORARIO_COMERCIAL.copy()
-            config_para_salvar['inicio'] = '08:00'
-            config_para_salvar['fim'] = '18:00'
-            
-            nova_config = Configuracao(
-                chave='horario_comercial',
-                valor=json.dumps(config_para_salvar)
-            )
-            db.session.add(nova_config)
-            db.session.commit()
-            logger.info("Configurações de horário comercial padrão criadas no banco de dados")
+            logger.warning("Nenhuma configuração de horário comercial encontrada, usando padrões")
             return HORARIO_COMERCIAL
     except Exception as e:
         logger.error(f"Erro ao carregar configurações de horário comercial: {str(e)}")
