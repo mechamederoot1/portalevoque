@@ -300,11 +300,9 @@ function carregarGraficoSemanal() {
 function criarGraficoSemanal(dados) {
     const ctx = document.getElementById('chartSemanal');
     if (!ctx) return;
-    
-    // Destruir gráfico existente
-    if (graficoSemanalInstance) {
-        graficoSemanalInstance.destroy();
-    }
+
+    // Destruir gráfico existente usando utilitário seguro
+    destroyChartSafely('chartSemanal');
     
     // Preparar dados dos últimos 28 dias
     const labels = dados.map(item => {
