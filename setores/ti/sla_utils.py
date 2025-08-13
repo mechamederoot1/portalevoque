@@ -108,14 +108,14 @@ def eh_horario_comercial(dt: datetime, config_horario: Dict = None) -> bool:
     """Verifica se um datetime está dentro do horário comercial"""
     if config_horario is None:
         config_horario = carregar_configuracoes_horario_comercial()
-    
+
     # Verificar dia da semana (0=segunda, 6=domingo)
     if dt.weekday() not in config_horario['dias_semana']:
         return False
-    
-    # Verificar horário
+
+    # Verificar horário - usar < em vez de <= para o fim (18:00 não é mais horário comercial)
     hora_atual = dt.time()
-    return config_horario['inicio'] <= hora_atual <= config_horario['fim']
+    return config_horario['inicio'] <= hora_atual < config_horario['fim']
 
 def calcular_horas_uteis(inicio: datetime, fim: datetime, config_horario: Dict = None) -> float:
     """
