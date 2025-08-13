@@ -387,7 +387,7 @@ class ConfiguracaoAvancada(db.Model):
         return None
 
     def get_data_atualizacao_brazil(self):
-        """Retorna data de atualização no timezone do Brasil"""
+        """Retorna data de atualiza��ão no timezone do Brasil"""
         if self.data_atualizacao:
             if self.data_atualizacao.tzinfo:
                 return self.data_atualizacao.astimezone(BRAZIL_TZ)
@@ -1190,6 +1190,50 @@ def init_app(app):
             if not user._setores and user.setor:
                 user._setores = json.dumps([user.setor])
         
+        # Inicializar configurações de SLA específicas
+        slas_padrao = [
+            {'prioridade': 'Crítica', 'tempo_resolucao': 2.0, 'tempo_primeira_resposta': 1.0},
+            {'prioridade': 'Urgente', 'tempo_resolucao': 2.0, 'tempo_primeira_resposta': 1.0},
+            {'prioridade': 'Alta', 'tempo_resolucao': 8.0, 'tempo_primeira_resposta': 2.0},
+            {'prioridade': 'Normal', 'tempo_resolucao': 24.0, 'tempo_primeira_resposta': 4.0},
+            {'prioridade': 'Baixa', 'tempo_resolucao': 72.0, 'tempo_primeira_resposta': 8.0}
+        ]
+
+        for sla_config in slas_padrao:
+            existing_sla = ConfiguracaoSLA.query.filter_by(prioridade=sla_config['prioridade']).first()
+            if not existing_sla:
+                new_sla = ConfiguracaoSLA(
+                    prioridade=sla_config['prioridade'],
+                    tempo_resolucao=sla_config['tempo_resolucao'],
+                    tempo_primeira_resposta=sla_config['tempo_primeira_resposta'],
+                    considera_horario_comercial=True,
+                    considera_feriados=True,
+                    ativo=True
+                )
+                db.session.add(new_sla)
+
+        # Inicializar horário comercial padrão
+        horario_padrao = HorarioComercial.query.filter_by(padrao=True).first()
+        if not horario_padrao:
+            horario_padrao = HorarioComercial(
+                nome='Horário Padrão',
+                descricao='Horário comercial padrão da empresa (08:00 às 18:00, segunda a sexta)',
+                hora_inicio='08:00',
+                hora_fim='18:00',
+                segunda=True,
+                terca=True,
+                quarta=True,
+                quinta=True,
+                sexta=True,
+                sabado=False,
+                domingo=False,
+                considera_almoco=False,
+                emergencia_ativo=False,
+                ativo=True,
+                padrao=True
+            )
+            db.session.add(horario_padrao)
+
         # Inicializar configurações padrão se não existirem
         configuracoes_padrao = {
             'chamados': {
