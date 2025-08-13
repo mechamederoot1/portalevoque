@@ -20,10 +20,61 @@ class SLAMetricas {
             btnAtualizar.addEventListener('click', () => this.carregarDashboardCompleto());
         }
 
+        // Botão de corrigir dados de teste
+        const btnCorrigirDados = document.getElementById('btnCorrigirDadosTeste');
+        if (btnCorrigirDados) {
+            btnCorrigirDados.addEventListener('click', () => this.corrigirDadosTeste());
+        }
+
         // Evento para salvar configurações (será usado na seção de configurações)
         document.addEventListener('configuracoesSLASalvas', () => {
             this.carregarDashboardCompleto();
         });
+    }
+
+    async corrigirDadosTeste() {
+        if (!confirm('Deseja corrigir os dados de teste para demonstrar o funcionamento correto do SLA considerando horário comercial?')) {
+            return;
+        }
+
+        const btnCorrigir = document.getElementById('btnCorrigirDadosTeste');
+        const textoOriginal = btnCorrigir.innerHTML;
+
+        try {
+            btnCorrigir.disabled = true;
+            btnCorrigir.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Corrigindo...';
+
+            const response = await fetch('/ti/painel/api/corrigir-dados-teste', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert(`✅ Dados corrigidos com sucesso!\n\n${data.chamados_criados} chamados de teste criados.\n\nO sistema agora mostra corretamente:\n- Ronaldo: Chamado crítico com cálculo de horas úteis\n- Maria: Chamado concluído dentro do SLA\n- João: Chamado em risco`);
+
+                // Recarregar dashboard
+                this.carregarDashboardCompleto();
+            } else {
+                throw new Error(data.message || 'Erro desconhecido');
+            }
+
+        } catch (error) {
+            console.error('Erro ao corrigir dados:', error);
+            alert('❌ Erro ao corrigir dados de teste: ' + error.message);
+        } finally {
+            btnCorrigir.disabled = false;
+            btnCorrigir.innerHTML = textoOriginal;
+        }
     }
 
     async carregarDashboardCompleto() {
@@ -512,7 +563,7 @@ class SLAMetricas {
 
     mostrarErro(mensagem) {
         console.error('Erro SLA:', mensagem);
-        // Aqui você pode adicionar uma notificação visual para o usuário
+        // Aqui você pode adicionar uma notifica��ão visual para o usuário
     }
 }
 
