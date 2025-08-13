@@ -83,6 +83,62 @@ class SLAMetricas {
         }
     }
 
+    async migrarTabelasSLA() {
+        if (!confirm('Deseja migrar as configurações de SLA para as novas tabelas do banco de dados?\n\nIsso criará as estruturas necessárias para gerenciar SLA e horário comercial diretamente no banco.')) {
+            return;
+        }
+
+        const btnMigrar = document.getElementById('btnMigrarSLA');
+        const textoOriginal = btnMigrar.innerHTML;
+
+        try {
+            btnMigrar.disabled = true;
+            btnMigrar.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Migrando...';
+
+            const response = await fetch('/ti/painel/api/sistema/migrar-sla', {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            const data = await response.json();
+
+            if (data.success) {
+                const resultados = data.resultados;
+                let mensagem = '✅ Migração executada com sucesso!\n\n';
+
+                if (resultados.ja_existiam) {
+                    mensagem += 'As configurações já existiam no banco de dados.\n';
+                } else {
+                    mensagem += `📊 Configurações SLA criadas: ${resultados.slas_criadas}\n`;
+                    mensagem += `📅 Configurações de horário criadas: ${resultados.horarios_criados}\n\n`;
+                    mensagem += 'Agora as configurações são gerenciadas diretamente no banco de dados!';
+                }
+
+                alert(mensagem);
+
+                // Recarregar dashboard para mostrar novas configurações
+                this.carregarDashboardCompleto();
+            } else {
+                throw new Error(data.message || 'Erro desconhecido');
+            }
+
+        } catch (error) {
+            console.error('Erro na migração:', error);
+            alert('❌ Erro na migração: ' + error.message);
+        } finally {
+            btnMigrar.disabled = false;
+            btnMigrar.innerHTML = textoOriginal;
+        }
+    }
+
     async carregarDashboardCompleto() {
         if (this.loading) return;
         
