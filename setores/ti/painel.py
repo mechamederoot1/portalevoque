@@ -465,7 +465,7 @@ def setup_demo_page():
     </head>
     <body>
         <div class="container mt-5">
-            <h1>Configurar Dados de Demonstração</h1>
+            <h1>Configurar Dados de Demonstraç��o</h1>
             <button class="btn btn-primary" onclick="setupDatabase()">Inserir Dados de Demo</button>
             <div id="result" class="mt-3"></div>
         </div>
@@ -1708,6 +1708,99 @@ def obter_configuracoes_sla_detalhadas():
         logger.error(f"Erro ao obter configurações SLA detalhadas: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/sistema/migrar-sla', methods=['POST'])
+@login_required
+@setor_required('Administrador')
+def migrar_tabelas_sla():
+    """Executa migração das tabelas SLA para o banco de dados"""
+    try:
+        from database import ConfiguracaoSLA, HorarioComercial
+        from datetime import time
+
+        # Criar todas as tabelas
+        db.create_all()
+
+        resultados = {
+            'slas_criadas': 0,
+            'horarios_criados': 0,
+            'ja_existiam': False
+        }
+
+        # Verificar se já existem configurações SLA
+        slas_existentes = ConfiguracaoSLA.query.count()
+        if slas_existentes == 0:
+            # Criar configurações SLA padrão
+            slas_padrao = [
+                {'prioridade': 'Crítica', 'tempo_resolucao': 2.0, 'tempo_primeira_resposta': 1.0},
+                {'prioridade': 'Urgente', 'tempo_resolucao': 2.0, 'tempo_primeira_resposta': 1.0},
+                {'prioridade': 'Alta', 'tempo_resolucao': 8.0, 'tempo_primeira_resposta': 2.0},
+                {'prioridade': 'Normal', 'tempo_resolucao': 24.0, 'tempo_primeira_resposta': 4.0},
+                {'prioridade': 'Baixa', 'tempo_resolucao': 72.0, 'tempo_primeira_resposta': 8.0}
+            ]
+
+            for sla_config in slas_padrao:
+                new_sla = ConfiguracaoSLA(
+                    prioridade=sla_config['prioridade'],
+                    tempo_resolucao=sla_config['tempo_resolucao'],
+                    tempo_primeira_resposta=sla_config['tempo_primeira_resposta'],
+                    considera_horario_comercial=True,
+                    considera_feriados=True,
+                    ativo=True,
+                    usuario_atualizacao=current_user.id
+                )
+                db.session.add(new_sla)
+                resultados['slas_criadas'] += 1
+        else:
+            resultados['ja_existiam'] = True
+
+        # Verificar se já existe horário comercial
+        horarios_existentes = HorarioComercial.query.count()
+        if horarios_existentes == 0:
+            # Criar horário comercial padrão
+            horario_padrao = HorarioComercial(
+                nome='Horário Padrão',
+                descricao='Horário comercial padrão da empresa (08:00 às 18:00, segunda a sexta)',
+                hora_inicio=time(8, 0),
+                hora_fim=time(18, 0),
+                segunda=True,
+                terca=True,
+                quarta=True,
+                quinta=True,
+                sexta=True,
+                sabado=False,
+                domingo=False,
+                considera_almoco=False,
+                emergencia_ativo=False,
+                ativo=True,
+                padrao=True,
+                usuario_criacao=current_user.id
+            )
+            db.session.add(horario_padrao)
+            resultados['horarios_criados'] = 1
+
+        db.session.commit()
+
+        # Registrar log da migração
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao='Migração de tabelas SLA executada',
+            categoria='sistema',
+            detalhes=f'SLAs criadas: {resultados["slas_criadas"]}, Horários criados: {resultados["horarios_criados"]}',
+            tipo_recurso='migracao_sla'
+        )
+
+        return json_response({
+            'success': True,
+            'message': 'Migração executada com sucesso',
+            'resultados': resultados,
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro na migração SLA: {str(e)}")
+        return error_response(f'Erro na migração: {str(e)}')
+
 @painel_bp.route('/api/sla/metricas', methods=['GET'])
 @login_required
 @setor_required('TI')
@@ -2747,7 +2840,7 @@ def criar_usuario():
 
         niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor', 'Agente de suporte']
         if data['nivel_acesso'] not in niveis_validos:
-            return error_response('Nível de acesso inv��lido', 400)
+            return error_response('Nível de acesso inválido', 400)
 
         if User.query.filter_by(usuario=data['usuario']).first():
             return error_response('Nome de usuário já existe', 400)
