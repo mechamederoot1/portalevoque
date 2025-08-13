@@ -1574,6 +1574,140 @@ def salvar_configuracoes_sla_api():
         logger.error(f"Erro ao salvar configurações SLA: {str(e)}")
         return error_response('Erro interno no servidor')
 
+@painel_bp.route('/api/horario-comercial', methods=['GET'])
+@login_required
+@setor_required('TI')
+def obter_horario_comercial_api():
+    """Retorna configurações de horário comercial detalhadas"""
+    try:
+        from database import obter_horario_comercial_ativo
+
+        horario = obter_horario_comercial_ativo()
+        if not horario:
+            return error_response('Nenhuma configuração de horário comercial encontrada', 404)
+
+        return json_response({
+            'horario_comercial': horario.to_dict(),
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter horário comercial: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/horario-comercial', methods=['POST'])
+@login_required
+@setor_required('TI')
+def salvar_horario_comercial_api():
+    """Salva configurações de horário comercial"""
+    try:
+        if not request.is_json:
+            return error_response('Content-Type deve ser application/json', 400)
+
+        data = request.get_json()
+        if not data:
+            return error_response('Dados não fornecidos', 400)
+
+        # Validar dados obrigatórios
+        campos_obrigatorios = ['hora_inicio', 'hora_fim']
+        for campo in campos_obrigatorios:
+            if campo not in data:
+                return error_response(f'Campo obrigatório ausente: {campo}', 400)
+
+        # Validar formato dos horários
+        try:
+            from datetime import time
+
+            hora_inicio_str = data['hora_inicio']
+            hora_fim_str = data['hora_fim']
+
+            # Converter para objetos time
+            hora_inicio = time.fromisoformat(hora_inicio_str)
+            hora_fim = time.fromisoformat(hora_fim_str)
+
+            if hora_inicio >= hora_fim:
+                return error_response('Horário de início deve ser menor que horário de fim', 400)
+
+        except ValueError:
+            return error_response('Formato de horário inválido. Use HH:MM', 400)
+
+        # Validar dias da semana
+        if 'dias_semana' in data:
+            dias_semana = data['dias_semana']
+            if not isinstance(dias_semana, list):
+                return error_response('Dias da semana devem ser uma lista', 400)
+            for dia in dias_semana:
+                if not isinstance(dia, int) or not (0 <= dia <= 6):
+                    return error_response('Dias da semana inválidos (0-6)', 400)
+
+        # Atualizar configuração
+        from database import atualizar_horario_comercial, registrar_log_acao
+
+        # Preparar dados para atualização
+        dados_atualizacao = {
+            'hora_inicio': hora_inicio,
+            'hora_fim': hora_fim
+        }
+
+        if 'dias_semana' in data:
+            dados_atualizacao['dias_semana'] = data['dias_semana']
+
+        horario_atualizado = atualizar_horario_comercial(dados_atualizacao, usuario_id=current_user.id)
+
+        # Registrar log da alteração
+        registrar_log_acao(
+            usuario_id=current_user.id,
+            acao='Horário comercial atualizado via API',
+            categoria='sla',
+            detalhes=f'Novo horário: {hora_inicio_str} às {hora_fim_str}',
+            tipo_recurso='horario_comercial'
+        )
+
+        return json_response({
+            'message': 'Horário comercial atualizado com sucesso',
+            'horario_comercial': horario_atualizado.to_dict(),
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao salvar horário comercial: {str(e)}")
+        return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/sla/prioridades', methods=['GET'])
+@login_required
+@setor_required('TI')
+def obter_configuracoes_sla_detalhadas():
+    """Retorna configurações SLA detalhadas por prioridade"""
+    try:
+        from database import obter_todas_configuracoes_sla
+
+        slas = obter_todas_configuracoes_sla()
+
+        configuracoes = []
+        for sla in slas:
+            configuracoes.append({
+                'id': sla.id,
+                'prioridade': sla.prioridade,
+                'tempo_primeira_resposta': sla.tempo_primeira_resposta,
+                'tempo_resolucao': sla.tempo_resolucao,
+                'considera_horario_comercial': sla.considera_horario_comercial,
+                'considera_feriados': sla.considera_feriados,
+                'percentual_risco': sla.percentual_risco,
+                'ativo': sla.ativo,
+                'data_atualizacao': sla.data_atualizacao.isoformat() if sla.data_atualizacao else None
+            })
+
+        return json_response({
+            'configuracoes_sla': configuracoes,
+            'total': len(configuracoes),
+            'timestamp': get_brazil_time().isoformat()
+        })
+
+    except Exception as e:
+        logger.error(f"Erro ao obter configurações SLA detalhadas: {str(e)}")
+        return error_response('Erro interno no servidor')
+
 @painel_bp.route('/api/sla/metricas', methods=['GET'])
 @login_required
 @setor_required('TI')
@@ -2613,7 +2747,7 @@ def criar_usuario():
 
         niveis_validos = ['Administrador', 'Gerente', 'Gerente Regional', 'Gestor', 'Agente de suporte']
         if data['nivel_acesso'] not in niveis_validos:
-            return error_response('Nível de acesso inválido', 400)
+            return error_response('Nível de acesso inv��lido', 400)
 
         if User.query.filter_by(usuario=data['usuario']).first():
             return error_response('Nome de usuário já existe', 400)
