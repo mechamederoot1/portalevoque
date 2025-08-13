@@ -510,16 +510,37 @@ async function atualizarContadoresVisaoGeral() {
 
 // Função para filtrar chamados
 function filterChamados(status) {
+    console.log('=== FILTRANDO CHAMADOS ===');
+    console.log('Status para filtrar:', status);
+    console.log('Dados originais:', chamadosData ? chamadosData.length : 0);
+
+    if (!chamadosData || !Array.isArray(chamadosData)) {
+        console.warn('chamadosData não é um array válido:', chamadosData);
+        return [];
+    }
+
     let filtrados = [...chamadosData];
+    console.log('Cópia inicial:', filtrados.length);
 
     // Filtrar por status
     if (status !== 'all') {
-        filtrados = filtrados.filter(chamado => chamado.status === status);
+        const antesDoFiltro = filtrados.length;
+        filtrados = filtrados.filter(chamado => {
+            if (!chamado || !chamado.status) {
+                console.warn('Chamado inválido encontrado:', chamado);
+                return false;
+            }
+            return chamado.status === status;
+        });
+        console.log(`Filtro por status "${status}": ${antesDoFiltro} -> ${filtrados.length}`);
     }
 
     // Aplicar filtros avançados se estiverem ativos
+    const antesFiltrosAvancados = filtrados.length;
     filtrados = aplicarFiltrosAvancados(filtrados);
+    console.log(`Filtros avançados: ${antesFiltrosAvancados} -> ${filtrados.length}`);
 
+    console.log('Total filtrado final:', filtrados.length);
     return filtrados;
 }
 
@@ -2368,7 +2389,7 @@ function inicializarSistemaPainel() {
                     console.warn('Link de navegação não encontrado para:', sectionId);
                 }
 
-                console.log('Navegaç��o concluída com sucesso');
+                console.log('Navegação concluída com sucesso');
                 return true;
             } else {
                 console.error('Seção não encontrada:', sectionId);
@@ -2588,7 +2609,7 @@ window.debugPainel = {
             activateSection(sectionId);
             console.log('Navegação executada com sucesso');
         } else {
-            console.error('Seção não encontrada:', sectionId);
+            console.error('Seç��o não encontrada:', sectionId);
         }
     }
 };
