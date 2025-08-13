@@ -2441,6 +2441,48 @@ window.addEventListener('load', function() {
     }
 });
 
+// Função para limpar todos os filtros
+function limparTodosFiltros() {
+    console.log('Limpando todos os filtros...');
+
+    // Limpar campos de filtro
+    const filtroSolicitante = document.getElementById('filtroSolicitante');
+    const filtroProblema = document.getElementById('filtroProblema');
+    const filtroPrioridade = document.getElementById('filtroPrioridade');
+    const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
+    const filtroUnidade = document.getElementById('filtroUnidade');
+    const filtroDataInicio = document.getElementById('filtroDataInicio');
+    const filtroDataFim = document.getElementById('filtroDataFim');
+
+    if (filtroSolicitante) filtroSolicitante.value = '';
+    if (filtroProblema) filtroProblema.value = '';
+    if (filtroPrioridade) filtroPrioridade.value = '';
+    if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
+    if (filtroUnidade) filtroUnidade.value = '';
+    if (filtroDataInicio) filtroDataInicio.value = '';
+    if (filtroDataFim) filtroDataFim.value = '';
+
+    // Resetar filtro de status
+    currentFilter = 'all';
+
+    // Remover classe active de todos os links do submenu
+    const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a');
+    submenuLinks.forEach(link => link.classList.remove('active'));
+
+    // Ativar o link "Todos os chamados"
+    const linkTodos = document.querySelector('#submenu-gerenciar-chamados a[data-status="all"]');
+    if (linkTodos) linkTodos.classList.add('active');
+
+    // Renderizar novamente
+    currentPage = 1;
+    renderChamadosPage(currentPage);
+
+    console.log('Filtros limpos com sucesso');
+}
+
+// Tornar função global para uso em HTML
+window.limparTodosFiltros = limparTodosFiltros;
+
 // Função para inicializar listeners de filtros
 function initializeFilterListeners() {
     console.log('Inicializando listeners de filtros...');
