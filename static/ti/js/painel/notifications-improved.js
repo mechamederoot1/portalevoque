@@ -569,21 +569,72 @@ class ImprovedNotificationSystem {
 // Inicializar sistema melhorado
 let improvedNotifications;
 
-document.addEventListener('DOMContentLoaded', function() {
-    improvedNotifications = new ImprovedNotificationSystem();
-    
-    // Expor globalmente para debug
-    window.improvedNotifications = improvedNotifications;
-    
-    console.log('Sistema de notificações melhorado carregado');
-});
+// Aguardar DOM e outros scripts carregarem
+function initImprovedNotifications() {
+    // Evitar múltiplas inicializações
+    if (window.improvedNotifications) {
+        return;
+    }
+
+    try {
+        improvedNotifications = new ImprovedNotificationSystem();
+        window.improvedNotifications = improvedNotifications;
+        console.log('✅ Sistema de notificações melhorado carregado');
+    } catch (error) {
+        console.error('❌ Erro ao carregar notificações melhoradas:', error);
+    }
+}
+
+// Múltiplas tentativas de inicialização
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initImprovedNotifications);
+} else {
+    initImprovedNotifications();
+}
+
+// Backup - inicializar após todos os scripts
+setTimeout(() => {
+    if (!window.improvedNotifications) {
+        initImprovedNotifications();
+    }
+}, 1000);
 
 // Compatibilidade com sistema antigo
 window.advancedNotificationSystem = {
-    showSuccess: (title, message) => improvedNotifications?.showSuccess(title, message),
-    showError: (title, message) => improvedNotifications?.showError(title, message),
-    showWarning: (title, message) => improvedNotifications?.showWarning(title, message),
-    showInfo: (title, message) => improvedNotifications?.showInfo(title, message),
-    testNotifications: () => improvedNotifications?.testNotifications(),
-    updateSettings: (settings) => improvedNotifications?.updateSettings(settings)
+    showSuccess: (title, message) => {
+        if (window.improvedNotifications) {
+            return window.improvedNotifications.showSuccess(title, message);
+        }
+        console.log('Notification:', title, message);
+    },
+    showError: (title, message) => {
+        if (window.improvedNotifications) {
+            return window.improvedNotifications.showError(title, message);
+        }
+        console.log('Error:', title, message);
+    },
+    showWarning: (title, message) => {
+        if (window.improvedNotifications) {
+            return window.improvedNotifications.showWarning(title, message);
+        }
+        console.log('Warning:', title, message);
+    },
+    showInfo: (title, message) => {
+        if (window.improvedNotifications) {
+            return window.improvedNotifications.showInfo(title, message);
+        }
+        console.log('Info:', title, message);
+    },
+    testNotifications: () => {
+        if (window.improvedNotifications) {
+            return window.improvedNotifications.testNotifications();
+        }
+        console.log('Test notifications called');
+    },
+    updateSettings: (settings) => {
+        if (window.improvedNotifications) {
+            return window.improvedNotifications.updateSettings(settings);
+        }
+        console.log('Settings updated:', settings);
+    }
 };
