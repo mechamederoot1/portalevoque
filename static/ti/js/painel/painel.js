@@ -936,24 +936,40 @@ function attachCardEventListeners() {
 }
 
 // Event listener para os links do submenu de gerenciar chamados
-document.querySelectorAll('#submenu-gerenciar-chamados a').forEach(link => {
-    link.addEventListener('click', function(e) {
-        e.preventDefault();
-        const status = this.getAttribute('data-status');
-        currentFilter = status;
-        currentPage = 1;
-        renderChamadosPage(currentPage);
-        activateSection('gerenciar-chamados');
-        
-        // Atualizar o item ativo no menu
-        document.querySelectorAll('.sidebar a.active').forEach(item => {
-            item.classList.remove('active');
+function initializeSubmenuFilters() {
+    const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a');
+    console.log('Inicializando filtros do submenu, links encontrados:', submenuLinks.length);
+
+    submenuLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const status = this.getAttribute('data-status');
+            console.log('Filtro selecionado:', status);
+
+            // Atualizar filtro atual
+            currentFilter = status;
+            currentPage = 1;
+
+            // Ativar seção
+            activateSection('gerenciar-chamados');
+
+            // Renderizar chamados com filtro
+            renderChamadosPage(currentPage);
+
+            // Atualizar o item ativo no menu
+            document.querySelectorAll('.sidebar a.active').forEach(item => {
+                item.classList.remove('active');
+            });
+            this.classList.add('active');
+            const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
+            if (parentSubmenuToggle) {
+                parentSubmenuToggle.classList.add('active');
+            }
+
+            console.log('Filtro aplicado com sucesso');
         });
-        this.classList.add('active');
-        const parentSubmenuToggle = this.closest('.submenu').previousElementSibling;
-        parentSubmenuToggle.classList.add('active');
     });
-});
+}
 
 // Modal Chamado - Elementos
 const modal = document.getElementById('modalChamado');
@@ -2075,6 +2091,8 @@ function loadSectionContent(sectionId) {
                 if (typeof adicionarFiltroAgente === 'function') {
                     adicionarFiltroAgente();
                 }
+                // Reinicializar filtros do submenu
+                initializeSubmenuFilters();
             }, 500);
             break;
         case 'permissoes':
@@ -2425,6 +2443,11 @@ window.addEventListener('load', function() {
 
 // Função para inicializar listeners de filtros
 function initializeFilterListeners() {
+    console.log('Inicializando listeners de filtros...');
+
+    // Inicializar filtros do submenu
+    initializeSubmenuFilters();
+
     // Botão filtrar chamados
     const btnFiltrarChamados = document.getElementById('btnFiltrarChamados');
     if (btnFiltrarChamados) {
@@ -2455,6 +2478,9 @@ function initializeFilterListeners() {
             if (filtroDataInicio) filtroDataInicio.value = '';
             if (filtroDataFim) filtroDataFim.value = '';
 
+            // Resetar filtro de status também
+            currentFilter = 'all';
+
             // Renderizar novamente
             currentPage = 1;
             renderChamadosPage(currentPage);
@@ -2478,6 +2504,8 @@ function initializeFilterListeners() {
             }
         });
     }
+
+    console.log('Listeners de filtros inicializados');
 }
 
 // Navigation event listeners are now handled in initializeNavigation() function
