@@ -678,11 +678,24 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
 
 // Função para renderizar a p��gina de chamados
 function renderChamadosPage(page) {
+    console.log('=== RENDERIZANDO PÁGINA DE CHAMADOS ===');
+    console.log('Página:', page);
+    console.log('Filtro atual:', currentFilter);
+    console.log('Total de chamados:', chamadosData ? chamadosData.length : 0);
+
+    if (!chamadosGrid) {
+        console.error('chamadosGrid não encontrado!');
+        return;
+    }
+
     chamadosGrid.innerHTML = '';
     const start = (page - 1) * chamadosPerPage;
     const end = start + chamadosPerPage;
     const filteredChamados = filterChamados(currentFilter);
     const pageChamados = filteredChamados.slice(start, end);
+
+    console.log('Chamados filtrados:', filteredChamados.length);
+    console.log('Chamados na página:', pageChamados.length);
 
     if (pageChamados.length === 0) {
         chamadosGrid.innerHTML = `
@@ -2355,7 +2368,7 @@ function inicializarSistemaPainel() {
                     console.warn('Link de navegação não encontrado para:', sectionId);
                 }
 
-                console.log('Navegação concluída com sucesso');
+                console.log('Navegaç��o concluída com sucesso');
                 return true;
             } else {
                 console.error('Seção não encontrada:', sectionId);
