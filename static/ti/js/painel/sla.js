@@ -2,7 +2,7 @@
 
 let graficoSemanalInstance;
 let graficoStatusInstance;
-let slaConfiguracoes = {}; // Armazenar configurações SLA
+let slaConfiguracoes = {}; // Armazenar configuraç��es SLA
 
 // Função para formatar tempo de forma legível
 function formatarTempo(horas) {
@@ -386,6 +386,9 @@ function criarGraficoSemanal(dados) {
 function criarGraficoDistribuicaoStatus(dados) {
     const ctx = document.getElementById('chartStatus');
     if (!ctx) return;
+
+    // Destruir gráfico existente usando utilitário seguro
+    destroyChartSafely('chartStatus');
     
     const cores = {
         'Aberto': '#f59e0b',
