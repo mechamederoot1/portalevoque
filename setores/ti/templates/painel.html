@@ -16,6 +16,7 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/painel.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/enviar_ticket.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='ti/css/painel/notifications-improved.css') }}">
   <style>
     @keyframes pulse {
       0% {
@@ -2134,21 +2135,61 @@
   <!-- Container de Notificações -->
   <div id="notificationContainer" class="notification-container"></div>
 
-  <!-- Modal Lista de Notificações -->
+  <!-- Modal Lista de Notificações Melhorado -->
   <div class="modal" id="modalNotificacoes" role="dialog" aria-modal="true" aria-labelledby="modalNotificacoesTitle">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 id="modalNotificacoesTitle">Notificações Recentes</h3>
-        <button class="modal-close" aria-label="Fechar modal" id="modalNotificacoesClose">&times;</button>
+    <div class="modal-content notifications-modal">
+      <div class="modal-header notifications-header">
+        <div class="header-content">
+          <div class="header-icon">
+            <i class="fas fa-bell"></i>
+          </div>
+          <div class="header-text">
+            <h3 id="modalNotificacoesTitle">Notificações</h3>
+            <span class="notifications-count" id="notificationsCountText">0 novas notificações</span>
+          </div>
+        </div>
+        <button class="modal-close notifications-close" aria-label="Fechar modal" id="modalNotificacoesClose">
+          <i class="fas fa-times"></i>
+        </button>
       </div>
-      <div class="modal-body">
-        <div id="listaNotificacoes">
+      <div class="modal-body notifications-body">
+        <div class="notifications-filters">
+          <button class="filter-btn active" data-filter="all">
+            <i class="fas fa-list"></i>
+            Todas
+          </button>
+          <button class="filter-btn" data-filter="unread">
+            <i class="fas fa-circle"></i>
+            Não lidas
+          </button>
+          <button class="filter-btn" data-filter="system">
+            <i class="fas fa-cog"></i>
+            Sistema
+          </button>
+          <button class="filter-btn" data-filter="tickets">
+            <i class="fas fa-ticket-alt"></i>
+            Chamados
+          </button>
+        </div>
+        <div class="notifications-container" id="listaNotificacoes">
           <!-- Lista de notificações será carregada aqui -->
         </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn btn-secondary" id="btnFecharNotificacoes">Fechar</button>
-        <button class="btn btn-primary" id="btnMarcarTodasLidas">Marcar Todas como Lidas</button>
+      <div class="modal-footer notifications-footer">
+        <div class="footer-actions">
+          <button class="btn btn-outline-secondary" id="btnMarcarTodasLidas">
+            <i class="fas fa-check-double me-1"></i>
+            Marcar Todas como Lidas
+          </button>
+          <button class="btn btn-outline-danger" id="btnLimparNotificacoes">
+            <i class="fas fa-trash me-1"></i>
+            Limpar Todas
+          </button>
+        </div>
+        <button class="btn btn-primary" id="btnFecharNotificacoes">
+          <i class="fas fa-times me-1"></i>
+          Fechar
+        </button>
       </div>
     </div>
   </div>
@@ -2754,6 +2795,7 @@
     });
   </script>
   <script src="/static/ti/js/painel/notificacoes.js"></script>
+  <!-- <script src="/static/ti/js/painel/notifications-improved.js"></script> -->
   <script src="/static/ti/js/painel/sla.js"></script>
   <script src="/static/ti/js/painel/sla_metricas.js"></script>
   <script src="/static/ti/js/painel/prioridades.js"></script>
