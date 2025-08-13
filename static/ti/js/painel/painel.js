@@ -2502,31 +2502,7 @@ function initializeFilterListeners() {
     // Botão limpar filtros
     const btnLimparFiltros = document.getElementById('btnLimparFiltros');
     if (btnLimparFiltros) {
-        btnLimparFiltros.addEventListener('click', function() {
-            // Limpar todos os campos de filtro
-            const filtroSolicitante = document.getElementById('filtroSolicitante');
-            const filtroProblema = document.getElementById('filtroProblema');
-            const filtroPrioridade = document.getElementById('filtroPrioridade');
-            const filtroAgenteResponsavel = document.getElementById('filtroAgenteResponsavel');
-            const filtroUnidade = document.getElementById('filtroUnidade');
-            const filtroDataInicio = document.getElementById('filtroDataInicio');
-            const filtroDataFim = document.getElementById('filtroDataFim');
-
-            if (filtroSolicitante) filtroSolicitante.value = '';
-            if (filtroProblema) filtroProblema.value = '';
-            if (filtroPrioridade) filtroPrioridade.value = '';
-            if (filtroAgenteResponsavel) filtroAgenteResponsavel.value = '';
-            if (filtroUnidade) filtroUnidade.value = '';
-            if (filtroDataInicio) filtroDataInicio.value = '';
-            if (filtroDataFim) filtroDataFim.value = '';
-
-            // Resetar filtro de status também
-            currentFilter = 'all';
-
-            // Renderizar novamente
-            currentPage = 1;
-            renderChamadosPage(currentPage);
-        });
+        btnLimparFiltros.addEventListener('click', limparTodosFiltros);
     }
 
     // Botão para reconectar Socket.IO
@@ -4253,7 +4229,7 @@ function atualizarEstatisticasAgentesLocal(agentes) {
     if (agentesDisponiveis) agentesDisponiveis.textContent = agentes.filter(a => a.pode_receber_chamado).length;
 }
 
-// ==================== CONFIGURAÇÕES AVANÇADAS ====================
+// ==================== CONFIGURAÇÕES AVAN��ADAS ====================
 
 async function carregarConfiguracoesAvancadas() {
     try {
