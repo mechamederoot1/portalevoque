@@ -315,7 +315,7 @@ function criarGraficoSemanal(dados) {
     
     const valores = dados.map(item => item.quantidade);
     
-    graficoSemanalInstance = new Chart(ctx, {
+    graficoSemanalInstance = createChartSafely('chartSemanal', {
         type: 'line',
         data: {
             labels: labels,
