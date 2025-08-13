@@ -1402,7 +1402,7 @@ def notificacoes_agente():
             {
                 'id': 2,
                 'titulo': 'Chamado transferido',
-                'mensagem': 'Um chamado foi transferido para voc��',
+                'mensagem': 'Um chamado foi transferido para você',
                 'tipo': 'chamado_transferido',
                 'prioridade': 'normal',
                 'lida': True,
@@ -3811,6 +3811,119 @@ def sincronizar_sla_database():
             'error': 'Erro interno no servidor',
             'message': str(e)
         }, status_code=500)
+
+@painel_bp.route('/api/corrigir-dados-teste', methods=['POST'])
+@login_required
+@setor_required('TI')
+def corrigir_dados_teste():
+    """Corrige dados de teste para mostrar SLA funcionando corretamente"""
+    try:
+        from datetime import datetime, timedelta
+        from setores.ti.routes import gerar_codigo_chamado, gerar_protocolo
+
+        agora_brazil = get_brazil_time()
+
+        # Limpar dados de teste antigos
+        Chamado.query.filter(Chamado.solicitante.in_(['Ronaldo', 'Maria Silva', 'João Santos', 'Usuário de Demonstração'])).delete()
+
+        # 1. Chamado crítico aberto ontem às 16:00 (só deve contar 2h úteis até hoje)
+        ontem_16h = agora_brazil.replace(hour=16, minute=0, second=0, microsecond=0) - timedelta(days=1)
+
+        chamado_critico = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='Ronaldo',
+            cargo='Operador',
+            email='ronaldo@academiaevoque.com.br',
+            telefone='(11) 99999-0000',
+            unidade='Unidade Principal',
+            problema='Catraca',
+            descricao='Sistema de catraca apresentando erro crítico. Clientes não conseguem acessar a academia.',
+            status='Aberto',
+            prioridade='Crítica',
+            data_abertura=ontem_16h.replace(tzinfo=None),
+            usuario_id=None
+        )
+        db.session.add(chamado_critico)
+
+        # 2. Chamado normal concluído dentro do SLA
+        hoje_09h = agora_brazil.replace(hour=9, minute=0, second=0, microsecond=0)
+        hoje_10h30 = agora_brazil.replace(hour=10, minute=30, second=0, microsecond=0)
+
+        chamado_concluido = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='Maria Silva',
+            cargo='Recepcionista',
+            email='maria@academiaevoque.com.br',
+            telefone='(11) 88888-8888',
+            unidade='Unidade Centro',
+            problema='Computador/Notebook',
+            descricao='Computador da recepção não liga. Cabo de força verificado.',
+            status='Concluido',
+            prioridade='Normal',
+            data_abertura=hoje_09h.replace(tzinfo=None),
+            data_conclusao=hoje_10h30.replace(tzinfo=None),
+            data_primeira_resposta=(hoje_09h + timedelta(minutes=15)).replace(tzinfo=None),
+            usuario_id=None
+        )
+        db.session.add(chamado_concluido)
+
+        # 3. Chamado em risco (alta prioridade, 6h úteis de 8h)
+        anteontem_15h = agora_brazil.replace(hour=15, minute=0, second=0, microsecond=0) - timedelta(days=2)
+
+        chamado_risco = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='João Santos',
+            cargo='Instrutor',
+            email='joao@academiaevoque.com.br',
+            telefone='(11) 77777-7777',
+            unidade='Unidade Norte',
+            problema='Internet',
+            descricao='Conexão Wi-Fi instável. Clientes reclamando da lentidão.',
+            status='Aguardando',
+            prioridade='Alta',
+            data_abertura=anteontem_15h.replace(tzinfo=None),
+            data_primeira_resposta=(anteontem_15h + timedelta(hours=2)).replace(tzinfo=None),
+            usuario_id=None
+        )
+        db.session.add(chamado_risco)
+
+        db.session.commit()
+
+        # Verificar cálculos
+        from setores.ti.sla_utils import calcular_sla_chamado_correto, carregar_configuracoes_sla, carregar_configuracoes_horario_comercial
+
+        config_sla = carregar_configuracoes_sla()
+        config_horario = carregar_configuracoes_horario_comercial()
+
+        resultados = []
+        for chamado in [chamado_critico, chamado_concluido, chamado_risco]:
+            sla_info = calcular_sla_chamado_correto(chamado, config_sla, config_horario)
+            resultados.append({
+                'codigo': chamado.codigo,
+                'solicitante': chamado.solicitante,
+                'prioridade': chamado.prioridade,
+                'status': chamado.status,
+                'horas_uteis': sla_info['horas_uteis_decorridas'],
+                'sla_limite': sla_info['sla_limite'],
+                'sla_status': sla_info['sla_status'],
+                'percentual_usado': sla_info['percentual_tempo_usado']
+            })
+
+        return json_response({
+            'success': True,
+            'message': 'Dados de teste corrigidos com sucesso',
+            'chamados_criados': len(resultados),
+            'resultados': resultados,
+            'timestamp': get_brazil_time().strftime('%d/%m/%Y %H:%M:%S')
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Erro ao corrigir dados de teste: {str(e)}")
+        return error_response(f'Erro ao corrigir dados de teste: {str(e)}')
 
 @painel_bp.route('/api/debug/sla-violations', methods=['GET'])
 @login_required
