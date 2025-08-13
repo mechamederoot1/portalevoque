@@ -45,23 +45,49 @@ def carregar_configuracoes_sla():
         logger.error(f"Erro ao carregar configurações SLA: {str(e)}")
         return SLA_PADRAO
 
-def salvar_configuracoes_sla(config_sla: Dict):
-    """Salva configurações de SLA no banco"""
+def salvar_configuracoes_sla(config_sla: Dict, usuario_id=None):
+    """Salva configurações de SLA no banco usando tabelas específicas"""
     try:
-        config_obj = Configuracao.query.filter_by(chave='sla').first()
-        if config_obj:
-            config_obj.valor = json.dumps(config_sla)
-            config_obj.data_atualizacao = get_brazil_time().replace(tzinfo=None)
-        else:
-            config_obj = Configuracao(
-                chave='sla',
-                valor=json.dumps(config_sla)
+        from database import atualizar_sla_prioridade, registrar_log_acao
+
+        # Mapear chaves para prioridades
+        mapeamento = {
+            'resolucao_critica': 'Crítica',
+            'resolucao_urgente': 'Urgente',
+            'resolucao_alta': 'Alta',
+            'resolucao_normal': 'Normal',
+            'resolucao_baixa': 'Baixa'
+        }
+
+        alteracoes = []
+
+        # Atualizar cada prioridade
+        for chave, prioridade in mapeamento.items():
+            if chave in config_sla:
+                tempo_resolucao = config_sla[chave]
+                tempo_primeira_resposta = config_sla.get('primeira_resposta', 4.0)
+
+                sla = atualizar_sla_prioridade(
+                    prioridade=prioridade,
+                    tempo_resolucao=tempo_resolucao,
+                    tempo_primeira_resposta=tempo_primeira_resposta,
+                    usuario_id=usuario_id
+                )
+                alteracoes.append(f"{prioridade}: {tempo_resolucao}h")
+
+        # Registrar log da alteração
+        if usuario_id and alteracoes:
+            registrar_log_acao(
+                usuario_id=usuario_id,
+                acao='Configurações SLA atualizadas',
+                categoria='sla',
+                detalhes=f'Alterações: {", ".join(alteracoes)}',
+                tipo_recurso='configuracao_sla'
             )
-            db.session.add(config_obj)
-        
-        db.session.commit()
-        logger.info("Configurações SLA salvas com sucesso")
+
+        logger.info(f"Configurações SLA salvas: {alteracoes}")
         return True
+
     except Exception as e:
         logger.error(f"Erro ao salvar configurações SLA: {str(e)}")
         db.session.rollback()
