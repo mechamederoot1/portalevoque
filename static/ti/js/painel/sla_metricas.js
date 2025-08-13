@@ -26,6 +26,12 @@ class SLAMetricas {
             btnCorrigirDados.addEventListener('click', () => this.corrigirDadosTeste());
         }
 
+        // Botão de migrar SLA
+        const btnMigrarSLA = document.getElementById('btnMigrarSLA');
+        if (btnMigrarSLA) {
+            btnMigrarSLA.addEventListener('click', () => this.migrarTabelasSLA());
+        }
+
         // Evento para salvar configurações (será usado na seção de configurações)
         document.addEventListener('configuracoesSLASalvas', () => {
             this.carregarDashboardCompleto();
@@ -563,7 +569,7 @@ class SLAMetricas {
 
     mostrarErro(mensagem) {
         console.error('Erro SLA:', mensagem);
-        // Aqui você pode adicionar uma notifica��ão visual para o usuário
+        // Aqui você pode adicionar uma notificação visual para o usuário
     }
 }
 
