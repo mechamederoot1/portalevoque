@@ -361,28 +361,77 @@ def setup_database_endpoint():
                 db.session.add(log_acao)
                 acoes_criadas += 1
 
-        # Criar um chamado de teste
+        # Criar chamados de teste com dados realistas considerando horário comercial
         from setores.ti.routes import gerar_codigo_chamado, gerar_protocolo
 
-        chamado_teste = Chamado.query.filter_by(solicitante='Usuário de Demonstração').first()
-        if not chamado_teste:
-            chamado_teste = Chamado(
-                codigo=gerar_codigo_chamado(),
-                protocolo=gerar_protocolo(),
-                solicitante='Usuário de Demonstração',
-                cargo='Analista',
-                email='demo@academiaevoque.com.br',
-                telefone='(11) 99999-0000',
-                unidade='Unidade Principal',
-                problema='Computador/Notebook',
-                descricao='Computador não liga após queda de energia. Já verificamos cabo de força e estabilizador.',
-                status='Em Andamento',
-                prioridade='Alta',
-                data_abertura=agora - timedelta(hours=2),
-                usuario_id=test_user.id,
-                agente_responsavel=agent_user.nome
-            )
-            db.session.add(chamado_teste)
+        # Limpar chamados de teste existentes
+        Chamado.query.filter_by(solicitante='Usuário de Demonstração').delete()
+
+        # Criar chamado aberto ontem às 16:00 (dentro do horário comercial)
+        ontem_16h = agora.replace(hour=16, minute=0, second=0, microsecond=0) - timedelta(days=1)
+
+        chamado_teste_1 = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='Ronaldo',
+            cargo='Analista',
+            email='ronaldo@academiaevoque.com.br',
+            telefone='(11) 99999-0000',
+            unidade='Unidade Principal',
+            problema='Catraca',
+            descricao='Sistema de catraca apresentando erro de comunicação desde ontem. Clientes não conseguem acessar.',
+            status='Aberto',
+            prioridade='Crítica',
+            data_abertura=ontem_16h,
+            usuario_id=test_user.id
+        )
+        db.session.add(chamado_teste_1)
+
+        # Criar chamado concluído dentro do SLA (manhã de hoje)
+        hoje_09h = agora.replace(hour=9, minute=0, second=0, microsecond=0)
+        hoje_10h30 = agora.replace(hour=10, minute=30, second=0, microsecond=0)
+
+        chamado_teste_2 = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='Maria Silva',
+            cargo='Recepcionista',
+            email='maria@academiaevoque.com.br',
+            telefone='(11) 88888-8888',
+            unidade='Unidade Principal',
+            problema='Computador/Notebook',
+            descricao='Computador não liga. Verificar cabo de força.',
+            status='Concluido',
+            prioridade='Normal',
+            data_abertura=hoje_09h,
+            data_conclusao=hoje_10h30,
+            data_primeira_resposta=hoje_09h + timedelta(minutes=15),
+            usuario_id=test_user.id,
+            agente_responsavel=agent_user.nome
+        )
+        db.session.add(chamado_teste_2)
+
+        # Criar chamado em andamento com SLA em risco
+        ontem_14h = agora.replace(hour=14, minute=0, second=0, microsecond=0) - timedelta(days=1)
+
+        chamado_teste_3 = Chamado(
+            codigo=gerar_codigo_chamado(),
+            protocolo=gerar_protocolo(),
+            solicitante='João Santos',
+            cargo='Instrutor',
+            email='joao@academiaevoque.com.br',
+            telefone='(11) 77777-7777',
+            unidade='Unidade Filial',
+            problema='Internet',
+            descricao='Internet lenta na academia. Wi-Fi caindo constantemente.',
+            status='Aguardando',
+            prioridade='Alta',
+            data_abertura=ontem_14h,
+            data_primeira_resposta=ontem_14h + timedelta(hours=1),
+            usuario_id=test_user.id,
+            agente_responsavel=agent_user.nome
+        )
+        db.session.add(chamado_teste_3)
 
         db.session.commit()
 
@@ -1353,7 +1402,7 @@ def notificacoes_agente():
             {
                 'id': 2,
                 'titulo': 'Chamado transferido',
-                'mensagem': 'Um chamado foi transferido para você',
+                'mensagem': 'Um chamado foi transferido para voc��',
                 'tipo': 'chamado_transferido',
                 'prioridade': 'normal',
                 'lida': True,
