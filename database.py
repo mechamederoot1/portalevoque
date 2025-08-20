@@ -164,6 +164,10 @@ class Chamado(db.Model):
     observacoes = db.Column(db.Text, nullable=True)  # Observações obrigatórias ao fechar
     visita_tecnica = db.Column(db.Boolean, default=False)
 
+    # Campos para sistema de reabertura
+    qtd_reaberturas = db.Column(db.Integer, default=0)  # Quantas vezes foi reaberto
+    chamado_origem_id = db.Column(db.Integer, db.ForeignKey('chamado.id'), nullable=True)  # Referência ao chamado original
+
     def get_data_abertura_brazil(self):
         """Retorna data de abertura no timezone do Brasil"""
         if self.data_abertura:
