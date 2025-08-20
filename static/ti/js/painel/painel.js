@@ -660,15 +660,29 @@ function aplicarFiltrosAvancados(chamados) {
 }
 
 // Função para atualizar o status de um chamado
-async function updateChamadoStatus(chamadoId, novoStatus) {
+async function updateChamadoStatus(chamadoId, novoStatus, observacoes = '') {
     try {
+        // Se for status de fechamento, verificar se observações foram fornecidas
+        if (['Concluido', 'Cancelado'].includes(novoStatus) && !observacoes.trim()) {
+            // Solicitar observações via prompt
+            observacoes = prompt(`Observações obrigatórias para ${novoStatus.toLowerCase()} o chamado:`);
+            if (!observacoes || !observacoes.trim()) {
+                throw new Error('Observações são obrigatórias para concluir ou cancelar um chamado.');
+            }
+        }
+
+        const requestBody = { status: novoStatus };
+        if (observacoes) {
+            requestBody.observacoes = observacoes.trim();
+        }
+
         // Primeiro atualiza o status
         const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/status`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ status: novoStatus })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -702,6 +716,9 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
         const chamado = chamadosData.find(c => c.id == chamadoId);
         if (chamado) {
             chamado.status = novoStatus;
+            if (observacoes) {
+                chamado.observacoes = observacoes;
+            }
         }
 
         return data;
