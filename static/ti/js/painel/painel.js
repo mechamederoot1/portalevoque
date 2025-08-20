@@ -1089,6 +1089,109 @@ function initializeSubmenuFilters() {
 // Tornar função global para facilitar debug
 window.initializeSubmenuFilters = initializeSubmenuFilters;
 
+// Função para carregar histórico de chamados
+async function carregarHistoricoChamados() {
+    try {
+        const dias = document.getElementById('filtroHistoricoData')?.value || 30;
+        const response = await fetch(`/ti/painel/api/chamados/historico?dias=${dias}`, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro ao carregar histórico: ${response.status}`);
+        }
+
+        const historico = await response.json();
+        exibirHistoricoChamados(historico);
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar histórico de chamados');
+        }
+    }
+}
+
+// Função para exibir o histórico na interface
+function exibirHistoricoChamados(historico) {
+    const container = document.getElementById('historicoContainer');
+    if (!container) {
+        console.warn('Container do histórico não encontrado');
+        return;
+    }
+
+    if (!historico || historico.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5>Nenhum histórico encontrado</h5>
+                <p class="text-muted">Não há ações registradas no período selecionado</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    historico.forEach(item => {
+        const iconePorAcao = {
+            'status_alterado': 'fa-edit',
+            'atribuido': 'fa-user-plus',
+            'reaberto': 'fa-redo',
+            'criado': 'fa-plus',
+            'fechado': 'fa-check',
+            'cancelado': 'fa-times'
+        };
+
+        const corPorAcao = {
+            'status_alterado': 'primary',
+            'atribuido': 'info',
+            'reaberto': 'warning',
+            'criado': 'success',
+            'fechado': 'secondary',
+            'cancelado': 'danger'
+        };
+
+        const icone = iconePorAcao[item.acao] || 'fa-info';
+        const cor = corPorAcao[item.acao] || 'primary';
+
+        html += `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <div class="me-3">
+                            <i class="fas ${icone} fa-2x text-${cor}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <span class="badge bg-${cor}">${item.acao.toUpperCase()}</span>
+                                Chamado ${item.chamado_codigo}
+                            </h6>
+                            <p class="mb-1">
+                                <strong>Usuário:</strong> ${item.usuario_nome}<br>
+                                ${item.status_anterior && item.status_novo ?
+                                    `<strong>Mudança:</strong> ${item.status_anterior} → ${item.status_novo}<br>` : ''}
+                                <strong>Data:</strong> ${item.data_acao}
+                            </p>
+                            ${item.observacoes ? `
+                                <p class="mb-0 text-muted">
+                                    <strong>Observações:</strong> ${item.observacoes}
+                                </p>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+// Tornar função global
+window.carregarHistoricoChamados = carregarHistoricoChamados;
+
 // Modal Chamado - Elementos
 const modal = document.getElementById('modalChamado');
 const modalCloseBtn = document.getElementById('modalClose');
@@ -2944,7 +3047,7 @@ function initializeSocketIO() {
         
     } catch (error) {
         console.error('Erro ao inicializar Socket.IO:', error);
-        updateSocketStatus('Erro de Inicializa��ão', 'danger');
+        updateSocketStatus('Erro de Inicialização', 'danger');
     }
 }
 
