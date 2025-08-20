@@ -817,6 +817,18 @@ card.innerHTML = `
                 </button>
             `}
         </div>
+        ${chamado.observacoes ? `
+        <div class="info-row">
+            <strong>Observações:</strong>
+            <span class="text-muted">${chamado.observacoes}</span>
+        </div>
+        ` : ''}
+        ${chamado.fechado_por ? `
+        <div class="info-row">
+            <strong>Fechado por:</strong>
+            <span class="badge bg-secondary">${chamado.fechado_por}</span>
+        </div>
+        ` : ''}
     </div>
     <div class="card-footer">
         <select id="status-${chamado.id}">
@@ -3736,7 +3748,7 @@ function renderizarUsuarios(usuarios) {
         return;
     }
 
-    // Renderizar cards dos usu��rios com verificações de segurança
+    // Renderizar cards dos usu���rios com verificações de segurança
     usuariosGrid.innerHTML = usuarios.map(usuario => {
         // Verificações de propriedades essenciais
         if (!usuario || typeof usuario !== 'object') {
