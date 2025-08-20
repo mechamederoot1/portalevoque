@@ -400,7 +400,7 @@ def setup_database_endpoint():
             telefone='(11) 88888-8888',
             unidade='Unidade Principal',
             problema='Computador/Notebook',
-            descricao='Computador não liga. Verificar cabo de força.',
+            descricao='Computador n��o liga. Verificar cabo de força.',
             status='Concluido',
             prioridade='Normal',
             data_abertura=hoje_09h,
@@ -2411,6 +2411,54 @@ def remover_unidade(id):
 
 # ==================== CHAMADOS ====================
 
+@painel_bp.route('/api/chamados/historico', methods=['GET'])
+@login_required
+@setor_required('TI')
+def obter_historico_chamados():
+    """Retorna histórico de ações dos chamados"""
+    try:
+        from database import HistoricoChamado, User
+
+        # Parâmetros de filtro
+        chamado_id = request.args.get('chamado_id', type=int)
+        dias = request.args.get('dias', 30, type=int)
+
+        # Base da query
+        query = db.session.query(HistoricoChamado).join(
+            User, HistoricoChamado.usuario_id == User.id
+        ).join(
+            Chamado, HistoricoChamado.chamado_id == Chamado.id
+        )
+
+        # Filtrar por chamado específico se fornecido
+        if chamado_id:
+            query = query.filter(HistoricoChamado.chamado_id == chamado_id)
+        else:
+            # Filtrar por período
+            data_limite = datetime.now() - timedelta(days=dias)
+            query = query.filter(HistoricoChamado.data_acao >= data_limite)
+
+        historico = query.order_by(HistoricoChamado.data_acao.desc()).limit(100).all()
+
+        historico_list = []
+        for h in historico:
+            historico_list.append({
+                'id': h.id,
+                'chamado_id': h.chamado_id,
+                'chamado_codigo': h.chamado.codigo,
+                'usuario_nome': f"{h.usuario.nome} {h.usuario.sobrenome}",
+                'acao': h.acao,
+                'status_anterior': h.status_anterior,
+                'status_novo': h.status_novo,
+                'observacoes': h.observacoes,
+                'data_acao': h.data_acao.strftime('%d/%m/%Y %H:%M:%S')
+            })
+
+        return json_response(historico_list)
+    except Exception as e:
+        logger.error(f"Erro ao obter histórico: {str(e)}")
+        return error_response('Erro interno ao obter histórico')
+
 @painel_bp.route('/api/chamados', methods=['GET'])
 @login_required
 @setor_required('TI')
@@ -3761,7 +3809,7 @@ def limpar_historico_violacoes_sla():
         # Recalcular SLA para todos os chamados afetados (opcional)
         logger.info(f"Processamento concluído: {chamados_corrigidos} chamados corrigidos")
 
-        # Forçar recálculo das métricas SLA após correção
+        # For��ar recálculo das métricas SLA após correção
         logger.info("Recalculando métricas SLA após correção...")
         metricas_atualizadas = obter_metricas_sla_consolidadas(30)
 
@@ -4758,7 +4806,7 @@ def obter_historico_chamados():
                     data_conclusao_brazil = c.get_data_conclusao_brazil()
                     data_conclusao_str = data_conclusao_brazil.strftime('%d/%m/%Y %H:%M') if data_conclusao_brazil else None
 
-                # Buscar informações de quem fechou
+                # Buscar informaç��es de quem fechou
                 fechado_por_info = None
                 if c.fechado_por_id:
                     try:
@@ -4859,7 +4907,7 @@ def atribuir_chamado(chamado_id):
             return error_response('Agente não está ativo')
 
         if not agente.pode_receber_chamado():
-            return error_response('Agente já atingiu o limite máximo de chamados simultâneos')
+            return error_response('Agente já atingiu o limite m��ximo de chamados simultâneos')
 
         # Verificar se já há atribuição ativa
         atribuicao_existente = ChamadoAgente.query.filter_by(
