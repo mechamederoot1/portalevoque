@@ -4871,6 +4871,9 @@ def atribuir_chamado(chamado_id):
             # Finalizar atribui��ão anterior
             atribuicao_existente.finalizar_atribuicao()
 
+        # Atualizar o chamado com quem fez a atribuição
+        chamado.atribuido_por_id = current_user.id
+
         # Criar nova atribuição
         nova_atribuicao = ChamadoAgente(
             chamado_id=chamado_id,
