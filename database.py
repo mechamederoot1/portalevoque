@@ -152,9 +152,15 @@ class Chamado(db.Model):
     data_conclusao = db.Column(db.DateTime, nullable=True)
     status = db.Column(db.String(20), default='Aberto')
     prioridade = db.Column(db.String(20), default='Normal')
-    
+
     # Nova coluna para vincular ao usuário
     usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+
+    # Campos para rastreamento de responsáveis
+    atribuido_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)  # Quem atribuiu o chamado
+    fechado_por_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)   # Quem fechou/concluiu
+    observacoes = db.Column(db.Text, nullable=True)  # Observações obrigatórias ao fechar
+    visita_tecnica = db.Column(db.Boolean, default=False)
 
     def get_data_abertura_brazil(self):
         """Retorna data de abertura no timezone do Brasil"""
