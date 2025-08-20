@@ -2256,6 +2256,12 @@ function loadSectionContent(sectionId) {
             }, 300);
             atualizarContadoresVisaoGeral();
             break;
+        case 'historico':
+            // Carregar histórico de chamados
+            if (typeof carregarHistoricoChamados === 'function') {
+                carregarHistoricoChamados();
+            }
+            break;
         case 'agentes-suporte':
             // Carregar agentes de suporte
             console.log('Carregando seção de agentes de suporte...');
@@ -2938,7 +2944,7 @@ function initializeSocketIO() {
         
     } catch (error) {
         console.error('Erro ao inicializar Socket.IO:', error);
-        updateSocketStatus('Erro de Inicialização', 'danger');
+        updateSocketStatus('Erro de Inicializa��ão', 'danger');
     }
 }
 
