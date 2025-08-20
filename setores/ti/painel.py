@@ -637,7 +637,7 @@ def salvar_configuracoes_api():
             campos_bool = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
             for campo in campos_bool:
                 if campo in notif_config and not isinstance(notif_config[campo], bool):
-                    return error_response(f'Campo de notificação {campo} deve ser booleano', 400)
+                    return error_response(f'Campo de notificaç��o {campo} deve ser booleano', 400)
         
         # Salvar no banco de dados
         sucesso = salvar_configuracoes_db(data)
@@ -1758,7 +1758,7 @@ def migrar_tabelas_sla():
         if horarios_existentes == 0:
             # Criar horário comercial padrão
             horario_padrao = HorarioComercial(
-                nome='Horário Padrão',
+                nome='Horário Padr��o',
                 descricao='Horário comercial padrão da empresa (08:00 às 18:00, segunda a sexta)',
                 hora_inicio=time(8, 0),
                 hora_fim=time(18, 0),
@@ -2414,7 +2414,7 @@ def remover_unidade(id):
 @painel_bp.route('/api/chamados/historico', methods=['GET'])
 @login_required
 @setor_required('TI')
-def obter_historico_chamados():
+def obter_historico_acoes_chamados():
     """Retorna histórico de ações dos chamados"""
     try:
         from database import HistoricoChamado, User
@@ -3377,7 +3377,7 @@ def deletar_usuario(user_id):
 
         # Verificar se o usuário está tentando excluir a si mesmo
         if usuario.id == current_user.id:
-            return error_response('Não é possível excluir seu próprio usuário', 400)
+            return error_response('Não é possível excluir seu próprio usu��rio', 400)
 
         # Verificar dependências - chamados criados
         from database import Chamado
@@ -4711,7 +4711,7 @@ def excluir_agente(agente_id):
 
         nome_agente = agente.usuario.nome
 
-        # Finalizar todas as atribuições antigas
+        # Finalizar todas as atribuiç��es antigas
         ChamadoAgente.query.filter_by(agente_id=agente_id, ativo=True).update({
             'ativo': False,
             'data_conclusao': get_brazil_time().replace(tzinfo=None)
