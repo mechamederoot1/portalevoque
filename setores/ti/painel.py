@@ -2464,6 +2464,7 @@ def obter_historico_acoes_chamados():
 @setor_required('TI')
 def listar_chamados():
     try:
+        print("🔍 DEBUG: Iniciando listar_chamados()")
         logger.debug("Iniciando consulta de chamados...")
         from database import ChamadoAgente, AgenteSuporte, User
 
