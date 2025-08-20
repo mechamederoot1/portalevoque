@@ -256,7 +256,7 @@ class SolicitacaoCompra(db.Model):
 
 class HistoricoTicket(db.Model):
     __tablename__ = 'historicos_tickets'
-    
+
     id = db.Column(db.Integer, primary_key=True)
     chamado_id = db.Column(db.Integer, db.ForeignKey('chamado.id'), nullable=False)
     usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
@@ -264,12 +264,36 @@ class HistoricoTicket(db.Model):
     mensagem = db.Column(db.Text, nullable=False)
     destinatarios = db.Column(db.String(255), nullable=False)
     data_envio = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
-    
+
     chamado = db.relationship('Chamado', backref='tickets_enviados')
     usuario = db.relationship('User', backref='tickets_enviados')
 
     def __repr__(self):
         return f'<HistoricoTicket {self.id} - Chamado {self.chamado_id}>'
+
+class HistoricoChamado(db.Model):
+    """Tabela para registrar histórico de mudanças nos chamados"""
+    __tablename__ = 'historico_chamados'
+
+    id = db.Column(db.Integer, primary_key=True)
+    chamado_id = db.Column(db.Integer, db.ForeignKey('chamado.id'), nullable=False)
+    usuario_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    acao = db.Column(db.String(50), nullable=False)  # 'criado', 'atribuido', 'status_alterado', 'fechado', 'cancelado'
+    status_anterior = db.Column(db.String(20), nullable=True)
+    status_novo = db.Column(db.String(20), nullable=True)
+    agente_anterior_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    agente_novo_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    observacoes = db.Column(db.Text, nullable=True)
+    data_acao = db.Column(db.DateTime, default=lambda: get_brazil_time().replace(tzinfo=None))
+
+    # Relacionamentos
+    chamado = db.relationship('Chamado', backref='historico', foreign_keys=[chamado_id])
+    usuario = db.relationship('User', backref='acoes_chamados', foreign_keys=[usuario_id])
+    agente_anterior = db.relationship('User', foreign_keys=[agente_anterior_id])
+    agente_novo = db.relationship('User', foreign_keys=[agente_novo_id])
+
+    def __repr__(self):
+        return f'<HistoricoChamado {self.chamado_id} - {self.acao}>'
 
 class Configuracao(db.Model):
     __tablename__ = 'configuracoes'
