@@ -1606,7 +1606,7 @@ def salvar_horario_comercial_api():
 
         data = request.get_json()
         if not data:
-            return error_response('Dados n��o fornecidos', 400)
+            return error_response('Dados não fornecidos', 400)
 
         # Validar dados obrigatórios
         campos_obrigatorios = ['hora_inicio', 'hora_fim']
@@ -2455,6 +2455,26 @@ def listar_chamados():
                         'nivel_experiencia': chamado_agente.agente.nivel_experiencia
                     }
 
+                # Buscar informações de quem fechou o chamado
+                fechado_por_info = None
+                if hasattr(c, 'fechado_por_id') and c.fechado_por_id:
+                    try:
+                        fechado_por = User.query.get(c.fechado_por_id)
+                        if fechado_por:
+                            fechado_por_info = f"{fechado_por.nome} {fechado_por.sobrenome}"
+                    except:
+                        pass
+
+                # Buscar informações de quem atribuiu o chamado
+                atribuido_por_info = None
+                if hasattr(c, 'atribuido_por_id') and c.atribuido_por_id:
+                    try:
+                        atribuido_por = User.query.get(c.atribuido_por_id)
+                        if atribuido_por:
+                            atribuido_por_info = f"{atribuido_por.nome} {atribuido_por.sobrenome}"
+                    except:
+                        pass
+
                 chamado_data = {
                     'id': c.id,
                     'codigo': c.codigo if hasattr(c, 'codigo') else None,
@@ -2472,6 +2492,9 @@ def listar_chamados():
                     'status': c.status if hasattr(c, 'status') else 'Aberto',
                     'prioridade': c.prioridade if hasattr(c, 'prioridade') else 'Normal',
                     'visita_tecnica': c.visita_tecnica if hasattr(c, 'visita_tecnica') else False,
+                    'observacoes': c.observacoes if hasattr(c, 'observacoes') else None,
+                    'fechado_por': fechado_por_info,
+                    'atribuido_por': atribuido_por_info,
                     'agente': agente_info,
                     'agente_id': agente_info['id'] if agente_info else None
                 }
