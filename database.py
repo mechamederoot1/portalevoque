@@ -50,6 +50,8 @@ class User(db.Model, UserMixin):
 
     # Relacionamento com chamados
     chamados = db.relationship('Chamado', backref='usuario_criador', lazy=True, foreign_keys='Chamado.usuario_id')
+    chamados_atribuidos = db.relationship('Chamado', backref='atribuido_por', lazy=True, foreign_keys='Chamado.atribuido_por_id')
+    chamados_fechados = db.relationship('Chamado', backref='fechado_por', lazy=True, foreign_keys='Chamado.fechado_por_id')
     
     # Relacionamentos com logs
     logs_acesso = db.relationship('LogAcesso', backref='usuario', lazy=True)
