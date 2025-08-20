@@ -1192,6 +1192,21 @@ function exibirHistoricoChamados(historico) {
 // Tornar função global
 window.carregarHistoricoChamados = carregarHistoricoChamados;
 
+// Event listeners para filtros do histórico
+document.addEventListener('DOMContentLoaded', function() {
+    // Botão atualizar histórico
+    const btnAtualizarHistorico = document.getElementById('btnAtualizarHistorico');
+    if (btnAtualizarHistorico) {
+        btnAtualizarHistorico.addEventListener('click', carregarHistoricoChamados);
+    }
+
+    // Filtro de período
+    const filtroHistoricoData = document.getElementById('filtroHistoricoData');
+    if (filtroHistoricoData) {
+        filtroHistoricoData.addEventListener('change', carregarHistoricoChamados);
+    }
+});
+
 // Modal Chamado - Elementos
 const modal = document.getElementById('modalChamado');
 const modalCloseBtn = document.getElementById('modalClose');
