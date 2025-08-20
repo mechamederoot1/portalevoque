@@ -71,6 +71,38 @@ def add_missing_structures():
         # Criar todas as tabelas se não existirem
         db.create_all()
 
+        # Adicionar colunas faltantes para novos recursos
+        print("🔄 Verificando colunas faltantes...")
+        try:
+            # Testar se as novas colunas existem fazendo uma query
+            from sqlalchemy import text
+
+            # Lista de colunas que devem existir
+            colunas_necessarias = [
+                ('atribuido_por_id', 'INTEGER'),
+                ('fechado_por_id', 'INTEGER'),
+                ('observacoes', 'TEXT'),
+                ('qtd_reaberturas', 'INTEGER DEFAULT 0'),
+                ('chamado_origem_id', 'INTEGER')
+            ]
+
+            for coluna, tipo in colunas_necessarias:
+                try:
+                    # Tentar fazer SELECT da coluna
+                    db.session.execute(text(f"SELECT {coluna} FROM chamado LIMIT 1"))
+                    print(f"✅ Coluna {coluna} já existe")
+                except Exception:
+                    # Coluna não existe, adicionar
+                    try:
+                        db.session.execute(text(f"ALTER TABLE chamado ADD COLUMN {coluna} {tipo}"))
+                        db.session.commit()
+                        print(f"✅ Coluna {coluna} adicionada")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao adicionar coluna {coluna}: {str(e)}")
+
+        except Exception as e:
+            print(f"⚠️ Erro ao verificar colunas: {str(e)}")
+
         print("✅ Verificação e atualização da estrutura do banco concluída!")
 
     except Exception as e:
