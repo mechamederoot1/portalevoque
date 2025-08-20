@@ -987,7 +987,7 @@ function attachCardEventListeners() {
 function initializeSubmenuFilters() {
     // Aguardar um pouco para garantir que o DOM está pronto
     setTimeout(() => {
-        const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a');
+        const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a[data-status]');
         console.log('Inicializando filtros do submenu, links encontrados:', submenuLinks.length);
 
         if (submenuLinks.length === 0) {
@@ -997,8 +997,14 @@ function initializeSubmenuFilters() {
         }
 
         submenuLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
+            // Remove existing listeners by cloning
+            const newLink = link.cloneNode(true);
+            link.parentNode.replaceChild(newLink, link);
+
+            newLink.addEventListener('click', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
+
                 const status = this.getAttribute('data-status');
                 console.log('Filtro selecionado:', status);
 
@@ -1015,6 +1021,8 @@ function initializeSubmenuFilters() {
                     loadChamados().then(() => {
                         console.log('Dados carregados, aplicando filtro...');
                         renderChamadosPage(currentPage);
+                    }).catch(error => {
+                        console.error('Erro ao carregar dados:', error);
                     });
                 } else {
                     console.log('Dados já disponíveis, aplicando filtro...');
@@ -3723,7 +3731,7 @@ function renderizarUsuarios(usuarios) {
         const sobrenome = usuario.sobrenome || '';
         const email = usuario.email || 'Email não informado';
         const usuarioLogin = usuario.usuario || 'Usuário não informado';
-        const nivelAcesso = usuario.nivel_acesso || 'Não definido';
+        const nivelAcesso = usuario.nivel_acesso || 'N��o definido';
         const setores = usuario.setores || usuario.setor || 'Não definido';
         const dataCriacao = usuario.data_criacao || usuario.data_cadastro || 'Não informado';
         const bloqueado = Boolean(usuario.bloqueado);
@@ -5082,7 +5090,7 @@ async function carregarDashboardAvancado() {
         if (dashTotalUsuarios) dashTotalUsuarios.textContent = '124';
         if (dashTaxaAtividade) dashTaxaAtividade.textContent = '85% ativos este mês';
 
-        // Adicionar event listener para o botão atualizar
+        // Adicionar event listener para o bot��o atualizar
         const btnAtualizar = document.getElementById('btnAtualizarDashboard');
         if (btnAtualizar) {
             btnAtualizar.addEventListener('click', () => {
