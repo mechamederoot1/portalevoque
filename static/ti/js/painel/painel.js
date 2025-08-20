@@ -1861,7 +1861,7 @@ function attachUsuariosEventListeners() {
     });
 }
 
-// Função para abrir modal de edição
+// Função para abrir modal de ediç��o
 function abrirModalEditarUsuario(usuarioId) {
     // Check in both usuariosData arrays (if using different data sources)
     let usuario = null;
@@ -2528,6 +2528,11 @@ function initializePainel() {
 
     // Inicializar event listeners de filtros
     initializeFilterListeners();
+
+    // Inicializar filtros do submenu
+    setTimeout(() => {
+        initializeSubmenuFilters();
+    }, 500);
 }
 
 // Try multiple initialization methods to ensure it works
@@ -4790,7 +4795,7 @@ async function carregarMonitoramentoMikrotiks() {
                     <td>${eq.ip}</td>
                     <td>
                         <span class="badge bg-${eq.status === 'online' ? 'success' : eq.status === 'warning' ? 'warning' : 'danger'}">
-                            ${eq.status === 'online' ? 'Online' : eq.status === 'warning' ? 'Atenção' : 'Offline'}
+                            ${eq.status === 'online' ? 'Online' : eq.status === 'warning' ? 'Atenç��o' : 'Offline'}
                         </span>
                     </td>
                     <td>${eq.uptime}</td>
