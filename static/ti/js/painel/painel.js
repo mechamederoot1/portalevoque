@@ -665,7 +665,7 @@ async function updateChamadoStatus(chamadoId, novoStatus, observacoes = '') {
         // Se for status de fechamento, verificar se observações foram fornecidas
         if (['Concluido', 'Cancelado'].includes(novoStatus) && !observacoes.trim()) {
             // Solicitar observações via prompt
-            observacoes = prompt(`Observações obrigatórias para ${novoStatus.toLowerCase()} o chamado:`);
+            observacoes = prompt(`Observações obrigat��rias para ${novoStatus.toLowerCase()} o chamado:`);
             if (!observacoes || !observacoes.trim()) {
                 throw new Error('Observações são obrigatórias para concluir ou cancelar um chamado.');
             }
@@ -821,6 +821,12 @@ card.innerHTML = `
         <div class="info-row">
             <strong>Observações:</strong>
             <span class="text-muted">${chamado.observacoes}</span>
+        </div>
+        ` : ''}
+        ${chamado.atribuido_por ? `
+        <div class="info-row">
+            <strong>Atribuído por:</strong>
+            <span class="badge bg-primary">${chamado.atribuido_por}</span>
         </div>
         ` : ''}
         ${chamado.fechado_por ? `
@@ -1599,7 +1605,7 @@ document.getElementById('btnCopiarCredenciais')?.addEventListener('click', funct
     }).catch(err => {
         console.error('Erro ao copiar texto: ', err);
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showWarning('Aviso', 'Não foi possível copiar as credenciais automaticamente. Por favor, copie manualmente.');
+            window.advancedNotificationSystem.showWarning('Aviso', 'Não foi poss��vel copiar as credenciais automaticamente. Por favor, copie manualmente.');
         }
     });
 });
@@ -4069,7 +4075,7 @@ function inicializarModalGrupos() {
         btnSalvarGrupo.addEventListener('click', criarGrupo);
     }
 
-    // Adicionar botões de seleção de unidades
+    // Adicionar bot��es de seleção de unidades
     adicionarBotoesSelecaoUnidades();
 }
 
@@ -4355,7 +4361,7 @@ async function carregarConfiguracoesAvancadas() {
     } catch (error) {
         console.error('Erro ao carregar configurações avançadas:', error);
         if (window.advancedNotificationSystem) {
-            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar configurações avançadas');
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar configura��ões avançadas');
         }
     }
 }
