@@ -660,15 +660,29 @@ function aplicarFiltrosAvancados(chamados) {
 }
 
 // Função para atualizar o status de um chamado
-async function updateChamadoStatus(chamadoId, novoStatus) {
+async function updateChamadoStatus(chamadoId, novoStatus, observacoes = '') {
     try {
+        // Se for status de fechamento, verificar se observações foram fornecidas
+        if (['Concluido', 'Cancelado'].includes(novoStatus) && !observacoes.trim()) {
+            // Solicitar observações via prompt
+            observacoes = prompt(`Observações obrigatórias para ${novoStatus.toLowerCase()} o chamado:`);
+            if (!observacoes || !observacoes.trim()) {
+                throw new Error('Observações são obrigatórias para concluir ou cancelar um chamado.');
+            }
+        }
+
+        const requestBody = { status: novoStatus };
+        if (observacoes) {
+            requestBody.observacoes = observacoes.trim();
+        }
+
         // Primeiro atualiza o status
         const response = await fetch(`/ti/painel/api/chamados/${chamadoId}/status`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({ status: novoStatus })
+            body: JSON.stringify(requestBody)
         });
 
         if (!response.ok) {
@@ -702,6 +716,9 @@ async function updateChamadoStatus(chamadoId, novoStatus) {
         const chamado = chamadosData.find(c => c.id == chamadoId);
         if (chamado) {
             chamado.status = novoStatus;
+            if (observacoes) {
+                chamado.observacoes = observacoes;
+            }
         }
 
         return data;
@@ -800,6 +817,30 @@ card.innerHTML = `
                 </button>
             `}
         </div>
+        ${chamado.observacoes ? `
+        <div class="info-row">
+            <strong>Observações:</strong>
+            <span class="text-muted">${chamado.observacoes}</span>
+        </div>
+        ` : ''}
+        ${chamado.atribuido_por ? `
+        <div class="info-row">
+            <strong>Atribuído por:</strong>
+            <span class="badge bg-primary">${chamado.atribuido_por}</span>
+        </div>
+        ` : ''}
+        ${chamado.fechado_por ? `
+        <div class="info-row">
+            <strong>Fechado por:</strong>
+            <span class="badge bg-secondary">${chamado.fechado_por}</span>
+        </div>
+        ` : ''}
+        ${chamado.qtd_reaberturas && chamado.qtd_reaberturas > 0 ? `
+        <div class="info-row">
+            <strong>Reaberturas:</strong>
+            <span class="badge bg-warning text-dark">${chamado.qtd_reaberturas}x</span>
+        </div>
+        ` : ''}
     </div>
     <div class="card-footer">
         <select id="status-${chamado.id}">
@@ -987,7 +1028,7 @@ function attachCardEventListeners() {
 function initializeSubmenuFilters() {
     // Aguardar um pouco para garantir que o DOM está pronto
     setTimeout(() => {
-        const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a');
+        const submenuLinks = document.querySelectorAll('#submenu-gerenciar-chamados a[data-status]');
         console.log('Inicializando filtros do submenu, links encontrados:', submenuLinks.length);
 
         if (submenuLinks.length === 0) {
@@ -997,8 +1038,14 @@ function initializeSubmenuFilters() {
         }
 
         submenuLinks.forEach(link => {
-            link.addEventListener('click', function(e) {
+            // Remove existing listeners by cloning
+            const newLink = link.cloneNode(true);
+            link.parentNode.replaceChild(newLink, link);
+
+            newLink.addEventListener('click', function(e) {
                 e.preventDefault();
+                e.stopPropagation();
+
                 const status = this.getAttribute('data-status');
                 console.log('Filtro selecionado:', status);
 
@@ -1015,6 +1062,8 @@ function initializeSubmenuFilters() {
                     loadChamados().then(() => {
                         console.log('Dados carregados, aplicando filtro...');
                         renderChamadosPage(currentPage);
+                    }).catch(error => {
+                        console.error('Erro ao carregar dados:', error);
                     });
                 } else {
                     console.log('Dados já disponíveis, aplicando filtro...');
@@ -1039,6 +1088,124 @@ function initializeSubmenuFilters() {
 
 // Tornar função global para facilitar debug
 window.initializeSubmenuFilters = initializeSubmenuFilters;
+
+// Função para carregar histórico de chamados
+async function carregarHistoricoChamados() {
+    try {
+        const dias = document.getElementById('filtroHistoricoData')?.value || 30;
+        const response = await fetch(`/ti/painel/api/chamados/historico?dias=${dias}`, {
+            credentials: 'same-origin',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Erro ao carregar histórico: ${response.status}`);
+        }
+
+        const historico = await response.json();
+        exibirHistoricoChamados(historico);
+    } catch (error) {
+        console.error('Erro ao carregar histórico:', error);
+        if (window.advancedNotificationSystem) {
+            window.advancedNotificationSystem.showError('Erro', 'Erro ao carregar histórico de chamados');
+        }
+    }
+}
+
+// Função para exibir o histórico na interface
+function exibirHistoricoChamados(historico) {
+    const container = document.getElementById('historicoContainer');
+    if (!container) {
+        console.warn('Container do histórico não encontrado');
+        return;
+    }
+
+    if (!historico || historico.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-4">
+                <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                <h5>Nenhum histórico encontrado</h5>
+                <p class="text-muted">Não há ações registradas no período selecionado</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+    historico.forEach(item => {
+        const iconePorAcao = {
+            'status_alterado': 'fa-edit',
+            'atribuido': 'fa-user-plus',
+            'reaberto': 'fa-redo',
+            'criado': 'fa-plus',
+            'fechado': 'fa-check',
+            'cancelado': 'fa-times'
+        };
+
+        const corPorAcao = {
+            'status_alterado': 'primary',
+            'atribuido': 'info',
+            'reaberto': 'warning',
+            'criado': 'success',
+            'fechado': 'secondary',
+            'cancelado': 'danger'
+        };
+
+        const icone = iconePorAcao[item.acao] || 'fa-info';
+        const cor = corPorAcao[item.acao] || 'primary';
+
+        html += `
+            <div class="card mb-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-start">
+                        <div class="me-3">
+                            <i class="fas ${icone} fa-2x text-${cor}"></i>
+                        </div>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-1">
+                                <span class="badge bg-${cor}">${item.acao.toUpperCase()}</span>
+                                Chamado ${item.chamado_codigo}
+                            </h6>
+                            <p class="mb-1">
+                                <strong>Usuário:</strong> ${item.usuario_nome}<br>
+                                ${item.status_anterior && item.status_novo ?
+                                    `<strong>Mudança:</strong> ${item.status_anterior} → ${item.status_novo}<br>` : ''}
+                                <strong>Data:</strong> ${item.data_acao}
+                            </p>
+                            ${item.observacoes ? `
+                                <p class="mb-0 text-muted">
+                                    <strong>Observações:</strong> ${item.observacoes}
+                                </p>
+                            ` : ''}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+
+    container.innerHTML = html;
+}
+
+// Tornar função global
+window.carregarHistoricoChamados = carregarHistoricoChamados;
+
+// Event listeners para filtros do histórico
+document.addEventListener('DOMContentLoaded', function() {
+    // Botão atualizar histórico
+    const btnAtualizarHistorico = document.getElementById('btnAtualizarHistorico');
+    if (btnAtualizarHistorico) {
+        btnAtualizarHistorico.addEventListener('click', carregarHistoricoChamados);
+    }
+
+    // Filtro de período
+    const filtroHistoricoData = document.getElementById('filtroHistoricoData');
+    if (filtroHistoricoData) {
+        filtroHistoricoData.addEventListener('change', carregarHistoricoChamados);
+    }
+});
 
 // Modal Chamado - Elementos
 const modal = document.getElementById('modalChamado');
@@ -1824,7 +1991,7 @@ function attachUsuariosEventListeners() {
     });
 }
 
-// Função para abrir modal de edição
+// Função para abrir modal de ediç��o
 function abrirModalEditarUsuario(usuarioId) {
     // Check in both usuariosData arrays (if using different data sources)
     let usuario = null;
@@ -2207,6 +2374,12 @@ function loadSectionContent(sectionId) {
             }, 300);
             atualizarContadoresVisaoGeral();
             break;
+        case 'historico':
+            // Carregar histórico de chamados
+            if (typeof carregarHistoricoChamados === 'function') {
+                carregarHistoricoChamados();
+            }
+            break;
         case 'agentes-suporte':
             // Carregar agentes de suporte
             console.log('Carregando seção de agentes de suporte...');
@@ -2491,6 +2664,11 @@ function initializePainel() {
 
     // Inicializar event listeners de filtros
     initializeFilterListeners();
+
+    // Inicializar filtros do submenu
+    setTimeout(() => {
+        initializeSubmenuFilters();
+    }, 500);
 }
 
 // Try multiple initialization methods to ensure it works
@@ -3703,7 +3881,7 @@ function renderizarUsuarios(usuarios) {
                     <div class="empty-icon">
                         <i class="fas fa-search fa-3x text-muted"></i>
                     </div>
-                    <h4>Nenhum usuário encontrado</h4>
+                    <h4>Nenhum usu��rio encontrado</h4>
                     <p class="text-muted">Tente usar termos de busca diferentes</p>
                 </div>
             </div>
@@ -3711,7 +3889,7 @@ function renderizarUsuarios(usuarios) {
         return;
     }
 
-    // Renderizar cards dos usu��rios com verificações de segurança
+    // Renderizar cards dos usu���rios com verificações de segurança
     usuariosGrid.innerHTML = usuarios.map(usuario => {
         // Verificações de propriedades essenciais
         if (!usuario || typeof usuario !== 'object') {
@@ -3723,7 +3901,7 @@ function renderizarUsuarios(usuarios) {
         const sobrenome = usuario.sobrenome || '';
         const email = usuario.email || 'Email não informado';
         const usuarioLogin = usuario.usuario || 'Usuário não informado';
-        const nivelAcesso = usuario.nivel_acesso || 'Não definido';
+        const nivelAcesso = usuario.nivel_acesso || 'N��o definido';
         const setores = usuario.setores || usuario.setor || 'Não definido';
         const dataCriacao = usuario.data_criacao || usuario.data_cadastro || 'Não informado';
         const bloqueado = Boolean(usuario.bloqueado);
@@ -4753,7 +4931,7 @@ async function carregarMonitoramentoMikrotiks() {
                     <td>${eq.ip}</td>
                     <td>
                         <span class="badge bg-${eq.status === 'online' ? 'success' : eq.status === 'warning' ? 'warning' : 'danger'}">
-                            ${eq.status === 'online' ? 'Online' : eq.status === 'warning' ? 'Atenção' : 'Offline'}
+                            ${eq.status === 'online' ? 'Online' : eq.status === 'warning' ? 'Atenç��o' : 'Offline'}
                         </span>
                     </td>
                     <td>${eq.uptime}</td>
@@ -5082,7 +5260,7 @@ async function carregarDashboardAvancado() {
         if (dashTotalUsuarios) dashTotalUsuarios.textContent = '124';
         if (dashTaxaAtividade) dashTaxaAtividade.textContent = '85% ativos este mês';
 
-        // Adicionar event listener para o botão atualizar
+        // Adicionar event listener para o bot��o atualizar
         const btnAtualizar = document.getElementById('btnAtualizarDashboard');
         if (btnAtualizar) {
             btnAtualizar.addEventListener('click', () => {

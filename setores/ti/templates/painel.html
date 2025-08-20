@@ -1691,21 +1691,184 @@
 
     <!-- Histórico -->
     <section id="historico" class="content-section" tabindex="0" aria-label="Histórico">
-      <h2>Histórico</h2>
-      <div class="table-responsive">
-        <table class="table table-dark table-striped">
-          <thead>
-            <tr>
-              <th>Data/Hora</th>
-              <th>Ação</th>
-              <th>Usuário</th>
-              <th>Descrição</th>
-            </tr>
-          </thead>
-          <tbody id="tabelaHistorico">
-            <!-- Histórico será carregado aqui dinamicamente -->
-          </tbody>
-        </table>
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="fas fa-history me-2"></i>Histórico de Chamados</h2>
+        <button class="btn btn-primary" id="btnAtualizarHistorico">
+          <i class="fas fa-sync-alt me-1"></i>Atualizar
+        </button>
+      </div>
+
+      <!-- Filtros do Histórico -->
+      <div class="card mb-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-filter me-2"></i>Filtros de Pesquisa</h5>
+        </div>
+        <div class="card-body">
+          <div class="row">
+            <div class="col-md-3">
+              <label for="filtroHistoricoStatus">Status</label>
+              <select class="form-control" id="filtroHistoricoStatus">
+                <option value="">Todos os Status</option>
+                <option value="Concluido">Concluídos</option>
+                <option value="Cancelado">Cancelados</option>
+                <option value="Aguardando">Aguardando</option>
+                <option value="Aberto">Abertos</option>
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filtroHistoricoUnidade">Unidade</label>
+              <select class="form-control" id="filtroHistoricoUnidade">
+                <option value="">Todas as Unidades</option>
+                <!-- Opções serão carregadas dinamicamente -->
+              </select>
+            </div>
+            <div class="col-md-3">
+              <label for="filtroHistoricoSolicitante">Buscar Nome</label>
+              <div class="input-group">
+                <input type="text" class="form-control" id="filtroHistoricoSolicitante" placeholder="Nome do solicitante...">
+                <button class="btn btn-outline-secondary" id="btnBuscarHistorico" title="Buscar">
+                  <i class="fas fa-search"></i>
+                </button>
+              </div>
+            </div>
+            <div class="col-md-3">
+              <label for="filtroHistoricoData">Período</label>
+              <select class="form-control" id="filtroHistoricoData">
+                <option value="7">Últimos 7 dias</option>
+                <option value="30" selected>Últimos 30 dias</option>
+                <option value="90">Últimos 90 dias</option>
+                <option value="365">Último ano</option>
+                <option value="all">Todos os períodos</option>
+              </select>
+            </div>
+          </div>
+          <div class="row mt-3">
+            <div class="col-md-3">
+              <label for="filtroHistoricoDataInicio">Data Início</label>
+              <input type="date" class="form-control" id="filtroHistoricoDataInicio">
+            </div>
+            <div class="col-md-3">
+              <label for="filtroHistoricoDataFim">Data Fim</label>
+              <input type="date" class="form-control" id="filtroHistoricoDataFim">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-secondary w-100" id="btnFiltrarHistorico">
+                <i class="fas fa-search me-1"></i>Filtrar
+              </button>
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+              <button class="btn btn-outline-secondary w-100" id="btnLimparFiltrosHistorico">
+                <i class="fas fa-times me-1"></i>Limpar
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Estatísticas do Histórico -->
+      <div class="row mb-4">
+        <div class="col-md-3">
+          <div class="card bg-success text-white">
+            <div class="card-body">
+              <h6 class="card-title">Concluídos</h6>
+              <h3 id="historicoTotalConcluidos">0</h3>
+              <small>no período filtrado</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-danger text-white">
+            <div class="card-body">
+              <h6 class="card-title">Cancelados</h6>
+              <h3 id="historicoTotalCancelados">0</h3>
+              <small>no período filtrado</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-info text-white">
+            <div class="card-body">
+              <h6 class="card-title">Tempo Médio</h6>
+              <h3 id="historicoTempoMedio">0h</h3>
+              <small>de resolução</small>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-3">
+          <div class="card bg-warning text-white">
+            <div class="card-body">
+              <h6 class="card-title">Total Filtrados</h6>
+              <h3 id="historicoTotalFiltrados">0</h3>
+              <small>chamados encontrados</small>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tabela do Histórico -->
+      <div class="card">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-list me-2"></i>Chamados do Histórico</h5>
+        </div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-dark table-striped table-hover">
+              <thead>
+                <tr>
+                  <th>Código</th>
+                  <th>Solicitante</th>
+                  <th>Unidade</th>
+                  <th>Problema</th>
+                  <th>Status</th>
+                  <th>Data Abertura</th>
+                  <th>Data Conclusão</th>
+                  <th>Fechado Por</th>
+                  <th>Observações</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody id="tabelaHistorico">
+                <!-- Histórico será carregado aqui dinamicamente -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Loading Spinner -->
+          <div id="loadingHistorico" class="text-center py-4" style="display: none;">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Carregando...</span>
+            </div>
+            <div class="mt-2">Carregando histórico...</div>
+          </div>
+
+          <!-- Paginação -->
+          <div class="d-flex justify-content-between align-items-center mt-3">
+            <div class="text-muted" id="infoRegistrosHistorico">
+              <!-- Info de paginação será preenchida aqui -->
+            </div>
+            <nav aria-label="Navegaç��o do histórico">
+              <ul class="pagination pagination-sm mb-0" id="paginacaoHistorico">
+                <!-- Botões de paginação serão gerados dinamicamente -->
+              </ul>
+            </nav>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico de Ações dos Chamados -->
+      <div class="card mt-4">
+        <div class="card-header">
+          <h5 class="card-title mb-0"><i class="fas fa-history me-2"></i>Histórico de Ações</h5>
+        </div>
+        <div class="card-body">
+          <div id="historicoContainer">
+            <!-- Histórico de ações será carregado aqui dinamicamente -->
+            <div class="text-center py-4">
+              <i class="fas fa-spinner fa-spin fa-2x text-muted mb-3"></i>
+              <p class="text-muted">Carregando histórico...</p>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -2803,7 +2966,7 @@
                     });
                 }
                 
-                console.log('Configurações de notificações carregadas:', configuracaoNotificacoes);
+                console.log('Configurações de notificaç��es carregadas:', configuracaoNotificacoes);
             }
         } catch (error) {
             console.error('Erro ao carregar configurações de notificações:', error);
@@ -3363,7 +3526,7 @@
       console.log('Exportando dados...');
       // Implementar lógica de exportação
       if (window.advancedNotificationSystem) {
-        window.advancedNotificationSystem.showInfo('Exportação', 'Exportação iniciada! O arquivo será baixado em breve.');
+        window.advancedNotificationSystem.showInfo('Exportação', 'Exporta��ão iniciada! O arquivo será baixado em breve.');
       }
     }
 

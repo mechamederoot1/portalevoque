@@ -365,6 +365,66 @@ def abrir_chamado():
                 # Usar horário do Brasil para data de abertura
                 data_abertura_brazil = get_brazil_time()
 
+                # *** SISTEMA DE REABERTURA DE CHAMADOS ***
+                # Verificar se há chamado similar nos últimos 7 dias para reabrir
+                sete_dias_atras = data_abertura_brazil - timedelta(days=7)
+
+                chamado_similar = Chamado.query.filter(
+                    Chamado.problema == problema_nome,
+                    Chamado.unidade == unidade_nome_completo,
+                    Chamado.email == dados_chamado['email'],
+                    Chamado.status.in_(['Concluido', 'Cancelado']),
+                    Chamado.data_conclusao >= sete_dias_atras.replace(tzinfo=None)
+                ).order_by(Chamado.data_conclusao.desc()).first()
+
+                if chamado_similar:
+                    # Reabrir o chamado existente ao invés de criar novo
+                    chamado_similar.status = 'Aberto'
+                    chamado_similar.qtd_reaberturas += 1
+                    chamado_similar.data_abertura = data_abertura_brazil.replace(tzinfo=None)
+                    chamado_similar.data_conclusao = None
+                    chamado_similar.fechado_por_id = None
+
+                    # Atualizar descrição com nova informação
+                    nova_descricao = f"[REABERTURA #{chamado_similar.qtd_reaberturas} em {data_abertura_brazil.strftime('%d/%m/%Y %H:%M')}]\n{descricao_completa}"
+                    if chamado_similar.descricao:
+                        chamado_similar.descricao = nova_descricao + "\n\n--- HISTÓRICO ANTERIOR ---\n" + chamado_similar.descricao
+                    else:
+                        chamado_similar.descricao = nova_descricao
+
+                    # Adicionar histórico da reabertura
+                    from database import HistoricoChamado
+                    historico_reabertura = HistoricoChamado(
+                        chamado_id=chamado_similar.id,
+                        usuario_id=current_user.id,
+                        acao='reaberto',
+                        status_anterior='Concluido' if chamado_similar.status == 'Concluido' else 'Cancelado',
+                        status_novo='Aberto',
+                        observacoes=f"Chamado reaberto automaticamente - {chamado_similar.qtd_reaberturas}ª reabertura"
+                    )
+                    db.session.add(historico_reabertura)
+
+                    db.session.commit()
+
+                    # Emitir evento Socket.IO para reabertura
+                    if hasattr(current_app, 'socketio'):
+                        current_app.socketio.emit('chamado_reaberto', {
+                            'id': chamado_similar.id,
+                            'codigo': chamado_similar.codigo,
+                            'solicitante': chamado_similar.solicitante,
+                            'qtd_reaberturas': chamado_similar.qtd_reaberturas
+                        })
+
+                    return jsonify({
+                        'status': 'success',
+                        'message': f'Chamado {chamado_similar.codigo} foi reaberto automaticamente (Reabertura #{chamado_similar.qtd_reaberturas})',
+                        'codigo': chamado_similar.codigo,
+                        'protocolo': chamado_similar.protocolo,
+                        'reaberto': True,
+                        'qtd_reaberturas': chamado_similar.qtd_reaberturas
+                    })
+
+                # Criar novo chamado se não encontrou similar para reabrir
                 novo_chamado = Chamado(
                     codigo=codigo_gerado,
                     protocolo=protocolo_gerado,

@@ -18,7 +18,7 @@ from datetime import timedelta, datetime
 from flask_socketio import SocketIO, emit
 import json
 
-# IMPORTAÇÕES DE SEGURANÇA
+# IMPORTAÇ��ES DE SEGURANÇA
 from security.middleware import SecurityMiddleware
 from security.session_security import SessionSecurity
 from security.security_config import SecurityConfig
@@ -70,6 +70,53 @@ def add_missing_structures():
 
         # Criar todas as tabelas se não existirem
         db.create_all()
+
+        # Verificar se tabela de histórico existe
+        try:
+            from database import HistoricoChamado
+            # Tentar fazer uma query simples
+            HistoricoChamado.query.limit(1).all()
+            print("✅ Tabela HistoricoChamado existe")
+        except Exception as e:
+            print(f"⚠️ Erro com tabela HistoricoChamado: {str(e)}")
+            # Tentar criar novamente
+            try:
+                db.create_all()
+                print("✅ Tabelas recriadas")
+            except Exception as e2:
+                print(f"❌ Erro ao recriar tabelas: {str(e2)}")
+
+        # Adicionar colunas faltantes para novos recursos
+        print("🔄 Verificando colunas faltantes...")
+        try:
+            # Testar se as novas colunas existem fazendo uma query
+            from sqlalchemy import text
+
+            # Lista de colunas que devem existir
+            colunas_necessarias = [
+                ('atribuido_por_id', 'INTEGER'),
+                ('fechado_por_id', 'INTEGER'),
+                ('observacoes', 'TEXT'),
+                ('qtd_reaberturas', 'INTEGER DEFAULT 0'),
+                ('chamado_origem_id', 'INTEGER')
+            ]
+
+            for coluna, tipo in colunas_necessarias:
+                try:
+                    # Tentar fazer SELECT da coluna
+                    db.session.execute(text(f"SELECT {coluna} FROM chamado LIMIT 1"))
+                    print(f"✅ Coluna {coluna} já existe")
+                except Exception:
+                    # Coluna não existe, adicionar
+                    try:
+                        db.session.execute(text(f"ALTER TABLE chamado ADD COLUMN {coluna} {tipo}"))
+                        db.session.commit()
+                        print(f"✅ Coluna {coluna} adicionada")
+                    except Exception as e:
+                        print(f"⚠️ Erro ao adicionar coluna {coluna}: {str(e)}")
+
+        except Exception as e:
+            print(f"⚠️ Erro ao verificar colunas: {str(e)}")
 
         print("✅ Verificação e atualização da estrutura do banco concluída!")
 

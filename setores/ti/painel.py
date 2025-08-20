@@ -637,7 +637,7 @@ def salvar_configuracoes_api():
             campos_bool = ['email_novo_chamado', 'email_status_mudou', 'notificar_sla_risco', 'notificar_novos_usuarios', 'som_habilitado']
             for campo in campos_bool:
                 if campo in notif_config and not isinstance(notif_config[campo], bool):
-                    return error_response(f'Campo de notificação {campo} deve ser booleano', 400)
+                    return error_response(f'Campo de notificaç��o {campo} deve ser booleano', 400)
         
         # Salvar no banco de dados
         sucesso = salvar_configuracoes_db(data)
@@ -1758,7 +1758,7 @@ def migrar_tabelas_sla():
         if horarios_existentes == 0:
             # Criar horário comercial padrão
             horario_padrao = HorarioComercial(
-                nome='Horário Padrão',
+                nome='Horário Padr��o',
                 descricao='Horário comercial padrão da empresa (08:00 às 18:00, segunda a sexta)',
                 hora_inicio=time(8, 0),
                 hora_fim=time(18, 0),
@@ -2326,7 +2326,7 @@ def adicionar_unidade():
         
         nome = data['nome'].strip()
         if not nome:
-            return error_response('Nome da unidade não pode ser vazio.', 400)
+            return error_response('Nome da unidade n��o pode ser vazio.', 400)
         
         if Unidade.query.filter_by(nome=nome).first():
             return error_response('Unidade com este nome já existe.', 400)
@@ -2411,11 +2411,60 @@ def remover_unidade(id):
 
 # ==================== CHAMADOS ====================
 
+@painel_bp.route('/api/chamados/historico', methods=['GET'])
+@login_required
+@setor_required('TI')
+def obter_historico_acoes_chamados():
+    """Retorna histórico de ações dos chamados"""
+    try:
+        from database import HistoricoChamado, User
+
+        # Parâmetros de filtro
+        chamado_id = request.args.get('chamado_id', type=int)
+        dias = request.args.get('dias', 30, type=int)
+
+        # Base da query
+        query = db.session.query(HistoricoChamado).join(
+            User, HistoricoChamado.usuario_id == User.id
+        ).join(
+            Chamado, HistoricoChamado.chamado_id == Chamado.id
+        )
+
+        # Filtrar por chamado específico se fornecido
+        if chamado_id:
+            query = query.filter(HistoricoChamado.chamado_id == chamado_id)
+        else:
+            # Filtrar por período
+            data_limite = datetime.now() - timedelta(days=dias)
+            query = query.filter(HistoricoChamado.data_acao >= data_limite)
+
+        historico = query.order_by(HistoricoChamado.data_acao.desc()).limit(100).all()
+
+        historico_list = []
+        for h in historico:
+            historico_list.append({
+                'id': h.id,
+                'chamado_id': h.chamado_id,
+                'chamado_codigo': h.chamado.codigo,
+                'usuario_nome': f"{h.usuario.nome} {h.usuario.sobrenome}",
+                'acao': h.acao,
+                'status_anterior': h.status_anterior,
+                'status_novo': h.status_novo,
+                'observacoes': h.observacoes,
+                'data_acao': h.data_acao.strftime('%d/%m/%Y %H:%M:%S')
+            })
+
+        return json_response(historico_list)
+    except Exception as e:
+        logger.error(f"Erro ao obter histórico: {str(e)}")
+        return error_response('Erro interno ao obter histórico')
+
 @painel_bp.route('/api/chamados', methods=['GET'])
 @login_required
 @setor_required('TI')
 def listar_chamados():
     try:
+        print("🔍 DEBUG: Iniciando listar_chamados()")
         logger.debug("Iniciando consulta de chamados...")
         from database import ChamadoAgente, AgenteSuporte, User
 
@@ -2455,6 +2504,26 @@ def listar_chamados():
                         'nivel_experiencia': chamado_agente.agente.nivel_experiencia
                     }
 
+                # Buscar informações de quem fechou o chamado
+                fechado_por_info = None
+                if hasattr(c, 'fechado_por_id') and c.fechado_por_id:
+                    try:
+                        fechado_por = User.query.get(c.fechado_por_id)
+                        if fechado_por:
+                            fechado_por_info = f"{fechado_por.nome} {fechado_por.sobrenome}"
+                    except:
+                        pass
+
+                # Buscar informações de quem atribuiu o chamado
+                atribuido_por_info = None
+                if hasattr(c, 'atribuido_por_id') and c.atribuido_por_id:
+                    try:
+                        atribuido_por = User.query.get(c.atribuido_por_id)
+                        if atribuido_por:
+                            atribuido_por_info = f"{atribuido_por.nome} {atribuido_por.sobrenome}"
+                    except:
+                        pass
+
                 chamado_data = {
                     'id': c.id,
                     'codigo': c.codigo if hasattr(c, 'codigo') else None,
@@ -2472,6 +2541,10 @@ def listar_chamados():
                     'status': c.status if hasattr(c, 'status') else 'Aberto',
                     'prioridade': c.prioridade if hasattr(c, 'prioridade') else 'Normal',
                     'visita_tecnica': c.visita_tecnica if hasattr(c, 'visita_tecnica') else False,
+                    'observacoes': c.observacoes if hasattr(c, 'observacoes') else None,
+                    'fechado_por': fechado_por_info,
+                    'atribuido_por': atribuido_por_info,
+                    'qtd_reaberturas': c.qtd_reaberturas if hasattr(c, 'qtd_reaberturas') else 0,
                     'agente': agente_info,
                     'agente_id': agente_info['id'] if agente_info else None
                 }
@@ -2649,24 +2722,48 @@ def atualizar_status_chamado(id):
         novo_status = data['status'].strip()
         if novo_status not in ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']:
             return error_response('Status inválido.', 400)
+
+        # Para status de fechamento, verificar se observações são obrigatórias
+        if novo_status in ['Concluido', 'Cancelado']:
+            observacoes = data.get('observacoes', '').strip()
+            if not observacoes:
+                return error_response('Observações são obrigatórias ao concluir ou cancelar um chamado.', 400)
+
         chamado = Chamado.query.get(id)
         if not chamado:
             return error_response('Chamado não encontrado.', 404)
-        
+
         status_anterior = chamado.status
         chamado.status = novo_status
-        
+
+        # Atualizar campos de rastreamento
+        if novo_status in ['Concluido', 'Cancelado']:
+            chamado.fechado_por_id = current_user.id
+            chamado.observacoes = data.get('observacoes', '').strip()
+
         # Atualizar campos de SLA baseado na mudança de status
         agora_brazil = get_brazil_time()
-        
+
         # Se estava "Aberto" e mudou para outro status, registrar primeira resposta
         if status_anterior == 'Aberto' and novo_status != 'Aberto' and not chamado.data_primeira_resposta:
             chamado.data_primeira_resposta = agora_brazil.replace(tzinfo=None)
-        
+
         # Se mudou para "Concluido" ou "Cancelado", registrar conclusão
         if novo_status in ['Concluido', 'Cancelado'] and not chamado.data_conclusao:
             chamado.data_conclusao = agora_brazil.replace(tzinfo=None)
-        
+
+        # Registrar no histórico
+        from database import HistoricoChamado
+        historico = HistoricoChamado(
+            chamado_id=chamado.id,
+            usuario_id=current_user.id,
+            acao='status_alterado',
+            status_anterior=status_anterior,
+            status_novo=novo_status,
+            observacoes=data.get('observacoes', '')
+        )
+        db.session.add(historico)
+
         db.session.commit()
         
         # Buscar informações do agente para incluir na resposta
@@ -3281,7 +3378,7 @@ def deletar_usuario(user_id):
 
         # Verificar se o usuário está tentando excluir a si mesmo
         if usuario.id == current_user.id:
-            return error_response('Não é possível excluir seu próprio usuário', 400)
+            return error_response('Não é possível excluir seu próprio usu��rio', 400)
 
         # Verificar dependências - chamados criados
         from database import Chamado
@@ -3311,7 +3408,7 @@ def deletar_usuario(user_id):
             logger.warning(f"Erro ao emitir evento Socket.IO: {str(socket_error)}")
         
         logger.info(f"Usuário {nome_usuario} foi deletado")
-        return json_response({'message': 'Usuário deletado com sucesso'})
+        return json_response({'message': 'Usu��rio deletado com sucesso'})
     except Exception as e:
         db.session.rollback()
         logger.error(f"Erro ao deletar usuário {user_id}: {str(e)}")
@@ -4615,7 +4712,7 @@ def excluir_agente(agente_id):
 
         nome_agente = agente.usuario.nome
 
-        # Finalizar todas as atribuições antigas
+        # Finalizar todas as atribuiç��es antigas
         ChamadoAgente.query.filter_by(agente_id=agente_id, ativo=True).update({
             'ativo': False,
             'data_conclusao': get_brazil_time().replace(tzinfo=None)
@@ -4633,6 +4730,156 @@ def excluir_agente(agente_id):
         logger.error(f"Erro ao excluir agente: {str(e)}")
         logger.error(traceback.format_exc())
         return error_response('Erro interno no servidor')
+
+@painel_bp.route('/api/historico', methods=['GET'])
+@login_required
+@setor_required('TI')
+def obter_historico_chamados():
+    """Endpoint para obter histórico de chamados com filtros avançados"""
+    try:
+        # Parâmetros de filtro
+        status = request.args.get('status', '')
+        unidade = request.args.get('unidade', '')
+        solicitante = request.args.get('solicitante', '')
+        data_inicio = request.args.get('data_inicio', '')
+        data_fim = request.args.get('data_fim', '')
+        periodo = request.args.get('periodo', '30')  # dias
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+
+        logger.debug(f"Filtros do histórico: status={status}, unidade={unidade}, solicitante={solicitante}")
+
+        # Query base
+        query = Chamado.query
+
+        # Aplicar filtros
+        if status:
+            query = query.filter(Chamado.status == status)
+
+        if unidade:
+            query = query.filter(Chamado.unidade == unidade)
+
+        if solicitante:
+            query = query.filter(Chamado.solicitante.ilike(f'%{solicitante}%'))
+
+        # Filtro de data
+        if data_inicio and data_fim:
+            try:
+                from datetime import datetime
+                inicio = datetime.strptime(data_inicio, '%Y-%m-%d')
+                fim = datetime.strptime(data_fim, '%Y-%m-%d')
+                fim = fim.replace(hour=23, minute=59, second=59)  # Incluir todo o dia final
+                query = query.filter(Chamado.data_abertura.between(inicio, fim))
+            except ValueError:
+                pass
+        elif periodo != 'all':
+            try:
+                from datetime import datetime, timedelta
+                dias = int(periodo)
+                data_limite = datetime.now() - timedelta(days=dias)
+                query = query.filter(Chamado.data_abertura >= data_limite)
+            except ValueError:
+                pass
+
+        # Ordenar por data de abertura mais recente
+        query = query.order_by(Chamado.data_abertura.desc())
+
+        # Paginação
+        chamados_paginados = query.paginate(
+            page=page,
+            per_page=per_page,
+            error_out=False
+        )
+
+        # Preparar dados para resposta
+        chamados_list = []
+        total_concluidos = 0
+        total_cancelados = 0
+        tempos_resolucao = []
+
+        for c in chamados_paginados.items:
+            try:
+                # Converter datas
+                data_abertura_brazil = c.get_data_abertura_brazil()
+                data_abertura_str = data_abertura_brazil.strftime('%d/%m/%Y %H:%M') if data_abertura_brazil else None
+
+                data_conclusao_str = None
+                if c.data_conclusao:
+                    data_conclusao_brazil = c.get_data_conclusao_brazil()
+                    data_conclusao_str = data_conclusao_brazil.strftime('%d/%m/%Y %H:%M') if data_conclusao_brazil else None
+
+                # Buscar informações de quem fechou
+                fechado_por_info = None
+                if c.fechado_por_id:
+                    try:
+                        fechado_por = User.query.get(c.fechado_por_id)
+                        if fechado_por:
+                            fechado_por_info = f"{fechado_por.nome} {fechado_por.sobrenome}"
+                    except:
+                        pass
+
+                # Calcular estatísticas
+                if c.status == 'Concluido':
+                    total_concluidos += 1
+                elif c.status == 'Cancelado':
+                    total_cancelados += 1
+
+                # Calcular tempo de resolução se o chamado foi concluído
+                if c.data_conclusao and c.data_abertura:
+                    tempo_resolucao = (c.data_conclusao - c.data_abertura).total_seconds() / 3600  # em horas
+                    tempos_resolucao.append(tempo_resolucao)
+
+                chamado_data = {
+                    'id': c.id,
+                    'codigo': c.codigo,
+                    'protocolo': c.protocolo,
+                    'solicitante': c.solicitante,
+                    'unidade': c.unidade,
+                    'problema': c.problema,
+                    'status': c.status,
+                    'prioridade': c.prioridade,
+                    'data_abertura': data_abertura_str,
+                    'data_conclusao': data_conclusao_str,
+                    'fechado_por': fechado_por_info,
+                    'observacoes': c.observacoes or '',
+                    'visita_tecnica': c.visita_tecnica or False
+                }
+                chamados_list.append(chamado_data)
+
+            except Exception as e:
+                logger.error(f"Erro ao processar chamado {c.id}: {str(e)}")
+                continue
+
+        # Calcular tempo médio de resolução
+        tempo_medio = 0
+        if tempos_resolucao:
+            tempo_medio = sum(tempos_resolucao) / len(tempos_resolucao)
+
+        # Preparar resposta
+        resposta = {
+            'chamados': chamados_list,
+            'estatisticas': {
+                'total_concluidos': total_concluidos,
+                'total_cancelados': total_cancelados,
+                'tempo_medio_resolucao': round(tempo_medio, 1),
+                'total_filtrados': chamados_paginados.total
+            },
+            'paginacao': {
+                'page': chamados_paginados.page,
+                'pages': chamados_paginados.pages,
+                'per_page': chamados_paginados.per_page,
+                'total': chamados_paginados.total,
+                'has_next': chamados_paginados.has_next,
+                'has_prev': chamados_paginados.has_prev
+            }
+        }
+
+        return json_response(resposta)
+
+    except Exception as e:
+        logger.error(f"Erro ao obter histórico: {str(e)}")
+        logger.error(traceback.format_exc())
+        return error_response('Erro interno ao obter histórico')
 
 @painel_bp.route('/api/chamados/<int:chamado_id>/atribuir', methods=['POST'])
 @login_required
@@ -4673,6 +4920,9 @@ def atribuir_chamado(chamado_id):
         if atribuicao_existente:
             # Finalizar atribui��ão anterior
             atribuicao_existente.finalizar_atribuicao()
+
+        # Atualizar o chamado com quem fez a atribuição
+        chamado.atribuido_por_id = current_user.id
 
         # Criar nova atribuição
         nova_atribuicao = ChamadoAgente(
