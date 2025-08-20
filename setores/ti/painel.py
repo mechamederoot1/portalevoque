@@ -400,7 +400,7 @@ def setup_database_endpoint():
             telefone='(11) 88888-8888',
             unidade='Unidade Principal',
             problema='Computador/Notebook',
-            descricao='Computador n��o liga. Verificar cabo de força.',
+            descricao='Computador não liga. Verificar cabo de força.',
             status='Concluido',
             prioridade='Normal',
             data_abertura=hoje_09h,
@@ -2326,7 +2326,7 @@ def adicionar_unidade():
         
         nome = data['nome'].strip()
         if not nome:
-            return error_response('Nome da unidade não pode ser vazio.', 400)
+            return error_response('Nome da unidade n��o pode ser vazio.', 400)
         
         if Unidade.query.filter_by(nome=nome).first():
             return error_response('Unidade com este nome já existe.', 400)
@@ -2543,6 +2543,7 @@ def listar_chamados():
                     'observacoes': c.observacoes if hasattr(c, 'observacoes') else None,
                     'fechado_por': fechado_por_info,
                     'atribuido_por': atribuido_por_info,
+                    'qtd_reaberturas': c.qtd_reaberturas if hasattr(c, 'qtd_reaberturas') else 0,
                     'agente': agente_info,
                     'agente_id': agente_info['id'] if agente_info else None
                 }
@@ -3809,7 +3810,7 @@ def limpar_historico_violacoes_sla():
         # Recalcular SLA para todos os chamados afetados (opcional)
         logger.info(f"Processamento concluído: {chamados_corrigidos} chamados corrigidos")
 
-        # For��ar recálculo das métricas SLA após correção
+        # Forçar recálculo das métricas SLA após correção
         logger.info("Recalculando métricas SLA após correção...")
         metricas_atualizadas = obter_metricas_sla_consolidadas(30)
 
@@ -4806,7 +4807,7 @@ def obter_historico_chamados():
                     data_conclusao_brazil = c.get_data_conclusao_brazil()
                     data_conclusao_str = data_conclusao_brazil.strftime('%d/%m/%Y %H:%M') if data_conclusao_brazil else None
 
-                # Buscar informaç��es de quem fechou
+                # Buscar informações de quem fechou
                 fechado_por_info = None
                 if c.fechado_por_id:
                     try:
@@ -4907,7 +4908,7 @@ def atribuir_chamado(chamado_id):
             return error_response('Agente não está ativo')
 
         if not agente.pode_receber_chamado():
-            return error_response('Agente já atingiu o limite m��ximo de chamados simultâneos')
+            return error_response('Agente já atingiu o limite máximo de chamados simultâneos')
 
         # Verificar se já há atribuição ativa
         atribuicao_existente = ChamadoAgente.query.filter_by(
