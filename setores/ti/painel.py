@@ -1606,7 +1606,7 @@ def salvar_horario_comercial_api():
 
         data = request.get_json()
         if not data:
-            return error_response('Dados não fornecidos', 400)
+            return error_response('Dados n��o fornecidos', 400)
 
         # Validar dados obrigatórios
         campos_obrigatorios = ['hora_inicio', 'hora_fim']
@@ -2649,24 +2649,48 @@ def atualizar_status_chamado(id):
         novo_status = data['status'].strip()
         if novo_status not in ['Aberto', 'Aguardando', 'Concluido', 'Cancelado']:
             return error_response('Status inválido.', 400)
+
+        # Para status de fechamento, verificar se observações são obrigatórias
+        if novo_status in ['Concluido', 'Cancelado']:
+            observacoes = data.get('observacoes', '').strip()
+            if not observacoes:
+                return error_response('Observações são obrigatórias ao concluir ou cancelar um chamado.', 400)
+
         chamado = Chamado.query.get(id)
         if not chamado:
             return error_response('Chamado não encontrado.', 404)
-        
+
         status_anterior = chamado.status
         chamado.status = novo_status
-        
+
+        # Atualizar campos de rastreamento
+        if novo_status in ['Concluido', 'Cancelado']:
+            chamado.fechado_por_id = current_user.id
+            chamado.observacoes = data.get('observacoes', '').strip()
+
         # Atualizar campos de SLA baseado na mudança de status
         agora_brazil = get_brazil_time()
-        
+
         # Se estava "Aberto" e mudou para outro status, registrar primeira resposta
         if status_anterior == 'Aberto' and novo_status != 'Aberto' and not chamado.data_primeira_resposta:
             chamado.data_primeira_resposta = agora_brazil.replace(tzinfo=None)
-        
+
         # Se mudou para "Concluido" ou "Cancelado", registrar conclusão
         if novo_status in ['Concluido', 'Cancelado'] and not chamado.data_conclusao:
             chamado.data_conclusao = agora_brazil.replace(tzinfo=None)
-        
+
+        # Registrar no histórico
+        from database import HistoricoChamado
+        historico = HistoricoChamado(
+            chamado_id=chamado.id,
+            usuario_id=current_user.id,
+            acao='status_alterado',
+            status_anterior=status_anterior,
+            status_novo=novo_status,
+            observacoes=data.get('observacoes', '')
+        )
+        db.session.add(historico)
+
         db.session.commit()
         
         # Buscar informações do agente para incluir na resposta
